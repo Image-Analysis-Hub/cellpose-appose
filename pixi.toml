@@ -1,0 +1,15 @@
+[workspace]
+authors = ["Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>"]
+channels = ["conda-forge"]
+name = "cellpose-appose"
+platforms = ["osx-arm64", "win-64", "linux-64", "osx-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+python = ">=3.10.3,<3.13"
+
+[pypi-dependencies]
+cellpose = ">=3, <4"
+appose = ">=0.10.1, <0.11"
