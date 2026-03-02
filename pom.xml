@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -9,8 +11,8 @@
 		<relativePath />
 	</parent>
 
-	<groupId>com.mycompany</groupId>
-	<artifactId>Simple_Read</artifactId>
+	<groupId>fiji.plugin</groupId>
+	<artifactId>Cellpose_Appose</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 
 	<name>cellpose-appose</name>
@@ -49,7 +51,9 @@
 		<contributor>
 			<name>Someone Who Contributed</name>
 			<url>http://imagej.net/User:TheirWikiUsername</url>
-			<properties><id>their-id</id></properties>
+			<properties>
+				<id>their-id</id>
+			</properties>
 		</contributor>
 	</contributors>
 
@@ -62,7 +66,8 @@
 
 	<scm>
 		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
-		<developerConnection>scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
+		<developerConnection>
+			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
 	</scm>
@@ -82,9 +87,9 @@
 		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
 
 		<!-- Use Java 21. -->
-	    <scijava.jvm.version>21</scijava.jvm.version>
-	    <scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
-		
+		<scijava.jvm.version>21</scijava.jvm.version>
+		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
+
 		<appose.version>0.10.0</appose.version>
 		<imglib2-appose.version>0.9.0</imglib2-appose.version>
 	</properties>
@@ -95,21 +100,21 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-		
+
 		<!-- Appose dependencies -->
 		<dependency>
 			<groupId>org.apposed</groupId>
 			<artifactId>appose</artifactId>
 			<version>${appose.version}</version>
 		</dependency>
-		
+
 		<!-- ImgLib2 dependencies -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-appose</artifactId>
 			<version>${imglib2-appose.version}</version>
 		</dependency>
-				<dependency>
+		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
 		</dependency>

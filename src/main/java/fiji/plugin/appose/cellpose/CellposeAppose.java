@@ -239,11 +239,12 @@ public class CellposeAppose implements PlugIn
 				+ "channels:\n"
 				+ "  - conda-forge\n"
 				+ "dependencies:\n"
-				+ "  - python=3.10\n"
+				+ "  - python=3.12\n"
 				+ "  - pip\n"
 				+ "  - scikit-image\n"
 				+ "  - pip:\n"
 				+ "    - numpy\n"
+				+ "    - cellpose\n"
 				+ "    - appose\n";
 	}
 
@@ -380,6 +381,7 @@ public class CellposeAppose implements PlugIn
 	public static void main( final String[] args )
 	{
 		ImageJ.main( args );
+		//IJ.openImage();
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run( "" );
