@@ -19,6 +19,7 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
@@ -44,7 +45,31 @@ import javax.swing.WindowConstants;
  */
 public class CellposeAppose implements PlugIn
 {
+	// Choice of cellpose model to run
+	private String[] cp_models = {"cyto3", "nuclei"};
+	private String cp_model = null;
 
+	/**
+	 * Interface to select Cellpose parameters
+	 * @return
+	 */
+	public void getParameters()
+	{
+		// Creates the interface to choose parameters
+		GenericDialog gd = new GenericDialog("Options", IJ.getInstance() );
+		Font boldy = new Font("SansSerif", Font.CENTER_BASELINE, 15);
+		gd.setFont(boldy);
+		//gd.addMessage("----------------------------------------------------------------------------------------------- ");
+		gd.addChoice("Choose_model", cp_models, cp_models[0]);
+		
+		
+		gd.showDialog();
+		if (gd.wasCanceled()) return;
+
+		// read the parameters chosen by the user
+		String cp_model = gd.getNextChoice();
+	}
+	
 	/*
 	 * This is the entry point for the plugin. This is what is called when the
 	 * user select the plugin menu entry: 'Plugins > Examples >
@@ -383,6 +408,7 @@ public class CellposeAppose implements PlugIn
 		ImageJ.main( args );
 		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
+		plugin.getParameters();
 		plugin.run( "" );
 	}
 }

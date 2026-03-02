@@ -94,6 +94,7 @@
 		<imglib2-appose.version>0.9.0</imglib2-appose.version>
 	</properties>
 
+
 	<dependencies>
 		<!-- ImageJ 1.x dependency -->
 		<dependency>
@@ -118,7 +119,15 @@
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
 		</dependency>
+		
+		    <dependency>
+        <groupId>sc.fiji</groupId>
+        <artifactId>fiji-lib</artifactId>
+      <type>jar</type>
+    </dependency>
 	</dependencies>
+	
+	
 
 	<repositories>
 		<repository>
