@@ -14,6 +14,7 @@ import org.apposed.appose.NDArray;
 import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.scijava.command.Command;
 
 import ij.IJ;
 import ij.ImageJ;
@@ -43,24 +44,54 @@ import javax.swing.WindowConstants;
  * library in Python, and returning the result back to Fiji. Everything is contained in a 
  * single class, but you can imagine restructuring the code and the Python script as you see fit.
  */
-public class CellposeAppose implements PlugIn
-{
-	// Choice of cellpose model to run
-	private String[] cp_models = {"cyto3", "nuclei"};
-	private String cp_model = null;
 
+@Plugin(type = Command.class, headless = true, menuPath = "Help>CellposeAppose")
+public class CellposeAppose implements Command
+{
+	private String cp_model = ""; // cellpose model
+	private String mode_3d = "2D+stitch"; // 3d mode
+	private double cell_diameter = 30; // cell diameter
+	private int cyto_chanel = 1; // cytoplasmic channel to segment
+	private int nuc_channel = 0; // nucleus channel if there is one to use
+	
+	
+	@Parameter( attrs = "Choose model" )
+	private String cp_model = "cyto3";
+	
 	/**
 	 * Interface to select Cellpose parameters
 	 * @return
 	 */
-	public void getParameters()
+	/**public void getParameters( boolean is3d, int multichannel )
 	{
+		String[] cp_models = {"cyto3", "nuclei"};
+		String[] modes_3d = {"2D+stitch", "3D"};
+		
 		// Creates the interface to choose parameters
 		GenericDialog gd = new GenericDialog("Options", IJ.getInstance() );
 		Font boldy = new Font("SansSerif", Font.CENTER_BASELINE, 15);
 		gd.setFont(boldy);
-		//gd.addMessage("----------------------------------------------------------------------------------------------- ");
+		gd.addMessage("------ Cellpose parameters ----------------- ");
 		gd.addChoice("Choose_model", cp_models, cp_models[0]);
+		gd.addNumericField( "Diameter", cell_diameter );
+		gd.addToSameRow();
+		gd.addMessage("Cell average diameter, in pixels");
+		// Get the 3d mode to use
+		if ( is3d )
+		{
+			gd.addChoice("Use 3D mode", modes_3d, modes_3d[0]);
+		}
+		// Get the channels to use
+		if ( multichannel > 1 )
+		{
+			String[] chanlist = new String[multichannel+1];
+			for ( int n=0; n<multichannel; n++ )
+				chanlist[n] = ""+(n+1);
+			chanlist[multichannel] = "None";
+			gd.addChoice( "Cytoplasm_chanel", chanlist, "1" );
+			gd.addChoice( "Nucleus_chanel", chanlist, "None" );
+			
+		}
 		
 		
 		gd.showDialog();
@@ -68,6 +99,24 @@ public class CellposeAppose implements PlugIn
 
 		// read the parameters chosen by the user
 		String cp_model = gd.getNextChoice();
+		cell_diameter = (double) gd.getNextNumber();
+		if ( is3d )
+		{
+			mode_3d = gd.getNextChoice();
+		}
+		if ( multichannel > 1 )
+		{
+			cyto_chan = (int) gd.getNextChoice();
+			String nuc_chan = gd.getNextChoice();
+		}
+	}*/
+	
+	/*
+	 * Check if the Image is 3D or 2D
+	 */
+	public boolean is3d(ImagePlus imp)
+	{
+		return imp.getNSlices() > 1;
 	}
 	
 	/*
@@ -84,6 +133,11 @@ public class CellposeAppose implements PlugIn
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		try
 		{
+			// Get the parameters based on the image properties
+			boolean is3D = is3d( imp );
+			int nchanels = imp.getNChannels();
+			//getParameters( is3D, nchanels );
+			
 			// Runs the processing code.
 			process( imp );
 		}
@@ -408,7 +462,6 @@ public class CellposeAppose implements PlugIn
 		ImageJ.main( args );
 		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
-		plugin.getParameters();
 		plugin.run( "" );
 	}
 }
