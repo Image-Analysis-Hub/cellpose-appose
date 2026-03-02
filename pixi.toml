@@ -9,7 +9,7 @@ platforms = ["osx-arm64", "win-64", "linux-64", "osx-64"]
 version = "0.1.0"
 
 [tasks]
-test = { cmd = "python cp_test.py" }
+test = { cmd = "python cp3.py" }
 
 [dependencies]
 python = ">=3.10.3,<3.13"
