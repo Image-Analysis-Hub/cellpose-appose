@@ -381,7 +381,7 @@ public class CellposeAppose implements PlugIn
 	{
 		ImageJ.main( args );
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		final ApposeFijiPluginExample plugin = new ApposeFijiPluginExample();
+		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run( "" );
 	}
 }
