@@ -4,8 +4,6 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -83,7 +81,7 @@ public class CellposeAppose implements PlugIn
 		System.out.println();
 
 		/*
-		 * For this example we use pixi to create a Python environment with the
+		 * For this example we use mamba to create a Python environment with the
 		 * necessary dependencies. It is specified with a string that contains a
 		 * YAML specification of the environment, similar to what you would put
 		 * in an environment.yaml file. You could load it from an existing file,
@@ -91,9 +89,9 @@ public class CellposeAppose implements PlugIn
 		 * corresponding method.
 		 */
 
-		// The pixi environment spec.
-		final String cellposeEnv = pixiEnv();
-		System.out.println( "The pixi environment specs:" );
+		// The mamba environment spec.
+		final String cellposeEnv = mambaEnv();
+		System.out.println( "The mamba environment specs:" );
 		System.out.println( indent( cellposeEnv ) );
 		System.out.println();
 
@@ -146,16 +144,16 @@ public class CellposeAppose implements PlugIn
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 
 		/*
-		 * Create or retrieve the environment.g
+		 * Create or retrieve the environment.
 		 * 
-		 * The first time this code is run, Appose will create the pixi
+		 * The first time this code is run, Appose will create the mamba
 		 * environment as specified by the cellposeEnv string, download and
 		 * install the dependencies. This can take a few minutes, but it is only
 		 * done once. The next time the code is run, Appose will just reuse the
 		 * existing environment, so it will start much faster.
 		 */
 		final Environment env = Appose // the builder
-				.pixi() // we chose pixi as the environment manager
+				.mamba() // we chose mamba as the environment manager
 				.content( cellposeEnv ) // specify the environment with the string defined above
 				.subscribeProgress( this::showProgress ) // report progress visually
 				.subscribeOutput( this::showProgress ) // report output visually
@@ -226,7 +224,7 @@ public class CellposeAppose implements PlugIn
 	/*
 	 * The environment specification.
 	 * 
-	 * This is a YAML specification of a pixi environment, that specifies the
+	 * This is a YAML specification of a mamba environment, that specifies the
 	 * dependencies that we need in Python to run our script. In this case we
 	 * need scikit-image for the rotation, and appose to be able to receive the
 	 * input and send the output back to Fiji. Note that we specify appose as a
@@ -235,15 +233,19 @@ public class CellposeAppose implements PlugIn
 	 * Most likely in your scripts the dependencies will be different, but you
 	 * will always need appose.
 	 */
-	private static String pixiEnv()
+	private static String mambaEnv()
 	{
-		String env = "";
-		try {
-			env = Files.readString(Paths.get("pixi.toml"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return env;
+		return "name: image-rotation\n"
+				+ "channels:\n"
+				+ "  - conda-forge\n"
+				+ "dependencies:\n"
+				+ "  - python=3.12\n"
+				+ "  - pip\n"
+				+ "  - scikit-image\n"
+				+ "  - pip:\n"
+				+ "    - numpy\n"
+				+ "    - cellpose\n"
+				+ "    - appose\n";
 	}
 
 	/*
@@ -379,7 +381,7 @@ public class CellposeAppose implements PlugIn
 	public static void main( final String[] args )
 	{
 		ImageJ.main( args );
-		IJ.openImage(); // choose the image to open
+		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run( "" );
 	}
