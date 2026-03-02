@@ -70,12 +70,15 @@ else:
 
 ## load images
 if appose_mode:
-    image = flip_img(image.ndarray())
+    image = task.parameters.get("image", None)
+    if image is None:
+        raise ValueError("No input image provided in task parameters")
+    np_image = flip_img(image.ndarray())
     model_name = task.parameters.get("model", "cyto3")
     task.update(f"Input image of shape: {image.shape}")
 else:
     file = './sample_data/test.tif'
-    image = io.imread(file)
+    np_image = io.imread(file)
     model_name = 'cyto3'
     channels = [0, 1]
     z_axis = 0
@@ -91,7 +94,7 @@ print(f'Starting Cellpose v3 script')
 io.logger_setup()
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
-    image, 
+    np_image, 
     model_name=model_name, 
     channels=[0,1], 
     diameter=30, 
