@@ -61,15 +61,15 @@
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/apposed/appose-fiji-plugin</connection>
-		<developerConnection>scm:git:git@github.com:apposed/appose-fiji-plugin</developerConnection>
+		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
+		<developerConnection>scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<tag>HEAD</tag>
 		<url>https://github.com/apposed/appose-fiji-plugin</url>
 	</scm>
 
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/apposed/appose-fiji-plugin/issues</url>
+		<url>https://github.com/Image-Analysis-Hub/cellpose-appose/issues</url>
 	</issueManagement>
 	<ciManagement>
 		<system>None</system>
