@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>org.scijava</groupId>
+		<artifactId>pom-scijava</artifactId>
+		<version>43.0.0</version>
+		<relativePath />
+	</parent>
+
+	<groupId>com.mycompany</groupId>
+	<artifactId>Simple_Read</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+
+	<name>cellpose-appose</name>
+	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
+	<url>http://mycompany.com/imagej/bio-formats-reader/</url>
+	<inceptionYear>2026</inceptionYear>
+	<organization>
+		<name>My Company</name>
+		<url>http://mycompany.com/</url>
+	</organization>
+	<licenses>
+		<license>
+			<name>GNU General Public License v2+</name>
+			<url>https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<id>your-id-here</id>
+			<name>Your Name Here</name>
+			<url>http://imagej.net/User:YourWikiUsername</url>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
+		<contributor>
+			<name>Someone Who Contributed</name>
+			<url>http://imagej.net/User:TheirWikiUsername</url>
+			<properties><id>their-id</id></properties>
+		</contributor>
+	</contributors>
+
+	<mailingLists>
+		<mailingList>
+			<name>ImageJ Forum</name>
+			<archive>http://forum.imagej.net/</archive>
+		</mailingList>
+	</mailingLists>
+
+	<scm>
+		<connection>scm:git:git://github.com/apposed/appose-fiji-plugin</connection>
+		<developerConnection>scm:git:git@github.com:apposed/appose-fiji-plugin</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/apposed/appose-fiji-plugin</url>
+	</scm>
+
+	<issueManagement>
+		<system>GitHub Issues</system>
+		<url>https://github.com/apposed/appose-fiji-plugin/issues</url>
+	</issueManagement>
+	<ciManagement>
+		<system>None</system>
+	</ciManagement>
+
+	<properties>
+		<package-name>fiji.plugin.appose.cellpose</package-name>
+		<main-class>fiji.plugin.appose.cellpose.CellposeAppose</main-class>
+		<license.licenseName>gpl_v2</license.licenseName>
+		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
+
+		<!-- Use Java 21. -->
+	    <scijava.jvm.version>21</scijava.jvm.version>
+	    <scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
+		
+		<appose.version>0.10.0</appose.version>
+		<imglib2-appose.version>0.9.0</imglib2-appose.version>
+	</properties>
+
+	<dependencies>
+		<!-- ImageJ 1.x dependency -->
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+		</dependency>
+		
+		<!-- Appose dependencies -->
+		<dependency>
+			<groupId>org.apposed</groupId>
+			<artifactId>appose</artifactId>
+			<version>${appose.version}</version>
+		</dependency>
+		
+		<!-- ImgLib2 dependencies -->
+		<dependency>
+			<groupId>net.imglib2</groupId>
+			<artifactId>imglib2-appose</artifactId>
+			<version>${imglib2-appose.version}</version>
+		</dependency>
+				<dependency>
+			<groupId>net.imglib2</groupId>
+			<artifactId>imglib2-ij</artifactId>
+		</dependency>
+	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>scijava.public</id>
+			<url>https://maven.scijava.org/content/groups/public</url>
+		</repository>
+	</repositories>
+</project>
