@@ -2,9 +2,8 @@ Fiji plugin to run cellpose with Appose
 
 
 ## Python env install:
-
-default, with `CPU`:
+Run:
 ```pixi install```
 
-with `GPU`:
-```pixi install -e gpu```
+## Python test run
+```pixi run test```
