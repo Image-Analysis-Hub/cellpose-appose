@@ -1,234 +1,387 @@
-package fiji.plugin.trackmate.util.cli.appose;
+package fiji.plugin.appose.cellpose;
 
-import java.util.function.Function;
+import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.Window;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-import fiji.plugin.trackmate.util.cli.CommonTrackMateArguments;
+import org.apposed.appose.Appose;
+import org.apposed.appose.BuildException;
+import org.apposed.appose.Environment;
+import org.apposed.appose.NDArray;
+import org.apposed.appose.Service;
+import org.apposed.appose.Service.Task;
+import org.apposed.appose.Service.TaskStatus;
 
-/**
- * Example Appose integration of Cellpose.
+import ij.IJ;
+import ij.ImageJ;
+import ij.ImagePlus;
+import ij.WindowManager;
+import ij.plugin.PlugIn;
+import net.imagej.ImgPlus;
+import net.imglib2.appose.NDArrays;
+import net.imglib2.appose.ShmImg;
+import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.real.DoubleType;
+
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
+
+/*
+ * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
+ * that calls native Python code with Appose.
+ * 
+ * We use a simple examples of rotating an input image by 90 degrees, using the scikit-image 
+ * library in Python, and returning the result back to Fiji. Everything is contained in a 
+ * single class, but you can imagine restructuring the code and the Python script as you see fit.
  */
-public class CellposeAppose extends ApposeConfigurator
+public class CellposeAppose implements PlugIn
 {
 
-	private final ChoiceArgument modelPretrained;
-
-	private final PathArgument customModelPath;
-
-	private final ChoiceArgument chan1;
-
-	private final ChoiceArgument chan2;
-
-	private final DoubleArgument diameter;
-
-	private final ChoiceArgument useGPU;
-
-	private final SelectableArguments selectPretrainedOrCustom;
-
-	private final Flag simplifyContour;
-
-	private final DoubleArgument smoothingScale;
-
-	public CellposeAppose( final int nChannels, final String units, final double pixelSize )
-	{
-		// The pretrained model list.
-		this.modelPretrained = addChoiceArgument()
-				.name( "Pretrained model" )
-				.help( "Name of the pretrained cellpose 3 model to use." )
-				.argument( "--pretrained_model" )
-				.required( true )
-				.addChoice( "cyto3", "cyto3" )
-				.addChoice( "nucleitorch_0", "nuclei" )
-				.addChoice( "tissuenet_cp3" )
-				.addChoice( "livecell_cp3" )
-				.addChoice( "yeast_PhC_cp3" )
-				.addChoice( "yeast_BF_cp3" )
-				.addChoice( "bact_phase_cp3" )
-				.addChoice( "bact_fluor_cp3" )
-				.addChoice( "deepbacs_cp3" )
-				.addChoice( "cyto2torch_0", "cyto2" )
-				.addChoice( "cytotorch_0", "cyto" )
-				.defaultValue( DEFAULT_CELLPOSE_MODEL )
-				.key( KEY_CELLPOSE_MODEL )
-				.get();
-
-		this.customModelPath = addPathArgument()
-				.name( "Path to a custom model" )
-				.argument( "--pretrained_model" )
-				.required( true )
-				.help( "Path to a custom cellpose model file." )
-				.defaultValue( DEFAULT_CELLPOSE_CUSTOM_MODEL_FILEPATH )
-				.key( KEY_CELLPOSE_CUSTOM_MODEL_FILEPATH )
-				.get();
-
-		// Main segmentation channel
-		final ChoiceAdder chan1Adder = addChoiceArgument()
-				.key( KEY_CHANNEL_1 )
-				.argument( "--chan" )
-				.name( "Target channel" )
-				.help( "Index of the channel to segment." )
-				.required( true )
-				.addChoice( DEFAULT_TARGET_CHANNEL, "0 - gray" );
-		for ( int c = 1; c <= nChannels; c++ )
-			chan1Adder.addChoice( "" + c );
-		chan1Adder.defaultValue( DEFAULT_TARGET_CHANNEL );
-		this.chan1 = chan1Adder.get();
-
-		// Second optional channel.
-		final ChoiceAdder chan2Adder = addChoiceArgument()
-				.key( KEY_OPTIONAL_CHANNEL_2 )
-				.argument( "--chan2" )
-				.name( "Second optional channel" )
-				.help( "Second optional channel to segment for cyto* models." )
-				.required( false )
-				.addChoice( DEFAULT_OPTIONAL_CHANNEL_2, "0 - don't use" );
-		for ( int c = 1; c <= nChannels; c++ )
-			chan2Adder.addChoice( "" + c );
-		chan2Adder.defaultValue( DEFAULT_OPTIONAL_CHANNEL_2 );
-		this.chan2 = chan2Adder.get();
-
-		// Object diameter
-		this.diameter = addDoubleArgument()
-				.name( "Cell diameter" )
-				.help( "Cell diameter. If 0 will use the diameter of the training labels used in the model, or with built-in model will estimate diameter for each image." )
-				.argument( "--diameter" )
-				.key( KEY_CELL_DIAMETER )
-				.defaultValue( DEFAULT_CELL_DIAMETER )
-				.min( 0. )
-				.units( units )
-				.get();
-
-		// Translate to pixel size.
-		final Function< Double, Double > forward = diamPix -> ( diamPix > 0 ) ? ( diamPix * pixelSize ) : 0.;
-		final Function< Double, Double > backward = diam -> ( diam > 0 ) ? ( diam / pixelSize ) : 0.;
-		setDisplayTranslator( diameter, forward, backward );
-
-		// Use GPU?
-		this.useGPU = addChoiceArgument()
-				.name( "Use GPU" )
-				.help( "Whether to use GPU acceleration, if installed." )
-				.argument( "--use_gpu" )
-				.key( KEY_USE_GPU )
-				.addChoice( "True" )
-				.addChoice( "False" )
-				.defaultValue( "True" )
-				.get();
-
-		// Simplify contours
-		this.simplifyContour = CommonTrackMateArguments.addSimplifyContour( this );
-
-		// Smoothing scale.
-		this.smoothingScale = CommonTrackMateArguments.addSmoothingScale( this, units );
-
-		// State that we can use pretrained or custom.
-		this.selectPretrainedOrCustom = addSelectableArguments()
-				.add( modelPretrained )
-				.add( customModelPath )
-				.key( KEY_CELLPOSE_PRETRAINED_OR_CUSTOM );
-	}
-
-	public ChoiceArgument chan1()
-	{
-		return chan1;
-	}
-
-	public ChoiceArgument chan2()
-	{
-		return chan2;
-	}
-
-	public DoubleArgument diameter()
-	{
-		return diameter;
-	}
-
-	public ChoiceArgument modelPretrained()
-	{
-		return modelPretrained;
-	}
-
-	public SelectableArguments selectPretrainedOrCustom()
-	{
-		return selectPretrainedOrCustom;
-	}
-
-	public Flag simplifyContour()
-	{
-		return simplifyContour;
-	}
-
-	public DoubleArgument smoothingScale()
-	{
-		return smoothingScale;
-	}
-
+	/*
+	 * This is the entry point for the plugin. This is what is called when the
+	 * user select the plugin menu entry: 'Plugins > Examples >
+	 * ApposeFijiPluginExample' in our case. You can redefine this by editing
+	 * the file 'plugins.config' in the resources directory
+	 * (src/main/resources).
+	 */
 	@Override
-	public String getScriptTemplate()
+	public void run( final String arg )
 	{
-		// Load it from resources.
-		return loadScriptTemplateFromResources( "/script_templates/appose/CellposeAppose2DBatch.py", CellposeAppose.class );
+		// Grab the current image.
+		final ImagePlus imp = WindowManager.getCurrentImage();
+		try
+		{
+			// Runs the processing code.
+			process( imp );
+		}
+		catch ( final IOException | BuildException e )
+		{
+			IJ.error( "An error occurred: " + e.getMessage() );
+			e.printStackTrace();
+		}
 	}
 
-	@Override
-	protected String getEnvConfig()
+	/*
+	 * Actually do something with the image.
+	 */
+	public < T extends RealType< T > & NativeType< T > > void process( final ImagePlus imp ) throws IOException, BuildException
 	{
-		return "name: cellpose3-trackmate\n"
+		// Print os and arch info
+		System.out.println( "This machine os and arch:" );
+		System.out.println( "  " + System.getProperty( "os.name" ) );
+		System.out.println( "  " + System.getProperty( "os.arch" ) );
+		System.out.println();
+
+		/*
+		 * For this example we use mamba to create a Python environment with the
+		 * necessary dependencies. It is specified with a string that contains a
+		 * YAML specification of the environment, similar to what you would put
+		 * in an environment.yaml file. You could load it from an existing file,
+		 * be here for simplicity it is directly returned as a string. See the
+		 * corresponding method.
+		 */
+
+		// The mamba environment spec.
+		final String cellposeEnv = mambaEnv();
+		System.out.println( "The mamba environment specs:" );
+		System.out.println( indent( cellposeEnv ) );
+		System.out.println();
+
+		/*
+		 * The Python script that we want to run. It is specified as a string,
+		 * but it could be loaded from an existing .py file. In our case the
+		 * script is very simple and has no parameters. We give details on how
+		 * to pass input and receive outputs below.
+		 */
+
+		// Get the script
+		final String script = getScript();
+		System.out.println( "The analysis script" );
+		System.out.println( indent( script ) );
+		System.out.println();
+
+		/*
+		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
+		 * into an Appose NDArray, which is a shared memory array that can be
+		 * passed to Python without copying the data.
+		 * 
+		 * As an ImagePlus is not mapped on a shared memory array, the ImgLib2
+		 * image wrapping the ImagePlus is actually copied to a shared memory
+		 * image (the ShmImg) when we wrap it into an NDArray. This is because
+		 * the NDArray needs to be backed by a shared memory array in order to
+		 * be passed to Python without copying the data. We could have avoided
+		 * this copy by directly loading the image into a ShmImg in the first
+		 * place, but for simplicity we start with an ImagePlus and show how to
+		 * wrap it into a shared memory array.
+		 */
+
+		// Wrap the ImagePlus into a ImgLib2 image.
+		@SuppressWarnings( "unchecked" )
+		final ImgPlus< T > img = rawWraps( imp );
+		/*
+		 * Copy the image into a shared memory image and wrap it into an
+		 * NDArray, then store it in an input map that we will pass to the
+		 * Python script.
+		 * 
+		 * Note that we could have passed multiple inputs to the Python script
+		 * by putting more entries in the input map, and they would all be
+		 * available in the Python script as shared memory NDArrays.
+		 * 
+		 * A ND array is a multi-dimensional array that is stored in shared
+		 * memory, that can be unwrapped as a NumPy array in Python, and wrapped
+		 * as a ImgLib2 image in Java.
+		 * 
+		 */
+		final Map< String, Object > inputs = new HashMap<>();
+		inputs.put( "image", NDArrays.asNDArray( img ) );
+
+		/*
+		 * Create or retrieve the environment.
+		 * 
+		 * The first time this code is run, Appose will create the mamba
+		 * environment as specified by the cellposeEnv string, download and
+		 * install the dependencies. This can take a few minutes, but it is only
+		 * done once. The next time the code is run, Appose will just reuse the
+		 * existing environment, so it will start much faster.
+		 */
+		final Environment env = Appose // the builder
+				.mamba() // we chose mamba as the environment manager
+				.content( cellposeEnv ) // specify the environment with the string defined above
+				.subscribeProgress( this::showProgress ) // report progress visually
+				.subscribeOutput( this::showProgress ) // report output visually
+				.subscribeError( IJ::log ) // log problems
+				.build(); // create the environment
+		hideProgress();
+
+		/*
+		 * Using this environment, we create a service that will run the Python
+		 * script.
+		 */
+		try ( Service python = env.python() )
+		{
+			/*
+			 * With this service, we can now create a task that will run the
+			 * Python script with the specified inputs. This command takes the
+			 * script as first argument, and a map of inputs as second argument.
+			 * The keys of the map will be the variable names in the Python
+			 * script, and the values are the data that will be passed to
+			 * Python.
+			 */
+			final Task task = python.task( script, inputs );
+
+			// Start the script, and return to Java immediately.
+			System.out.println( "Starting task" );
+			final long start = System.currentTimeMillis();
+			task.start();
+
+			/*
+			 * Wait for the script to finish. This will block the Java thread
+			 * until the Python script is done, but it allows the Python code to
+			 * run in parallel without blocking the Java thread while it is
+			 * running.
+			 */
+			task.waitFor();
+
+			// Verify that it worked.
+			if ( task.status != TaskStatus.COMPLETE )
+				throw new RuntimeException( "Python script failed with error: " + task.error );
+
+			// Benchmark.
+			final long end = System.currentTimeMillis();
+			System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
+
+			/*
+			 * Unwrap output.
+			 * 
+			 * In the Python script (see below), we create a new NDArray called
+			 * 'rotated' that contains the result of the processing. Here we
+			 * retrieve this NDArray from the task outputs, and wrap it into a
+			 * ShmImg, which is an ImgLib2 image that is backed by shared
+			 * memory. We can then display this image with
+			 * ImageJFunctions.show(). Note that this does not involve any
+			 * copying of the data, as the NDArray and the ShmImg are both just
+			 * views on the same shared memory array.
+			 */
+			final NDArray maskArr = ( NDArray ) task.outputs.get( "rotated" );
+			final Img< T > output = new ShmImg<>( maskArr );
+			ImageJFunctions.show( output );
+			// Et voilà!
+		}
+		catch ( final Exception e )
+		{
+			IJ.handleException( e );
+		}
+	}
+
+	/*
+	 * The environment specification.
+	 * 
+	 * This is a YAML specification of a mamba environment, that specifies the
+	 * dependencies that we need in Python to run our script. In this case we
+	 * need scikit-image for the rotation, and appose to be able to receive the
+	 * input and send the output back to Fiji. Note that we specify appose as a
+	 * pip dependency, as it is not available on conda-forge.
+	 * 
+	 * Most likely in your scripts the dependencies will be different, but you
+	 * will always need appose.
+	 */
+	private static String mambaEnv()
+	{
+		return "name: image-rotation\n"
 				+ "channels:\n"
 				+ "  - conda-forge\n"
 				+ "dependencies:\n"
 				+ "  - python=3.10\n"
 				+ "  - pip\n"
+				+ "  - scikit-image\n"
 				+ "  - pip:\n"
-				+ "    - cellpose==3.1.1.2\n"
+				+ "    - numpy\n"
 				+ "    - appose\n";
 	}
 
-	/**
-	 * The key to the parameter that stores the path to the custom model file to
-	 * use with Cellpose. It must be an absolute file path.
+	/*
+	 * The Python script.
+	 * 
+	 * This is the Python code that will be run by the service. It is specified
+	 * as a string here for simplicity, but it could be loaded from an existing
+	 * .py file. In this example, the script receives an input image as a shared
+	 * memory NDArray (the 'image' variable), rotates it by 90 degrees using
+	 * scikit-image, and then sends the result back to Fiji by creating a new
+	 * NDArray (the 'rotated' variable) and putting it in the task outputs.
+	 * 
+	 * The string is monolithic and has not parameters for simplicity, but you
+	 * can imagine more complex scripts that take multiple inputs, have
+	 * parameters, call functions defined in other .py files, etc. The only
+	 * requirement is that the script can be run as a standalone script, and
+	 * that it uses the appose library to receive inputs and send outputs.
+	 * 
+	 * To pass on-the-fly parameters, you can:
+	 * 
+	 * 1/ modify the string below before creating the task, by using replace,
+	 * string concatenation, string format, or any other method to inject the
+	 * parameters into the script string before it is run. This approach
+	 * requires you to write the script as a template with placeholders for the
+	 * parameters, and then fill in the placeholders with the actual parameters
+	 * when you create the task.
+	 * 
+	 * 2/or you can use the input map to pass parameters as well, by putting
+	 * them in the map with a specific key.
 	 */
-	public static final String KEY_CELLPOSE_CUSTOM_MODEL_FILEPATH = "CELLPOSE_MODEL_FILEPATH";
+	private static String getScript()
+	{
+		return ""
+				+ "from skimage.transform import rotate\n"
+				+ "import appose\n"
+				+ "\n"
+				+ "# The variable 'image' is automatically created by Appose from the \n"
+				+ "# input map that we passed when creating the task. It is a shared \n"
+				+ "# memory NDArray that can be unwrapped as a NumPy array.\n"
+				+ "# Careful: the variable name 'image' MUST be the key that we used in \n"
+				+ "# the input map in Java.\n"
+				+ "img = image.ndarray()\n"
+				+ "\n"
+				+ "# Now we have 'img' as a NumPy array.\n"
+				+ "\n"
+				+ "# Rotate the image by 90 degrees (counter-clockwise)\n"
+				+ "rotated_image = rotate(img, angle=90, resize=True)\n"
+				+ "\n"
+				+ "# Output back to Fiji\n"
+				+ "# First we create a NDArray placeholder, of the same type and shape as \n"
+				+ "# the image we want to return.\n"
+				+ "shared = appose.NDArray(str(rotated_image.dtype), rotated_image.shape)\n"
+				+ "\n"
+				+ "# Then we fill this placeholder with the data that we want to return.\n"
+				+ "shared.ndarray()[:] = rotated_image[:]\n"
+				+ "\n"
+				+ "# Finally, we put this NDArray in the task outputs with a specific key (here 'rotated'), \n"
+				+ "# so that it can be retrieved from Java after the script is done. The key 'rotated' is \n"
+				+ "# arbitrary, but it must be the same as the one we use in Java to retrieve the output.\n"
+				+ "task.outputs['rotated'] = shared\n";
+	}
 
-	public static final String DEFAULT_CELLPOSE_CUSTOM_MODEL_FILEPATH = "";
+	// Helper functions to display progress while building the Appose environment.
+	// Temporary solution until Appose has a nicer built-in way to do this.
 
-	/**
-	 * They key to the parameter that configures whether cellpose will try to
-	 * use GPU acceleration. For this to work, a working cellpose with working
-	 * GPU support must be present on the system. If not, cellpose will default
-	 * to using the CPU.
+	private JDialog progressDialog;
+	private JProgressBar progressBar;
+	private void showProgress( String msg )
+	{
+		showProgress( msg, null, null );
+	}
+	private void showProgress( String msg, Long cur, Long max )
+	{
+		EventQueue.invokeLater( () ->
+		{
+			if ( progressDialog == null ) {
+				Window owner = IJ.getInstance();
+				progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
+				progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+				progressBar = new JProgressBar();
+				progressDialog.getContentPane().add( progressBar );
+				progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
+				progressBar.setString(
+					"--------------------==================== " +
+					"Building Python environment " +
+					"====================--------------------"
+				);
+				progressBar.setStringPainted( true );
+				progressBar.setIndeterminate( true );
+				progressDialog.pack();
+				progressDialog.setLocationRelativeTo( owner );
+				progressDialog.setVisible( true );
+			}
+			if ( msg != null && !msg.trim().isEmpty() ) progressBar.setString( "Building Python environment: " + msg.trim() );
+			if ( cur != null || max != null ) progressBar.setIndeterminate( false );
+			if ( max != null ) progressBar.setMaximum( max.intValue() );
+			if ( cur != null ) progressBar.setValue( cur.intValue() );
+		} );
+	}
+	private void hideProgress()
+	{
+		EventQueue.invokeLater( () ->
+		{
+			progressDialog.dispose();
+			progressDialog = null;
+		} );
+	}
+
+	/*
+	 * A utility to pretty print things. Probably will go away in your code.
 	 */
-	public static final String KEY_USE_GPU = "USE_GPU";
+	private static String indent( final String script )
+	{
+		final String[] split = script.split( "\n" );
+		String out = "";
+		for ( final String string : split )
+			out += "    " + string + "\n";
+		return out;
+	}
 
-	public static final Boolean DEFAULT_USE_GPU = Boolean.valueOf( true );
-
-	public static final String KEY_CELLPOSE_MODEL = "CELLPOSE_MODEL";
-
-	public static final String DEFAULT_CELLPOSE_MODEL = "cyto3";
-
-	public static final String KEY_CELLPOSE_PRETRAINED_OR_CUSTOM = "PRETRAINED_OR_CUSTOM";
-
-	public static final String DEFAULT_CELLPOSE_PRETRAINED_OR_CUSTOM = KEY_CELLPOSE_MODEL;
-
-	public static final String KEY_CHANNEL_1 = "CHANNEL_1";
-
-	public static final String DEFAULT_TARGET_CHANNEL = "0";
-
-	public static final String KEY_OPTIONAL_CHANNEL_2 = "OPTIONAL_CHANNEL_2";
-
-	public static final String DEFAULT_OPTIONAL_CHANNEL_2 = "0";
-
-	public static final String KEY_CELL_DIAMETER = "CELL_DIAMETER";
-
-	public static final Double DEFAULT_CELL_DIAMETER = Double.valueOf( 30. );
+	/*
+	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
+	 * warnings. Hacky.
+	 */
+	@SuppressWarnings( "rawtypes" )
+	public static final ImgPlus rawWraps( final ImagePlus imp )
+	{
+		final ImgPlus< DoubleType > img = ImagePlusAdapter.wrapImgPlus( imp );
+		final ImgPlus raw = img;
+		return raw;
+	}
 
 	public static void main( final String[] args )
 	{
-		final CellposeAppose cellpose = new CellposeAppose( 2, "µm", 0.26 );
-		cellpose.modelPretrained.set( "cyto3" );
-		cellpose.chan1.set( "2" );
-		cellpose.chan2.set( "1" );
-		cellpose.diameter.set( 45. );
-		cellpose.useGPU.set( "True" );
-
-		System.out.println( cellpose.makeScript() ); // DEBUG
+		ImageJ.main( args );
+		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
+		final ApposeFijiPluginExample plugin = new ApposeFijiPluginExample();
+		plugin.run( "" );
 	}
 }

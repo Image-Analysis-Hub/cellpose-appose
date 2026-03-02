@@ -64,7 +64,7 @@
 		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
 		<developerConnection>scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/apposed/appose-fiji-plugin</url>
+		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
 	</scm>
 
 	<issueManagement>
