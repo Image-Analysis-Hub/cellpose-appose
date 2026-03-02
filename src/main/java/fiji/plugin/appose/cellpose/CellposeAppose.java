@@ -15,6 +15,8 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.scijava.command.Command;
+import org.scijava.plugin.Parameter;
+import org.scijava.plugin.Plugin;
 
 import ij.IJ;
 import ij.ImageJ;
@@ -48,15 +50,14 @@ import javax.swing.WindowConstants;
 @Plugin(type = Command.class, headless = true, menuPath = "Help>CellposeAppose")
 public class CellposeAppose implements Command
 {
-	private String cp_model = ""; // cellpose model
 	private String mode_3d = "2D+stitch"; // 3d mode
 	private double cell_diameter = 30; // cell diameter
 	private int cyto_chanel = 1; // cytoplasmic channel to segment
 	private int nuc_channel = 0; // nucleus channel if there is one to use
 	
 	
-	@Parameter( attrs = "Choose model" )
-	private String cp_model = "cyto3";
+	//@Parameter( label = "Choose model" )
+	private String cp_model = "cyto3"; // cellpose model
 	
 	/**
 	 * Interface to select Cellpose parameters
@@ -127,7 +128,7 @@ public class CellposeAppose implements Command
 	 * (src/main/resources).
 	 */
 	@Override
-	public void run( final String arg )
+	public void run()
 	{
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
@@ -137,6 +138,8 @@ public class CellposeAppose implements Command
 			boolean is3D = is3d( imp );
 			int nchanels = imp.getNChannels();
 			//getParameters( is3D, nchanels );
+			
+			System.out.println("Model chosen "+cp_model);
 			
 			// Runs the processing code.
 			process( imp );
@@ -462,6 +465,6 @@ public class CellposeAppose implements Command
 		ImageJ.main( args );
 		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
-		plugin.run( "" );
+		plugin.run();
 	}
 }
