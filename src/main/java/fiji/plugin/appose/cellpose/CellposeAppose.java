@@ -379,8 +379,7 @@ public class CellposeAppose implements PlugIn
 	public static void main( final String[] args )
 	{
 		ImageJ.main( args );
-		//IJ.openImage();
-		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
+		IJ.openImage(); // choose the image to open
 		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run( "" );
 	}
