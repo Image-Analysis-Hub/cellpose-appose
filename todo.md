@@ -1,6 +1,6 @@
 # To do:
 
-- [ ] Make a todo list
+- [x] Make a todo list
 - [ ] Add tests suites
 - [ ] Extend the documentation / readme
 - [ ] Use `null` and `None` instead of `-1` values in parameters
