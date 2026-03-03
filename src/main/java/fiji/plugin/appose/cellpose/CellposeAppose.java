@@ -5,16 +5,16 @@ import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.Arrays;
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
 
 import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
@@ -27,30 +27,24 @@ import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
+import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.widget.NumberWidget;
-import org.scijava.module.DefaultMutableModuleItem;
 
 import ij.IJ;
-import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
-import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.DoubleType;
-
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
 
 /*
  * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
@@ -66,16 +60,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
 	@Parameter( choices = {"cyto3", "nuclei"} )
-	private String cp_model = "cyto3"; // cellpose model
+	private final String cp_model = "cyto3"; // cellpose model
 	
 	@Parameter( label = "Diameter", min="0" )
-	private int cell_diameter = 30; // cell diameter
+	private final int cell_diameter = 30; // cell diameter
 	
 	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int cyto_chanel = 1;  // cytoplasmic channel to segment
+	private final int cyto_chanel = 1;  // cytoplasmic channel to segment
 	
 	@Parameter(label="Nuclei chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int nuclei_chanel = 1;  // cytoplasmic channel to segment
+	private final int nuclei_chanel = 1;  // cytoplasmic channel to segment
 	
 	
 	private boolean is3D = false;
@@ -124,7 +118,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	/*
 	 * Check if the Image is 3D or 2D
 	 */
-	public boolean is3d(ImagePlus imp)
+	public boolean is3d(final ImagePlus imp)
 	{
 		return imp.getNSlices() > 1;
 	}
@@ -144,15 +138,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			boolean is3D = is3d( imp );
-			int nchanels = imp.getNChannels();
+			final boolean is3D = is3d( imp );
+			final int nchanels = imp.getNChannels();
 			//getParameters( is3D, nchanels );
 			
 			use3d = false;
 			if ( is3D )
 			{
-				String mode = mode_3d.getValue( this );
-				Calibration cal = imp.getCalibration();
+				final String mode = mode_3d.getValue( this );
+				final Calibration cal = imp.getCalibration();
 				anisotropy = cal.pixelDepth/cal.pixelHeight;
 				if ( mode.equals( "3D" ) )
 				{
@@ -353,10 +347,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		String env = "";
 		try {
-			URL pixiFile = this.getClass().getResource("/pixi.toml");
+			final URL pixiFile = this.getClass().getResource("/pixi.toml");
 			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
 			
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return env;
@@ -394,10 +388,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		String script = "";
 		try {
-			URL scriptFile = this.getClass().getResource("/cp3.py");
+			final URL scriptFile = this.getClass().getResource("/cp3.py");
 			script = IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
 			
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return script;
@@ -408,16 +402,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private JDialog progressDialog;
 	private JProgressBar progressBar;
-	private void showProgress( String msg )
+	private void showProgress( final String msg )
 	{
 		showProgress( msg, null, null );
 	}
-	private void showProgress( String msg, Long cur, Long max )
+	private void showProgress( final String msg, final Long cur, final Long max )
 	{
 		EventQueue.invokeLater( () ->
 		{
 			if ( progressDialog == null ) {
-				Window owner = IJ.getInstance();
+				final Window owner = IJ.getInstance();
 				progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
 				progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
 				progressBar = new JProgressBar();
@@ -457,13 +451,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final String[] split = script.split( "\n" );
 		String out = "";
 		for ( final String string : split )
- 			out += "    " + string + "\n";
+			out += "    " + string + "\n";
 		return out;
 	}
 
 	public static void main( final String[] args )
 	{
-		ImageJ ij = new ImageJ();
+		final ImageJ ij = new ImageJ();
 		ij.launch();
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 		ij.command().run( CellposeAppose.class, true );
