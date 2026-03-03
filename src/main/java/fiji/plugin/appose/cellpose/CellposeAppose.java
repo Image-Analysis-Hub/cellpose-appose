@@ -148,7 +148,7 @@ public class CellposeAppose implements PlugIn
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
-
+		
 		/*
 		 * Create or retrieve the environment.g
 		 * 
@@ -280,37 +280,18 @@ public class CellposeAppose implements PlugIn
 	 * 2/or you can use the input map to pass parameters as well, by putting
 	 * them in the map with a specific key.
 	 */
-	private static String getScript()
+	private String getScript()
 	{
-		return ""
-				+ "from skimage.transform import rotate\n"
-				+ "import appose\n"
-				+ "\n"
-				+ "# The variable 'image' is automatically created by Appose from the \n"
-				+ "# input map that we passed when creating the task. It is a shared \n"
-				+ "# memory NDArray that can be unwrapped as a NumPy array.\n"
-				+ "# Careful: the variable name 'image' MUST be the key that we used in \n"
-				+ "# the input map in Java.\n"
-				+ "img = image.ndarray()\n"
-				+ "\n"
-				+ "# Now we have 'img' as a NumPy array.\n"
-				+ "\n"
-				+ "# Rotate the image by 90 degrees (counter-clockwise)\n"
-				+ "rotated_image = rotate(img, angle=90, resize=True)\n"
-				+ "\n"
-				+ "# Output back to Fiji\n"
-				+ "# First we create a NDArray placeholder, of the same type and shape as \n"
-				+ "# the image we want to return.\n"
-				+ "shared = appose.NDArray(str(rotated_image.dtype), rotated_image.shape)\n"
-				+ "\n"
-				+ "# Then we fill this placeholder with the data that we want to return.\n"
-				+ "shared.ndarray()[:] = rotated_image[:]\n"
-				+ "\n"
-				+ "# Finally, we put this NDArray in the task outputs with a specific key (here 'rotated'), \n"
-				+ "# so that it can be retrieved from Java after the script is done. The key 'rotated' is \n"
-				+ "# arbitrary, but it must be the same as the one we use in Java to retrieve the output.\n"
-				+ "task.outputs['rotated'] = shared\n";
-	}
+		String script = "";
+		try {
+			URL scriptFile = this.getClass().getResource("/cp3.py");
+			script = IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return script;
+			}
 
 	// Helper functions to display progress while building the Appose environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
