@@ -299,7 +299,7 @@ public class CellposeAppose implements Command
 			 * copying of the data, as the NDArray and the ShmImg are both just
 			 * views on the same shared memory array.
 			 */
-			final NDArray maskArr = ( NDArray ) task.outputs.get( "rotated" );
+			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			ImageJFunctions.show( output );
 			// Et voilà!
