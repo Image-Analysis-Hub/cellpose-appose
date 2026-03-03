@@ -89,6 +89,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void initialize() {
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
+		// Check if an image is available
+	    if (imp == null) {
+	        IJ.error("No Image Selected", "Please open an image before running this plugin.");
+	        return;
+	    }
 		is3D = is3d( imp );			
 		System.out.println("Nchannels "+imp.getNChannels());
 		
