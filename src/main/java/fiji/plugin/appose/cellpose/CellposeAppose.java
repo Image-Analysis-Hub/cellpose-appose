@@ -85,6 +85,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 	
+	private int z_axis = -1; // z_axis position 
+	
 	@Override
 	public void initialize() {
 		// Grab the current image.
@@ -155,6 +157,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
 			}
+			// get the z_axis number in what python should receive
+			z_axis = getZAxis( imp );
 			
 			// Runs the processing code.
 			process( imp );
@@ -164,6 +168,41 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			e.printStackTrace();
 		}
 
+	}
+	
+	/**
+	 * Returns the position at which the Z axis should be in python
+	 * @param imp
+	 * @return
+	 */
+	private int getZAxis( ImagePlus imp )
+	{
+		// print info about the image in the log
+		System.out.println("─".repeat(50));
+		System.out.println("Image dimension: ");
+		System.out.println("\t"+imp.getNSlices()+" Z slices");
+		System.out.println("\t"+imp.getNChannels()+" C channels");
+		System.out.println("\t"+imp.getNFrames()+" T frames");
+		System.out.println("─".repeat(50));
+		
+		// 2D, easy peasy
+		if ( imp.getNSlices() == 1 )
+				return -1;
+		
+		// 5D -> TZCYX
+		if ( imp.getNDimensions() == 5 )
+			return 1;
+		// Now, 3D or 4D
+		if ( imp.getNDimensions()==3 )
+		{
+			// ZYX
+			return 0;
+		}
+		// if Z and T, TZYX
+		if ( imp.getNFrames() > 1 )
+			return 1;
+		// XYZC is left -> Z,C,Y,X
+		return 0;
 	}
 
 	/**
@@ -255,7 +294,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "cell_channel", cyto_chanel );
 		inputs.put( "nuclei_channel", nuclei_chanel );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
-		inputs.put( "z_axis", 0 ); // @TODO: where is the z_axis in the shared object ?
+		inputs.put( "z_axis", z_axis );
 		inputs.put( "anisotropy", anisotropy );
 		// Print out the parameters
 		displayParameters( inputs );
