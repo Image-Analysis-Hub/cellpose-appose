@@ -410,12 +410,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	// Helper functions to display progress while building the Appose environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
 
-	private JDialog progressDialog;
-	private JProgressBar progressBar;
+	private volatile JDialog progressDialog;
+
+	private volatile JProgressBar progressBar;
+
 	private void showProgress( final String msg )
 	{
 		showProgress( msg, null, null );
 	}
+
 	private void showProgress( final String msg, final Long cur, final Long max )
 	{
 		EventQueue.invokeLater( () ->
@@ -448,7 +451,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		EventQueue.invokeLater( () ->
 		{
-			progressDialog.dispose();
+			if ( progressDialog != null )
+				progressDialog.dispose();
 			progressDialog = null;
 		} );
 	}
