@@ -1,8 +1,13 @@
 package fiji.plugin.appose;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import ij.IJ;
 import ij.ImagePlus;
 import ij.measure.Calibration;
-import ij.plugin.LutLoader;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
 import net.imglib2.img.ImagePlusAdapter;
@@ -23,9 +28,59 @@ public class ApposeUtils
 		return raw;
 	}
 
-	public static final void useGlasbeyDarkLUT( final ImagePlus imp)
+	private static LUT loadLutFromResource( final String resourcePath )
 	{
-		final LUT lut = LutLoader.openLut( ApposeUtils.class.getResource( "/glasbey_on_dark.lut" ).getFile() );
+		try (InputStream is = ApposeUtils.class.getResourceAsStream( resourcePath );
+				BufferedReader reader = new BufferedReader( new InputStreamReader( is ) ))
+		{
+
+			if ( is == null )
+			{
+				IJ.error( "LUT resource not found: " + resourcePath );
+				return null;
+			}
+
+			final byte[] reds = new byte[ 256 ];
+			final byte[] greens = new byte[ 256 ];
+			final byte[] blues = new byte[ 256 ];
+			String line;
+			int index = 0;
+
+			while ( ( line = reader.readLine() ) != null && index < 256 )
+			{
+				line = line.trim();
+				if ( line.isEmpty() )
+					continue; // Skip empty lines
+
+				// Split by whitespace
+				final String[] parts = line.split( "\\s+" );
+				if ( parts.length >= 3 )
+				{
+					reds[ index ] = ( byte ) Integer.parseInt( parts[ 0 ] );
+					greens[ index ] = ( byte ) Integer.parseInt( parts[ 1 ] );
+					blues[ index ] = ( byte ) Integer.parseInt( parts[ 2 ] );
+					index++;
+				}
+			}
+
+			if ( index != 256 )
+			{
+				IJ.error( "Invalid LUT file: expected 256 entries, found " + index );
+				return null;
+			}
+
+			return new LUT( reds, greens, blues );
+		}
+		catch ( final IOException e )
+		{
+			IJ.error( "Failed to load LUT: " + e.getMessage() );
+			return null;
+		}
+	}
+
+	public static final void useGlasbeyDarkLUT( final ImagePlus imp )
+	{
+		final LUT lut = loadLutFromResource( "/glasbey_on_dark.lut" );
 		useLUT( imp, lut );
 	}
 
