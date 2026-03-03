@@ -87,6 +87,8 @@ if appose_mode:
     stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
     z_axis = z_axis if z_axis >= 0 else None
     anisotropy = anisotropy if anisotropy > 0 else None
+    # use_3D
+    # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = './sample_data/test.tif'
