@@ -70,6 +70,7 @@ else:
 
 ## load images
 if appose_mode:
+    model_name = model
     if image is None:
         raise ValueError("No input image provided in task parameters")
     np_image = flip_img(image.ndarray())
@@ -97,7 +98,7 @@ masks, flows, styles = run_cellpose_v3(
     model_name=model_name, 
     channels=[0,1], 
     diameter=30, 
-    use_3D=use_3d, 
+    use_3D=use_3D, 
     anisotropy=None, 
     stitch_threshold=0, 
     rescale=False, 

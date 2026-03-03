@@ -35,6 +35,7 @@ import ij.IJ;
 import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.measure.Calibration;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -71,11 +72,18 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
 	private int cyto_chanel = 1;  // cytoplasmic channel to segment
 	
+	@Parameter(label="Nuclei chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
+	private int nuclei_chanel = 1;  // cytoplasmic channel to segment
+	
+	
 	private boolean is3D = false;
 
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
+	private MutableModuleItem<Double> stitch_threshold; // stitching value, only for 3D image
 	
+	private double stitch_threshold_value = 0;
 	private boolean use3d = false;
+	private double anisotropy = 1.0;
 	
 	@Override
 	public void initialize() {
@@ -84,16 +92,29 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		is3D = is3d( imp );			
 		System.out.println("Nchannels "+imp.getNChannels());
 		
+		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<Integer> cytoItem = 
 			getInfo().getMutableInput("cyto_chanel", Integer.class);
 		cytoItem.setMaximumValue(imp.getNChannels() - 1);
 		
+		final MutableModuleItem<Integer> nucItem = 
+				getInfo().getMutableInput("nuclei_chanel", Integer.class);
+			nucItem.setMaximumValue(imp.getNChannels() - 1);
+			
+		// Set the 3D mode selected by the user if the image is 3D
 		if (is3D)
 		{
 			 mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
 			 mode_3d.setChoices( Arrays.asList("2D+stitch", "3D"));
 			getInfo().addInput(mode_3d);
+			
+			 stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
+						"stitch_threshold", Double.class);
+			 stitch_threshold.setMaximumValue( 1.0 );
+			 stitch_threshold.setMinimumValue( 0.0 );
+				getInfo().addInput(stitch_threshold);
+				
 		}
 	}
 	
@@ -129,9 +150,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			if ( is3D )
 			{
 				String mode = mode_3d.getValue( this );
+				Calibration cal = imp.getCalibration();
+				anisotropy = cal.pixelDepth/cal.pixelHeight;
 				if ( mode.equals( "3D" ) )
 				{
 					use3d = true;
+				}
+				else
+				{
+					stitch_threshold_value = stitch_threshold.getValue(  this );
 				}
 			}
 			
@@ -204,6 +231,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Wrap the ImagePlus into a ImgLib2 image.
 		@SuppressWarnings( "unchecked" )
 		final ImgPlus< T > img = rawWraps( imp );
+		
 		/*
 		 * Copy the image into a shared memory image and wrap it into an
 		 * NDArray, then store it in an input map that we will pass to the
@@ -220,10 +248,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
-		inputs.put( "use_3d", use3d );
-		inputs.put( "model_name", cp_model );
+		inputs.put( "use_3D", use3d );
+		inputs.put( "model", cp_model );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cyto_chanel", cyto_chanel );
+		inputs.put( "cell_channel", cyto_chanel );
+		inputs.put( "nuclei_channel", nuclei_chanel );
+		inputs.put( "stitch_threshold", stitch_threshold_value );
+		inputs.put( "z_axis", 0 ); // @TODO: where is the z_axis in the shared object ?
+		inputs.put( "anisotropy", anisotropy );
 		
 		
 		/*
