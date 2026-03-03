@@ -36,17 +36,8 @@ def get_device() -> tuple[bool, torch.device]:
     return gpu, device
 
 def manage_channels(cell: int = -1, nuclei: int = -1) -> list[int]:
-    """Returns the channels list [cell_channel, nuclei_channel] for Cellpose.
-    
-    Args:
-        cell: Cell channel index (optional).
-        nuclei: Nuclei channel index (optional).
-    
-    Returns:
-        [cell, nuclei] if both provided; [ch, ch] if only one provided.
-    
-    Raises:
-        ValueError: If neither channel is provided.
+    """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
+    provided integer values from Fiji.
     """
     if cell >= 0 and nuclei >= 0:
         return [cell, nuclei]
@@ -60,10 +51,10 @@ def manage_channels(cell: int = -1, nuclei: int = -1) -> list[int]:
 ### PROCESSING FUNCTIONS
 ###############################################################################
 
-def run_cellpose_v3(img, model_name='cyto3', channels=[0, 1], diameter=30, use_3D=True, anisotropy=None, stitch_threshold=0, rescale=False, use_gpu=False, device=None):
+def run_cellpose_v3(img, model_name, channels, diameter, use_3D, anisotropy, stitch_threshold, z_axis,use_gpu, device):
     """Runs Cellpose v3 on a single image with the given parameters."""
     model = models.CellposeModel(model_type=model_name, gpu=use_gpu, device=device)
-    masks, flows, styles = model.eval(img, channels=channels, diameter=diameter, do_3D=use_3D)
+    masks, flows, styles = model.eval(img, channels=channels, diameter=diameter, do_3D=use_3D, anisotropy=anisotropy, stitch_threshold=stitch_threshold, z_axis=z_axis)
     return masks, flows, styles
 
 ###############################################################################
@@ -95,6 +86,7 @@ if appose_mode:
     channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
     stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
     z_axis = z_axis if z_axis >= 0 else None
+    anisotropy = anisotropy if anisotropy > 0 else None
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = './sample_data/test.tif'
@@ -103,11 +95,12 @@ else:
     diameter = 30
     channels = [0, 1]
     use_3D = False
-    stitch_threshold = None
-    anisotropy = None
+    stitch_threshold = 0
     z_axis = None
+    anisotropy = None
 
-task.update(f"Starting Cellpose v3 script")
+task.update(f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
     input_image, 
@@ -116,6 +109,8 @@ masks, flows, styles = run_cellpose_v3(
     diameter=diameter, 
     use_3D=use_3D, 
     stitch_threshold=stitch_threshold, 
+    anisotropy=anisotropy,
+    z_axis=z_axis,
     use_gpu=use_gpu, 
     device=device
     )

@@ -1,13 +1,14 @@
 #@ Img image
 #@output Img labels
 
+#@ String (value='cyto3') model
 #@ Integer (value=30) diameter
 #@ Integer (value=1) cell_channel
 #@ Integer (value=-1) nuclei_channel
-#@ Integer (value=-1) z_axis
+#@ boolean (persist=true, value=true) use_3D
 #@ Integer (value=0) stitch_threshold
-#@ boolean (value=true) use_3D
-#@ String (value='cyto3') model
+#@ Integer (value=-1) z_axis
+#@ Integer (value=-1) anisotropy
 
 
 import org.apposed.appose.Appose
@@ -60,13 +61,14 @@ println("== STARTING PYTHON SERVICE ==")
 try (python = env.python()) {
 	inputs = [
 		"image": imgToAppose(image),
-		"diameter": diameter,
-		"cell_channel": cell_channel,
-		"nuclei_channel": nuclei_channel,
-        "model": model,
-        "use_3D": use_3D,
-        "z_axis": z_axis,
-        "stitch_threshold": stitch_threshold
+		"model" : model,
+		"diameter" : diameter,
+		"cell_channel" : cell_channel,
+		"nuclei_channel" : nuclei_channel,
+		"use_3D" : use_3D,
+		"stitch_threshold": stitch_threshold,
+		"z_axis": z_axis,
+		"anisotropy": anisotropy,
 	]
 	task = python.task(cp3Script, inputs)
 		.listen { if (it.message) println("[CP3] ${it.message}") }
