@@ -1,6 +1,7 @@
 package fiji.plugin.appose.cellpose;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -39,10 +40,6 @@ import ij.WindowManager;
 import ij.measure.Calibration;
 import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
-import net.imagej.axis.Axes;
-import net.imagej.axis.AxisType;
-import net.imagej.axis.CalibratedAxis;
-import net.imagej.space.AbstractAnnotatedSpace;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
 import net.imglib2.img.Img;
@@ -64,16 +61,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
 	@Parameter( choices = {"cyto3", "nuclei"} )
-	private final String cp_model = "cyto3"; // cellpose model
+	private String cp_model = "cyto3"; // cellpose model
 	
 	@Parameter( label = "Diameter", min="0" )
-	private final int cell_diameter = 30; // cell diameter
+	private int cell_diameter = 30; // cell diameter
 	
 	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private final int cyto_chanel = 1;  // cytoplasmic channel to segment
+	private int cyto_chanel = 1; // cytoplasmic channel to segment
 	
 	@Parameter(label="Nuclei chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private final int nuclei_chanel = 1;  // cytoplasmic channel to segment
+	private int nuclei_chanel = 1; // cytoplasmic channel to segment
 	
 	
 	private boolean is3D = false;
@@ -326,10 +323,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 */
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
-			ImagePlus labels = ImageJFunctions.wrap( output, "labels" ) ;
+			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
 			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			labels.getProcessor().resetMinAndMax();
+			useGlasbeyDarkLUT( labels );
+
 			labels.show();
-			//@TODO Put the LUT for labels
 		}
 		catch ( final Exception e )
 		{
