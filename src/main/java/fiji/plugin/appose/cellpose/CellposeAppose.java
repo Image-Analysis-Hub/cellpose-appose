@@ -4,11 +4,15 @@ import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Environment;
@@ -235,11 +239,13 @@ public class CellposeAppose implements PlugIn
 	 * Most likely in your scripts the dependencies will be different, but you
 	 * will always need appose.
 	 */
-	private static String pixiEnv()
+	private String pixiEnv()
 	{
 		String env = "";
 		try {
-			env = Files.readString(Paths.get("pixi.toml"));
+			URL pixiFile = this.getClass().getResource("pixi.toml");
+			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
