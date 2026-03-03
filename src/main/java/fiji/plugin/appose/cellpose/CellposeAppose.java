@@ -89,8 +89,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void initialize() {
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
-		is3D = is3d( imp );			
-		System.out.println("Nchannels "+imp.getNChannels());
+		is3D = is3d( imp );
 		
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<Integer> cytoItem = 
@@ -117,8 +116,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				
 		}
 	}
-	
-	
+
 	/*
 	 * Check if the Image is 3D or 2D
 	 */
@@ -147,31 +145,47 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			//getParameters( is3D, nchanels );
 			
 			use3d = false;
-			if ( is3D )
-			{
-				String mode = mode_3d.getValue( this );
+			if ( is3D ) {
+				String mode = mode_3d.getValue(this);
 				Calibration cal = imp.getCalibration();
-				anisotropy = cal.pixelDepth/cal.pixelHeight;
-				if ( mode.equals( "3D" ) )
-				{
+				anisotropy = cal.pixelDepth / cal.pixelHeight;
+				if (mode.equals("3D")) {
 					use3d = true;
-				}
-				else
-				{
-					stitch_threshold_value = stitch_threshold.getValue(  this );
+				} else {
+					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
 			}
-			
-			System.out.println("Model chosen "+cp_model);
 			
 			// Runs the processing code.
 			process( imp );
 		}
-		catch ( final IOException | BuildException e )
-		{
-			IJ.error( "An error occurred: " + e.getMessage() );
+		catch ( final IOException | BuildException e ) {
+			IJ.error("An error occurred: " + e.getMessage());
 			e.printStackTrace();
 		}
+
+	}
+
+	/**
+	 * Displays the parameters used in a formatted manner
+	 * @param inputs the map containing all input parameters
+	 */
+	private void displayParameters(Map<String, Object> inputs) {
+		System.out.println("Parameters used: ");
+		System.out.println("─".repeat(50));
+
+		inputs.forEach((key, value) -> {
+			if (!key.equals("image") && !key.equals("cell_channel") && !key.equals("nuclei_channel")) {
+				System.out.printf("  %-20s: %s%n", key, value);
+			}
+		});
+
+		// Add combined channel line
+		int cellChannel = (int) inputs.get("cell_channel");
+		int nucleiChannel = (int) inputs.get("nuclei_channel");
+		System.out.printf("  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel);
+
+		System.out.println("─".repeat(50));
 	}
 
 	/*
@@ -180,10 +194,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public < T extends RealType< T > & NativeType< T > > void process( final ImagePlus imp ) throws IOException, BuildException
 	{
 		// Print os and arch info
-		System.out.println( "This machine os and arch:" );
-		System.out.println( "  " + System.getProperty( "os.name" ) );
-		System.out.println( "  " + System.getProperty( "os.arch" ) );
-		System.out.println();
+		System.out.println( "Starting process..." );
 
 		/*
 		 * For this example we use pixi to create a Python environment with the
@@ -193,12 +204,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * be here for simplicity it is directly returned as a string. See the
 		 * corresponding method.
 		 */
-
-		// The pixi environment spec.
 		final String cellposeEnv = pixiEnv();
-		System.out.println( "The pixi environment specs:" );
-		System.out.println( indent( cellposeEnv ) );
-		System.out.println();
 
 		/*
 		 * The Python script that we want to run. It is specified as a string,
@@ -206,12 +212,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * script is very simple and has no parameters. We give details on how
 		 * to pass input and receive outputs below.
 		 */
-
-		// Get the script
 		final String script = getScript();
-		System.out.println( "The analysis script" );
-		System.out.println( indent( script ) );
-		System.out.println();
 
 		/*
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
@@ -256,8 +257,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", 0 ); // @TODO: where is the z_axis in the shared object ?
 		inputs.put( "anisotropy", anisotropy );
-		
-		
+		// Print out the parameters
+		displayParameters( inputs );
+
 		/*
 		 * Create or retrieve the environment.
 		 * 
@@ -293,7 +295,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final Task task = python.task( script, inputs );
 
 			// Start the script, and return to Java immediately.
-			System.out.println( "Starting task" );
+			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
 			task.start();
 
