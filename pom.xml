@@ -101,10 +101,6 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>imagej</artifactId>
-		</dependency>
 
 		<!-- Appose dependencies -->
 		<dependency>
@@ -112,7 +108,7 @@
 			<artifactId>appose</artifactId>
 			<version>${appose.version}</version>
 		</dependency>
-
+		
 		<!-- ImgLib2 dependencies -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
@@ -123,12 +119,13 @@
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
 		</dependency>
-		
-		    <dependency>
-        <groupId>sc.fiji</groupId>
-        <artifactId>fiji-lib</artifactId>
-      <type>jar</type>
-    </dependency>
+
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>imagej</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 	
 	

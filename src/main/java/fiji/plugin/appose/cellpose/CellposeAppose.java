@@ -1,18 +1,22 @@
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.Arrays;
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
 
 import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
@@ -25,30 +29,23 @@ import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
+import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.widget.NumberWidget;
-import org.scijava.module.DefaultMutableModuleItem;
 
 import ij.IJ;
-import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
-import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import net.imglib2.type.numeric.real.DoubleType;
-
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
 
 /*
  * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
@@ -70,10 +67,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private int cell_diameter = 30; // cell diameter
 	
 	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int cyto_chanel = 1;  // cytoplasmic channel to segment
+	private int cyto_chanel = 1; // cytoplasmic channel to segment
 	
 	@Parameter(label="Nuclei chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int nuclei_chanel = 1;  // cytoplasmic channel to segment
+	private int nuclei_chanel = 1; // cytoplasmic channel to segment
 	
 	
 	private boolean is3D = false;
@@ -96,11 +93,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<Integer> cytoItem = 
 			getInfo().getMutableInput("cyto_chanel", Integer.class);
-		cytoItem.setMaximumValue(imp.getNChannels() - 1);
+		cytoItem.setMaximumValue(imp.getNChannels() );
 		
 		final MutableModuleItem<Integer> nucItem = 
 				getInfo().getMutableInput("nuclei_chanel", Integer.class);
-			nucItem.setMaximumValue(imp.getNChannels() - 1);
+			nucItem.setMaximumValue(imp.getNChannels());
 			
 		// Set the 3D mode selected by the user if the image is 3D
 		if (is3D)
@@ -122,7 +119,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	/*
 	 * Check if the Image is 3D or 2D
 	 */
-	public boolean is3d(ImagePlus imp)
+	public boolean is3d(final ImagePlus imp)
 	{
 		return imp.getNSlices() > 1;
 	}
@@ -142,16 +139,18 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			boolean is3D = is3d( imp );
-			int nchanels = imp.getNChannels();
+			final boolean is3D = is3d( imp );
+			final int nchanels = imp.getNChannels();
 			//getParameters( is3D, nchanels );
 			
 			use3d = false;
-			if ( is3D ) {
-				String mode = mode_3d.getValue(this);
-				Calibration cal = imp.getCalibration();
-				anisotropy = cal.pixelDepth / cal.pixelHeight;
-				if (mode.equals("3D")) {
+			if ( is3D )
+			{
+				final String mode = mode_3d.getValue( this );
+				final Calibration cal = imp.getCalibration();
+				anisotropy = cal.pixelDepth/cal.pixelHeight;
+				if ( mode.equals( "3D" ) )
+				{
 					use3d = true;
 				} else {
 					stitch_threshold_value = stitch_threshold.getValue(this);
@@ -175,7 +174,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * @param imp
 	 * @return
 	 */
-	private int getZAxis( ImagePlus imp )
+	private int getZAxis( final ImagePlus imp )
 	{
 		// print info about the image in the log
 		System.out.println("─".repeat(50));
@@ -209,7 +208,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * Displays the parameters used in a formatted manner
 	 * @param inputs the map containing all input parameters
 	 */
-	private void displayParameters(Map<String, Object> inputs) {
+	private void displayParameters(final Map<String, Object> inputs) {
 		System.out.println("Parameters used: ");
 		System.out.println("─".repeat(50));
 
@@ -220,8 +219,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		});
 
 		// Add combined channel line
-		int cellChannel = (int) inputs.get("cell_channel");
-		int nucleiChannel = (int) inputs.get("nuclei_channel");
+		final int cellChannel = (int) inputs.get("cell_channel");
+		final int nucleiChannel = (int) inputs.get("nuclei_channel");
 		System.out.printf("  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel);
 
 		System.out.println("─".repeat(50));
@@ -269,7 +268,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 */
 
 		// Wrap the ImagePlus into a ImgLib2 image.
-		@SuppressWarnings( "unchecked" )
 		final ImgPlus< T > img = rawWraps( imp );
 		
 		/*
@@ -368,8 +366,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 */
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
-			ImageJFunctions.show( output );
-			// Et voilà!
+			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
+			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			labels.getProcessor().resetMinAndMax();
+			useGlasbeyDarkLUT( labels );
+			transferCalibration( imp, labels );
+
+			labels.show();
 		}
 		catch ( final Exception e )
 		{
@@ -377,6 +380,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 	}
 
+
+	
+	
 	/*
 	 * The environment specification.
 	 * 
@@ -393,10 +399,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		String env = "";
 		try {
-			URL pixiFile = this.getClass().getResource("/pixi.toml");
+			final URL pixiFile = this.getClass().getResource("/pixi.toml");
 			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
 			
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return env;
@@ -434,10 +440,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		String script = "";
 		try {
-			URL scriptFile = this.getClass().getResource("/cp3.py");
+			final URL scriptFile = this.getClass().getResource("/cp3.py");
 			script = IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
 			
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 		return script;
@@ -446,18 +452,21 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	// Helper functions to display progress while building the Appose environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
 
-	private JDialog progressDialog;
-	private JProgressBar progressBar;
-	private void showProgress( String msg )
+	private volatile JDialog progressDialog;
+
+	private volatile JProgressBar progressBar;
+
+	private void showProgress( final String msg )
 	{
 		showProgress( msg, null, null );
 	}
-	private void showProgress( String msg, Long cur, Long max )
+
+	private void showProgress( final String msg, final Long cur, final Long max )
 	{
 		EventQueue.invokeLater( () ->
 		{
 			if ( progressDialog == null ) {
-				Window owner = IJ.getInstance();
+				final Window owner = IJ.getInstance();
 				progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
 				progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
 				progressBar = new JProgressBar();
@@ -484,7 +493,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		EventQueue.invokeLater( () ->
 		{
-			progressDialog.dispose();
+			if ( progressDialog != null )
+				progressDialog.dispose();
 			progressDialog = null;
 		} );
 	}
@@ -499,25 +509,5 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		for ( final String string : split )
 			out += "    " + string + "\n";
 		return out;
-	}
-
-	/*
-	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
-	 * warnings. Hacky.
-	 */
-	@SuppressWarnings( "rawtypes" )
-	public static final ImgPlus rawWraps( final ImagePlus imp )
-	{
-		final ImgPlus< DoubleType > img = ImagePlusAdapter.wrapImgPlus( imp );
-		final ImgPlus raw = img;
-		return raw;
-	}
-
-	public static void main( final String[] args )
-	{
-		ImageJ ij = new ImageJ();
-		ij.launch();
-		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		ij.command().run( CellposeAppose.class, true );
 	}
 }
