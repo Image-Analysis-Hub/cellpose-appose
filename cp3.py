@@ -35,6 +35,27 @@ def get_device() -> tuple[bool, torch.device]:
         print("Using CPU")
     return gpu, device
 
+def manage_channels(cell: int = -1, nuclei: int = -1) -> list[int]:
+    """Returns the channels list [cell_channel, nuclei_channel] for Cellpose.
+    
+    Args:
+        cell: Cell channel index (optional).
+        nuclei: Nuclei channel index (optional).
+    
+    Returns:
+        [cell, nuclei] if both provided; [ch, ch] if only one provided.
+    
+    Raises:
+        ValueError: If neither channel is provided.
+    """
+    if cell >= 0 and nuclei >= 0:
+        return [cell, nuclei]
+    if cell >= 0:
+        return [cell, cell]
+    if nuclei >= 0:
+        return [nuclei, nuclei]
+    raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified")
+
 ###############################################################################
 ### PROCESSING FUNCTIONS
 ###############################################################################
@@ -70,51 +91,40 @@ else:
 
 ## load images
 if appose_mode:
-    image = task.parameters.get("image", None)
-    if image is None:
-        raise ValueError("No input image provided in task parameters")
-    np_image = flip_img(image.ndarray())
-    model_name = task.parameters.get("model", "cyto3")
-    task.update(f"Input image of shape: {image.shape}")
+    input_image = flip_img(image.ndarray())
+    channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
+    stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
+    z_axis = z_axis if z_axis >= 0 else None
+    task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = './sample_data/test.tif'
-    np_image = io.imread(file)
-    model_name = 'cyto3'
+    input_image = io.imread(file)
+    model = 'cyto3'
+    diameter = 30
     channels = [0, 1]
-    z_axis = 0
-    diameters = 30
-    use_3D = True
+    use_3D = False
+    stitch_threshold = None
     anisotropy = None
-    stitch_threshold = 0
-    rescale = False
+    z_axis = None
 
-print(f'Starting Cellpose v3 script')
-
-## load and run model
-io.logger_setup()
+task.update(f"Starting Cellpose v3 script")
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
-    np_image, 
-    model_name=model_name, 
-    channels=[0,1], 
-    diameter=30, 
-    use_3D=True, 
-    anisotropy=None, 
-    stitch_threshold=0, 
-    rescale=False, 
+    input_image, 
+    model_name=model, 
+    channels=channels, 
+    diameter=diameter, 
+    use_3D=use_3D, 
+    stitch_threshold=stitch_threshold, 
     use_gpu=use_gpu, 
     device=device
     )
 
-## save results
-
+## return output
 if appose_mode:
     task.outputs["labels"] = share_as_ndarray(flip_img(masks))
     # task.outputs["flows"] = share_as_ndarray(flip_img(flows[0]))
-    # task.outputs["styles"] = share_as_ndarray(flip_img(styles))
 else:
     io.imsave(f'./sample_data/test_masks.tif', masks.astype(np.uint16))
     io.imsave(f'./sample_data/test_flows.tif', flows[0].astype(np.float32))
-    # io.imsave(f'./sample_data/test_styles.tif', styles.astype(np.float32))
-
-print(f'Finished Cellpose v3 script')
+task.update(f"Finished Cellpose v3 script")
