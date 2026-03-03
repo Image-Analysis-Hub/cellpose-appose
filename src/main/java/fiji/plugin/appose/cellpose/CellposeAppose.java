@@ -1,18 +1,20 @@
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
+import java.util.Arrays;
 
 import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
@@ -25,17 +27,17 @@ import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
-import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.widget.NumberWidget;
+import org.scijava.module.DefaultMutableModuleItem;
 
 import ij.IJ;
+import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
-import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -45,6 +47,10 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
+
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
 
 /*
  * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
@@ -225,7 +231,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 */
 
 		// Wrap the ImagePlus into a ImgLib2 image.
-		@SuppressWarnings( "unchecked" )
 		final ImgPlus< T > img = rawWraps( imp );
 		
 		/*
@@ -452,20 +457,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final String[] split = script.split( "\n" );
 		String out = "";
 		for ( final String string : split )
-			out += "    " + string + "\n";
+ 			out += "    " + string + "\n";
 		return out;
-	}
-
-	/*
-	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
-	 * warnings. Hacky.
-	 */
-	@SuppressWarnings( "rawtypes" )
-	public static final ImgPlus rawWraps( final ImagePlus imp )
-	{
-		final ImgPlus< DoubleType > img = ImagePlusAdapter.wrapImgPlus( imp );
-		final ImgPlus raw = img;
-		return raw;
 	}
 
 	public static void main( final String[] args )
