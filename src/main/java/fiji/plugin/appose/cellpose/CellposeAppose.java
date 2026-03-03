@@ -448,7 +448,7 @@ public class CellposeAppose implements Command
 	public static void main( final String[] args )
 	{
 		ImageJ.main( args );
-		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
+		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run();
 	}
