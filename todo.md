@@ -4,7 +4,7 @@
 - [ ] Add tests suites
 - [ ] Extend the documentation / readme
 - [ ] Use `null` and `None` instead of `-1` values in parameters
-- [ ] Properly return a z stack with z in the slice instead of channel index in fiji 
+- [ ] Properly return a z stack with z in the slice instead of channel index in fiji -> G, branch: output
 - [ ] Clean the log for better display
 - [ ] Add error management if missing image or wrong parameters values
 - [ ] Add more parameters and create an advance mode
