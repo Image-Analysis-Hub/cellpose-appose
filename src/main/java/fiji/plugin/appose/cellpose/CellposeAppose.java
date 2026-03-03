@@ -39,7 +39,6 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
-import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -467,13 +466,5 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		for ( final String string : split )
 			out += "    " + string + "\n";
 		return out;
-	}
-
-	public static void main( final String[] args )
-	{
-		final ImageJ ij = new ImageJ();
-		ij.launch();
-		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		ij.command().run( CellposeAppose.class, true );
 	}
 }
