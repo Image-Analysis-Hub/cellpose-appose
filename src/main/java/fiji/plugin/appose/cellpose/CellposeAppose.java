@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.util.Arrays;
+
 import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
 import org.apposed.appose.BuildException;
@@ -20,16 +22,19 @@ import org.apposed.appose.NDArray;
 import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.scijava.Initializable;
 import org.scijava.command.Command;
+import org.scijava.command.DynamicCommand;
+import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.widget.NumberWidget;
+import org.scijava.module.DefaultMutableModuleItem;
 
 import ij.IJ;
-import ij.ImageJ;
+import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
-import ij.gui.GenericDialog;
-import ij.plugin.PlugIn;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -53,70 +58,45 @@ import javax.swing.WindowConstants;
  * single class, but you can imagine restructuring the code and the Python script as you see fit.
  */
 
-@Plugin(type = Command.class, headless = true, menuPath = "Help>CellposeAppose")
-public class CellposeAppose implements Command
+@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose")
+public class CellposeAppose extends DynamicCommand implements Initializable
 {
-	private String mode_3d = "2D+stitch"; // 3d mode
-	private double cell_diameter = 30; // cell diameter
-	private int cyto_chanel = 1; // cytoplasmic channel to segment
-	private int nuc_channel = 0; // nucleus channel if there is one to use
 	
-	
-	//@Parameter( label = "Choose model" )
+	@Parameter( choices = {"cyto3", "nuclei"} )
 	private String cp_model = "cyto3"; // cellpose model
 	
-	/**
-	 * Interface to select Cellpose parameters
-	 * @return
-	 */
-	/**public void getParameters( boolean is3d, int multichannel )
-	{
-		String[] cp_models = {"cyto3", "nuclei"};
-		String[] modes_3d = {"2D+stitch", "3D"};
-		
-		// Creates the interface to choose parameters
-		GenericDialog gd = new GenericDialog("Options", IJ.getInstance() );
-		Font boldy = new Font("SansSerif", Font.CENTER_BASELINE, 15);
-		gd.setFont(boldy);
-		gd.addMessage("------ Cellpose parameters ----------------- ");
-		gd.addChoice("Choose_model", cp_models, cp_models[0]);
-		gd.addNumericField( "Diameter", cell_diameter );
-		gd.addToSameRow();
-		gd.addMessage("Cell average diameter, in pixels");
-		// Get the 3d mode to use
-		if ( is3d )
-		{
-			gd.addChoice("Use 3D mode", modes_3d, modes_3d[0]);
-		}
-		// Get the channels to use
-		if ( multichannel > 1 )
-		{
-			String[] chanlist = new String[multichannel+1];
-			for ( int n=0; n<multichannel; n++ )
-				chanlist[n] = ""+(n+1);
-			chanlist[multichannel] = "None";
-			gd.addChoice( "Cytoplasm_chanel", chanlist, "1" );
-			gd.addChoice( "Nucleus_chanel", chanlist, "None" );
-			
-		}
-		
-		
-		gd.showDialog();
-		if (gd.wasCanceled()) return;
+	@Parameter( label = "Diameter", min="0" )
+	private int cell_diameter = 30; // cell diameter
+	
+	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
+	private int cyto_chanel = 1;  // cytoplasmic channel to segment
+	
+	private boolean is3D = false;
 
-		// read the parameters chosen by the user
-		String cp_model = gd.getNextChoice();
-		cell_diameter = (double) gd.getNextNumber();
-		if ( is3d )
+	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
+	
+	private boolean use3d = false;
+	
+	@Override
+	public void initialize() {
+		// Grab the current image.
+		final ImagePlus imp = WindowManager.getCurrentImage();
+		is3D = is3d( imp );			
+		System.out.println("Nchannels "+imp.getNChannels());
+		
+		final MutableModuleItem<Integer> cytoItem = 
+			getInfo().getMutableInput("cyto_chanel", Integer.class);
+		cytoItem.setMaximumValue(imp.getNChannels() - 1);
+		
+		if (is3D)
 		{
-			mode_3d = gd.getNextChoice();
+			 mode_3d = new DefaultMutableModuleItem<>(getInfo(),
+					"mode_3d", String.class);
+			 mode_3d.setChoices( Arrays.asList("2D+stitch", "3D"));
+			getInfo().addInput(mode_3d);
 		}
-		if ( multichannel > 1 )
-		{
-			cyto_chan = (int) gd.getNextChoice();
-			String nuc_chan = gd.getNextChoice();
-		}
-	}*/
+	}
+	
 	
 	/*
 	 * Check if the Image is 3D or 2D
@@ -144,6 +124,16 @@ public class CellposeAppose implements Command
 			boolean is3D = is3d( imp );
 			int nchanels = imp.getNChannels();
 			//getParameters( is3D, nchanels );
+			
+			use3d = false;
+			if ( is3D )
+			{
+				String mode = mode_3d.getValue( this );
+				if ( mode.equals( "3D" ) )
+				{
+					use3d = true;
+				}
+			}
 			
 			System.out.println("Model chosen "+cp_model);
 			
@@ -230,8 +220,12 @@ public class CellposeAppose implements Command
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
-		inputs.put( "use_3d", false );
-		inputs.put( "model_name", "cyto3" );
+		inputs.put( "use_3d", use3d );
+		inputs.put( "model_name", cp_model );
+		inputs.put( "diameter", cell_diameter );
+		inputs.put( "cyto_chanel", cyto_chanel );
+		
+		
 		/*
 		 * Create or retrieve the environment.
 		 * 
@@ -448,9 +442,9 @@ public class CellposeAppose implements Command
 
 	public static void main( final String[] args )
 	{
-		ImageJ.main( args );
+		ImageJ ij = new ImageJ();
+		ij.launch();
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		final CellposeAppose plugin = new CellposeAppose();
-		plugin.run();
+		ij.command().run( CellposeAppose.class, true );
 	}
 }
