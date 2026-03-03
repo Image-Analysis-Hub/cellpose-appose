@@ -5,11 +5,14 @@ import java.awt.Font;
 import java.awt.Window;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
 import org.apposed.appose.BuildException;
 import org.apposed.appose.Environment;
@@ -227,7 +230,8 @@ public class CellposeAppose implements Command
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
-
+		inputs.put( "use_3d", false );
+		inputs.put( "model_name", "cyto3" );
 		/*
 		 * Create or retrieve the environment.
 		 * 
@@ -295,7 +299,7 @@ public class CellposeAppose implements Command
 			 * copying of the data, as the NDArray and the ShmImg are both just
 			 * views on the same shared memory array.
 			 */
-			final NDArray maskArr = ( NDArray ) task.outputs.get( "rotated" );
+			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			ImageJFunctions.show( output );
 			// Et voilà!
@@ -318,11 +322,13 @@ public class CellposeAppose implements Command
 	 * Most likely in your scripts the dependencies will be different, but you
 	 * will always need appose.
 	 */
-	private static String pixiEnv()
+	private String pixiEnv()
 	{
 		String env = "";
 		try {
-			env = Files.readString(Paths.get("pixi.toml"));
+			URL pixiFile = this.getClass().getResource("/pixi.toml");
+			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -357,38 +363,19 @@ public class CellposeAppose implements Command
 	 * 2/or you can use the input map to pass parameters as well, by putting
 	 * them in the map with a specific key.
 	 */
-	private static String getScript()
+	private String getScript()
 	{
-		return ""
-				+ "from skimage.transform import rotate\n"
-				+ "import appose\n"
-				+ "\n"
-				+ "# The variable 'image' is automatically created by Appose from the \n"
-				+ "# input map that we passed when creating the task. It is a shared \n"
-				+ "# memory NDArray that can be unwrapped as a NumPy array.\n"
-				+ "# Careful: the variable name 'image' MUST be the key that we used in \n"
-				+ "# the input map in Java.\n"
-				+ "img = image.ndarray()\n"
-				+ "\n"
-				+ "# Now we have 'img' as a NumPy array.\n"
-				+ "\n"
-				+ "# Rotate the image by 90 degrees (counter-clockwise)\n"
-				+ "rotated_image = rotate(img, angle=90, resize=True)\n"
-				+ "\n"
-				+ "# Output back to Fiji\n"
-				+ "# First we create a NDArray placeholder, of the same type and shape as \n"
-				+ "# the image we want to return.\n"
-				+ "shared = appose.NDArray(str(rotated_image.dtype), rotated_image.shape)\n"
-				+ "\n"
-				+ "# Then we fill this placeholder with the data that we want to return.\n"
-				+ "shared.ndarray()[:] = rotated_image[:]\n"
-				+ "\n"
-				+ "# Finally, we put this NDArray in the task outputs with a specific key (here 'rotated'), \n"
-				+ "# so that it can be retrieved from Java after the script is done. The key 'rotated' is \n"
-				+ "# arbitrary, but it must be the same as the one we use in Java to retrieve the output.\n"
-				+ "task.outputs['rotated'] = shared\n";
+		String script = "";
+		try {
+			URL scriptFile = this.getClass().getResource("/cp3.py");
+			script = IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return script;
 	}
-
+	
 	// Helper functions to display progress while building the Appose environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
 
@@ -462,7 +449,7 @@ public class CellposeAppose implements Command
 	public static void main( final String[] args )
 	{
 		ImageJ.main( args );
-		IJ.openImage( "https://imagej.net/images/FluorescentCells.jpg" ).show();
+		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 		final CellposeAppose plugin = new CellposeAppose();
 		plugin.run();
 	}

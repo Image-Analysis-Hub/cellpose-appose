@@ -46,7 +46,7 @@ def manage_channels(cell: int = -1, nuclei: int = -1) -> list[int]:
     if nuclei >= 0:
         return [nuclei, nuclei]
     raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified")
-
+    
 ###############################################################################
 ### PROCESSING FUNCTIONS
 ###############################################################################
