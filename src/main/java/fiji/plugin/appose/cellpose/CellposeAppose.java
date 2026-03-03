@@ -3,16 +3,16 @@ package fiji.plugin.appose.cellpose;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.Arrays;
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
 
 import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
@@ -25,17 +25,17 @@ import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
+import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.widget.NumberWidget;
-import org.scijava.module.DefaultMutableModuleItem;
 
 import ij.IJ;
-import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -45,10 +45,6 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.DoubleType;
-
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
 
 /*
  * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
