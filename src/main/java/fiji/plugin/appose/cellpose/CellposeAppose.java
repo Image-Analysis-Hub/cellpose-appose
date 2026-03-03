@@ -230,7 +230,8 @@ public class CellposeAppose implements Command
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
-
+		inputs.put( "use_3d", false );
+		inputs.put( "model_name", "cyto3" );
 		/*
 		 * Create or retrieve the environment.
 		 * 
