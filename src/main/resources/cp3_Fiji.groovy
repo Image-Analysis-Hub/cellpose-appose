@@ -40,7 +40,7 @@ env = Appose.pixi().content(pixiToml).logDebug().build()
 println("Environment build complete: ${env.base()}")
 
 // Read in the Python script (TODO: load as resource instead of hardcoding path)
-cp3Path = "/Users/strigaud/Libraries/development/FijiWS/cellpose-appose/cp3.py"
+cp3Path = "/Users/strigaud/Libraries/development/FijiWS/cellpose-appose/src/main/resources/cp3.py"
 cp3Script = new File(cp3Path).text
 println("Loaded cp3 script of length ${cp3Script.length()}")
 
