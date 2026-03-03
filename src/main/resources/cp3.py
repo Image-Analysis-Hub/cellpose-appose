@@ -70,11 +70,10 @@ else:
 
 ## load images
 if appose_mode:
-    image = task.parameters.get("image", None)
     if image is None:
         raise ValueError("No input image provided in task parameters")
     np_image = flip_img(image.ndarray())
-    model_name = task.parameters.get("model", "cyto3")
+    #model_name = task.parameters.get("model", "cyto3")
     task.update(f"Input image of shape: {image.shape}")
 else:
     file = './sample_data/test.tif'
@@ -98,7 +97,7 @@ masks, flows, styles = run_cellpose_v3(
     model_name=model_name, 
     channels=[0,1], 
     diameter=30, 
-    use_3D=True, 
+    use_3D=use_3d, 
     anisotropy=None, 
     stitch_threshold=0, 
     rescale=False, 
