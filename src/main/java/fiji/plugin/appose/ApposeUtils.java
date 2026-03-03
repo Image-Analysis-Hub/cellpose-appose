@@ -1,6 +1,7 @@
 package fiji.plugin.appose;
 
 import ij.ImagePlus;
+import ij.measure.Calibration;
 import ij.plugin.LutLoader;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
@@ -32,5 +33,28 @@ public class ApposeUtils
 	{
 		imp.setLut( lut );
 		imp.updateAndDraw();
+	}
+
+	/**
+	 * Transfers the calibration of an {@link ImagePlus} to another one,
+	 * generated from a capture of the first one.
+	 *
+	 * @param from
+	 *            the imp to copy from.
+	 * @param to
+	 *            the imp to copy to.
+	 */
+	public static final void transferCalibration( final ImagePlus from, final ImagePlus to )
+	{
+		final Calibration fc = from.getCalibration();
+		final Calibration tc = to.getCalibration();
+
+		tc.setUnit( fc.getUnit() );
+		tc.setTimeUnit( fc.getTimeUnit() );
+		tc.frameInterval = fc.frameInterval;
+
+		tc.pixelWidth = fc.pixelWidth;
+		tc.pixelHeight = fc.pixelHeight;
+		tc.pixelDepth = fc.pixelDepth;
 	}
 }

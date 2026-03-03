@@ -1,6 +1,7 @@
 package fiji.plugin.appose.cellpose;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import java.awt.EventQueue;
@@ -327,6 +328,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
 			labels.getProcessor().resetMinAndMax();
 			useGlasbeyDarkLUT( labels );
+			transferCalibration( imp, labels );
 
 			labels.show();
 		}
