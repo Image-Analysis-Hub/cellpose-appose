@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
@@ -67,11 +69,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min="0" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Cytoplasmic chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int cyto_chanel = 1; // cytoplasmic channel to segment
+	@Parameter(label="Cytoplasmic channel", choices = {"N/A"} )
+	private String cyto_channel = "N/A"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei chanel", min = "0", style = NumberWidget.SCROLL_BAR_STYLE)
-	private int nuclei_chanel = 1; // cytoplasmic channel to segment
+	@Parameter(label="Nuclei channel", choices = {"N/A"} )
+	private String nuclei_channel = "N/A"; // nuclei channel to segment
 	
 	
 	private boolean is3D = false;
@@ -90,14 +92,21 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		is3D = is3d( imp );			
 		System.out.println("Nchannels "+imp.getNChannels());
 		
-		// Set the max possible value of channels based on image dimension
-		final MutableModuleItem<Integer> cytoItem = 
-			getInfo().getMutableInput("cyto_chanel", Integer.class);
-		cytoItem.setMaximumValue(imp.getNChannels() );
 		
-		final MutableModuleItem<Integer> nucItem = 
-				getInfo().getMutableInput("nuclei_chanel", Integer.class);
-			nucItem.setMaximumValue(imp.getNChannels());
+		List<String> channelChoices = new ArrayList<>();
+        for (int i = 1; i <= imp.getNChannels(); i++) {
+        	channelChoices.add(String.valueOf(i));
+        }
+        channelChoices.add("N/A");
+		
+		// Set the max possible value of channels based on image dimension
+		final MutableModuleItem<String> cytoItem = 
+			getInfo().getMutableInput("cyto_channel", String.class);
+		cytoItem.setChoices(channelChoices);
+		
+		final MutableModuleItem<String> nucItem = 
+				getInfo().getMutableInput("nuclei_channel", String.class);
+		nucItem.setChoices(channelChoices);
 			
 		// Set the 3D mode selected by the user if the image is 3D
 		if (is3D)
@@ -248,8 +257,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "use_3D", use3d );
 		inputs.put( "model", cp_model );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cell_channel", cyto_chanel-1 );
-		inputs.put( "nuclei_channel", nuclei_chanel-1 );
+		inputs.put( "cell_channel", parseChannelChoice( cyto_channel ) );
+		inputs.put( "nuclei_channel", parseChannelChoice( nuclei_channel ));
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", 0 ); // @TODO: where is the z_axis in the shared object ?
 		inputs.put( "anisotropy", anisotropy );
@@ -468,6 +477,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			out += "    " + string + "\n";
 		return out;
 	}
+	
+	public static Integer parseChannelChoice(String str) {
+	    if (str == null || str.equalsIgnoreCase("N/A")) {
+	        return null;
+	    }
+	    return Integer.parseInt(str);
+	}
 
 	public static void main( final String[] args )
 	{
@@ -476,4 +492,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 		ij.command().run( CellposeAppose.class, true );
 	}
+	
+
 }
