@@ -63,7 +63,10 @@ import javax.swing.WindowConstants;
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
-	@Parameter( choices = {"cyto3", "nuclei"} )
+	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
+			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
+			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
+			"neurips_cellpose_transformer"} )
 	private String cp_model = "cyto3"; // cellpose model
 	
 	@Parameter( label = "Diameter", min="0" )
