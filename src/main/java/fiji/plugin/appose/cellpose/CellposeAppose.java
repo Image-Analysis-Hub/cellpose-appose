@@ -243,7 +243,7 @@ public class CellposeAppose implements PlugIn
 	{
 		String env = "";
 		try {
-			URL pixiFile = this.getClass().getResource("pixi.toml");
+			URL pixiFile = this.getClass().getResource("/pixi.toml");
 			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
 			
 		} catch (IOException e) {
