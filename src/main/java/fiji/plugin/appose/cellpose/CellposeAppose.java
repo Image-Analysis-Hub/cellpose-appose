@@ -36,7 +36,12 @@ import net.imagej.ImageJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import ij.process.LUT;
 import net.imagej.ImgPlus;
+import net.imagej.axis.Axes;
+import net.imagej.axis.AxisType;
+import net.imagej.axis.CalibratedAxis;
+import net.imagej.space.AbstractAnnotatedSpace;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
 import net.imglib2.img.ImagePlusAdapter;
@@ -95,11 +100,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<Integer> cytoItem = 
 			getInfo().getMutableInput("cyto_chanel", Integer.class);
-		cytoItem.setMaximumValue(imp.getNChannels() - 1);
+		cytoItem.setMaximumValue(imp.getNChannels() );
 		
 		final MutableModuleItem<Integer> nucItem = 
 				getInfo().getMutableInput("nuclei_chanel", Integer.class);
-			nucItem.setMaximumValue(imp.getNChannels() - 1);
+			nucItem.setMaximumValue(imp.getNChannels());
 			
 		// Set the 3D mode selected by the user if the image is 3D
 		if (is3D)
@@ -251,8 +256,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "use_3D", use3d );
 		inputs.put( "model", cp_model );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cell_channel", cyto_chanel );
-		inputs.put( "nuclei_channel", nuclei_chanel );
+		inputs.put( "cell_channel", cyto_chanel-1 );
+		inputs.put( "nuclei_channel", nuclei_chanel-1 );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", 0 ); // @TODO: where is the z_axis in the shared object ?
 		inputs.put( "anisotropy", anisotropy );
@@ -327,8 +332,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 */
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
-			ImageJFunctions.show( output );
-			// Et voilà!
+			ImagePlus labels = ImageJFunctions.wrap( output, "labels" ) ;
+			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			labels.show();
+			//@TODO Put the LUT for labels
 		}
 		catch ( final Exception e )
 		{
@@ -336,6 +343,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 	}
 
+
+	
+	
 	/*
 	 * The environment specification.
 	 * 
