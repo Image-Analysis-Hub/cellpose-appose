@@ -75,8 +75,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	
 	@Parameter(label="Nuclei channel", choices = {"N/A"} )
 	private String nuclei_channel = "N/A"; // nuclei channel to segment
-	
-	
+
+	@Parameter(label="Compute Flows")
+	private Boolean compute_flows = false; // whether to compute flows channel
+
+
+
 	private boolean is3D = false;
 
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
@@ -85,8 +89,18 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private double stitch_threshold_value = 0;
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
-	
-	private int z_axis = -1; // z_axis position 
+
+	private int z_axis = -1; // z_axis position
+
+	// Advance parameters
+	// ToDo: make them available in the GUI
+	private boolean resample = true;
+	private boolean normalize = true;
+    private double flow_threshold = 0.4;
+	private double cellprob_threshold = 0.0;
+	private int min_size = 15;
+	private double tile_overlap = 0.1;
+	private int rescale = -1;
 	
 	@Override
 	public void initialize() {
@@ -96,40 +110,39 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			// ToDo: Find a cleaner way to exit, the "return" still trigger the plugin interface
 			//       I needed to throw an exception for the process to stop.
 			IJ.error("No image available to process");
-			throw new RuntimeException( "No image available to process" );
+			throw new RuntimeException("No image available to process");
 		}
 
-		is3D = is3d( imp );
-		
-		
+		is3D = is3d(imp);
+
+
 		List<String> channelChoices = new ArrayList<>();
-        for (int i = 1; i <= imp.getNChannels(); i++) {
-        	channelChoices.add(String.valueOf(i));
-        }
-        channelChoices.add("N/A");
-		
+		for (int i = 1; i <= imp.getNChannels(); i++) {
+			channelChoices.add(String.valueOf(i));
+		}
+		channelChoices.add("N/A");
+
 		// Set the max possible value of channels based on image dimension
-		final MutableModuleItem<String> cytoItem = 
-			getInfo().getMutableInput("cyto_channel", String.class);
+		final MutableModuleItem<String> cytoItem =
+				getInfo().getMutableInput("cyto_channel", String.class);
 		cytoItem.setChoices(channelChoices);
-		
-		final MutableModuleItem<String> nucItem = 
+
+		final MutableModuleItem<String> nucItem =
 				getInfo().getMutableInput("nuclei_channel", String.class);
 		nucItem.setChoices(channelChoices);
-			
+
 		// Set the 3D mode selected by the user if the image is 3D
-		if (is3D)
-		{
-			 mode_3d = new DefaultMutableModuleItem<>(getInfo(),
+		if (is3D) {
+			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
-			 mode_3d.setChoices( Arrays.asList("2D+stitch", "3D"));
+			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
 			getInfo().addInput(mode_3d);
-			
-			 stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
-						"stitch_threshold", Double.class);
-			 stitch_threshold.setMaximumValue( 1.0 );
-			 stitch_threshold.setMinimumValue( 0.0 );
-				getInfo().addInput(stitch_threshold);
+
+			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
+					"stitch_threshold", Double.class);
+			stitch_threshold.setMaximumValue(1.0);
+			stitch_threshold.setMinimumValue(0.0);
+			getInfo().addInput(stitch_threshold);
 		}
 	}
 
@@ -185,7 +198,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 
 	}
-	
+
 	/**
 	 * Returns the position at which the Z axis should be in python
 	 * @param imp
@@ -313,6 +326,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "anisotropy", anisotropy );
 		// Print out the parameters
 		displayParameters( inputs );
+		// Advance (not printed)
+		inputs.put( "compute_flows", compute_flows );
+		inputs.put( "resample", resample );
+		inputs.put( "normalize", normalize );
+		inputs.put( "rescale", rescale );
+		inputs.put( "flow_threshold", flow_threshold );
+		inputs.put( "cellprob_threshold", cellprob_threshold );
+		inputs.put( "min_size", min_size );
+		inputs.put( "tile_overlap", tile_overlap );
+
 
 		/*
 		 * Create or retrieve the environment.
@@ -388,12 +411,26 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			// Return is a TZCYX arrays, so no need of setDimensions anymore
+            // labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
 			labels.getProcessor().resetMinAndMax();
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
-
 			labels.show();
+
+			if ( compute_flows )
+			{
+				// RGB image returned
+				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
+				final Img< T > flows = new ShmImg<>( flowsArr );
+				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
+				// Return is a TZCYX arrays, so no need of setDimensions anymore
+				// flowsImp.setDimensions( 3, flowsImp.getNChannels(), flowsImp.getNFrames() );
+				flowsImp.getProcessor().resetMinAndMax();
+				transferCalibration( imp, flowsImp );
+				flowsImp.show();
+			}
+
 		}
 		catch ( final Exception e )
 		{
