@@ -535,14 +535,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	    }
 	    return Integer.parseInt(str);
 	}
-
-	public static void main( final String[] args )
-	{
-		final ImageJ ij = new ImageJ();
-		ij.launch();
-		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		ij.command().run( CellposeAppose.class, true );
-	}
 	
 
 }
