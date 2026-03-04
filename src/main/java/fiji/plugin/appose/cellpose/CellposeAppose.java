@@ -81,15 +81,17 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(label="Nuclei channel", choices = {"N/A"} )
 	private String nuclei_channel = "N/A"; // nuclei channel to segment
 	
-	@Parameter( label = "return ROIs" )
-	private Boolean return_ROIs = false; // if true return ROIs
+	
 	
 	private boolean is3D = false;
 
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
 	private MutableModuleItem<Double> stitch_threshold; // stitching value, only for 3D image
+
+	private MutableModuleItem<Boolean> return_ROIs; // if true return ROIs  only for 2D image
 	
 	private double stitch_threshold_value = 0;
+	private boolean return_ROIs_value = false;
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 	
@@ -138,6 +140,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 stitch_threshold.setMinimumValue( 0.0 );
 				getInfo().addInput(stitch_threshold);
 		}
+		else {
+			return_ROIs = new DefaultMutableModuleItem<>(getInfo(),
+					"return_ROIs", Boolean.class);
+			getInfo().addInput(return_ROIs);
+		}
 	}
 
 	/*
@@ -179,6 +186,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				} else {
 					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
+			}
+			else
+			{
+				return_ROIs_value = return_ROIs.getValue(this);
 			}
 			// get the z_axis number in what python should receive
 			z_axis = getZAxis( imp );
@@ -402,7 +413,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 			labels.show();
 			
-			if ( return_ROIs )
+			if ( return_ROIs_value )
 			{
 				// from https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
 				
