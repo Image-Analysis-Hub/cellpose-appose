@@ -351,6 +351,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
+			// To catch update message from the python script
+			task.listen( e->{
+				System.out.println(e.message);
+			} );
 			task.start();
 
 			/*
