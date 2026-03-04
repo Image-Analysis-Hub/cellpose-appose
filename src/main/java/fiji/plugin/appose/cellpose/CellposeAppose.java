@@ -353,7 +353,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
 			task.listen( e->{
-				System.out.println(e.message);
+				System.out.println("\tInfo: "+e.message);
 			} );
 			task.start();
 
