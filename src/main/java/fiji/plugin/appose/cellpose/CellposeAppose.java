@@ -198,7 +198,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 
 	}
-	
+
 	/**
 	 * Returns the position at which the Z axis should be in python
 	 * @param imp
@@ -336,6 +336,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
 
+
 		/*
 		 * Create or retrieve the environment.
 		 * 
@@ -410,10 +411,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-			labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			// Return is a TZCYX arrays, so no need of setDimensions anymore
+            // labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
 			labels.getProcessor().resetMinAndMax();
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
+			labels.show();
 
 			if ( compute_flows )
 			{
@@ -421,13 +424,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 				final Img< T > flows = new ShmImg<>( flowsArr );
 				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
-				flowsImp.setDimensions( 3, flowsImp.getNChannels(), flowsImp.getNFrames() );
+				// Return is a TZCYX arrays, so no need of setDimensions anymore
+				// flowsImp.setDimensions( 3, flowsImp.getNChannels(), flowsImp.getNFrames() );
 				flowsImp.getProcessor().resetMinAndMax();
 				transferCalibration( imp, flowsImp );
 				flowsImp.show();
 			}
 
-			labels.show();
 		}
 		catch ( final Exception e )
 		{
