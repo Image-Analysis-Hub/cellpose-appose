@@ -70,11 +70,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min="0" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Cytoplasmic channel", choices = {"N/A"} )
-	private String cyto_channel = "N/A"; // cytoplasmic channel to segment
+	@Parameter(label="Cytoplasmic channel", choices = {"None"} )
+	private String cyto_channel = "None"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei channel", choices = {"N/A"} )
-	private String nuclei_channel = "N/A"; // nuclei channel to segment
+	@Parameter(label="Nuclei channel", choices = {"None"} )
+	private String nuclei_channel = "None"; // nuclei channel to segment
 
 	@Parameter(label="Compute Flows")
 	private Boolean compute_flows = false; // whether to compute flows channel
@@ -90,7 +90,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 
-	private int z_axis = -1; // z_axis position
+	private Object z_axis = null; // z_axis position
 
 	// Advance parameters
 	// ToDo: make them available in the GUI
@@ -100,7 +100,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private double cellprob_threshold = 0.0;
 	private int min_size = 15;
 	private double tile_overlap = 0.1;
-	private int rescale = -1;
+	private Object rescale = null;
 	
 	@Override
 	public void initialize() {
@@ -120,7 +120,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		for (int i = 1; i <= imp.getNChannels(); i++) {
 			channelChoices.add(String.valueOf(i));
 		}
-		channelChoices.add("N/A");
+		channelChoices.add("None");
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<String> cytoItem =
@@ -204,7 +204,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * @param imp
 	 * @return
 	 */
-	private int getZAxis( final ImagePlus imp )
+	private Object getZAxis( final ImagePlus imp )
 	{
 		// print info about the image in the log
 		System.out.println("─".repeat(50));
@@ -216,7 +216,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		
 		// 2D, easy peasy
 		if ( imp.getNSlices() == 1 )
-				return -1;
+				return null;
 		
 		// 5D -> TZCYX
 		if ( imp.getNDimensions() == 5 )
@@ -570,7 +570,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	}
 	
 	public static Integer parseChannelChoice(String str) {
-	    if (str == null || str.equalsIgnoreCase("N/A")) {
+	    if (str == null || str.equalsIgnoreCase("None")) {
 	        return null;
 	    }
 	    return Integer.parseInt(str);
