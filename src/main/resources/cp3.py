@@ -3,6 +3,7 @@
 ### Authors: 
 ###    Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
 ###    Gaelle Letort <gaelle letort.pasteur.fr>
+###    Julie Mabon <julie.mabon@pasteur.fr>
 ###############################################################################
 
 import torch
