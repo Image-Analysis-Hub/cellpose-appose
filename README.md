@@ -2,7 +2,7 @@ Fiji plugin to run Cellpose with Appose
 
 ## Installation
 
-To install, copy the `.jar` file in the `plugins directory of Fiji.
+To install, copy the `.jar` file in the `plugins` directory of Fiji. Restart Fiji.
 Thanks to Appose magic, the python environment will be automatically installed in your home `.local\shared\appose` directory and called from the plugin.
 
 ## Usage
