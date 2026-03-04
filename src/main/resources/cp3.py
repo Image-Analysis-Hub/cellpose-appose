@@ -107,12 +107,11 @@ if appose_mode:
     #input_image = flip_img(image.ndarray())
     input_image = image.ndarray()
     channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
-    stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
-    z_axis = z_axis if z_axis >= 0 else None
+    stitch_threshold = stitch_threshold
+    z_axis = z_axis
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale if rescale > 0 else None
+    rescale = rescale
     # use_3D
-    # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
