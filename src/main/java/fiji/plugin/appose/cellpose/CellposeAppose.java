@@ -10,11 +10,11 @@ import java.awt.Window;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
@@ -35,7 +35,6 @@ import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import org.scijava.widget.NumberWidget;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -237,8 +236,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		});
 
 		// Add combined channel line
-		final int cellChannel = (int) inputs.get("cell_channel");
-		final int nucleiChannel = (int) inputs.get("nuclei_channel");
+		final Object cellChannel = inputs.get("cell_channel");
+		final Object nucleiChannel = inputs.get("nuclei_channel");
 		System.out.printf("  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel);
 
 		System.out.println("─".repeat(50));
