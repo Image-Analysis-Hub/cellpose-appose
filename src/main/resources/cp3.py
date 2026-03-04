@@ -83,6 +83,12 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 ### MAIN PROGRAM
 ###############################################################################
 
+def to_5d(arr):
+    """Convert 2D or 3D array to 5D"""
+    while arr.ndim < 5:
+        arr = np.expand_dims(arr, axis=0)
+    return arr
+
 def flip_img(img):
     """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""
     import numpy as np
@@ -159,11 +165,17 @@ masks, flows, styles = run_cellpose_v3(
     }
 )
 
-## return output
+
+
+## return output (TZCYX)
 if appose_mode:
-    task.outputs["labels"] = share_as_ndarray(masks)
+    # transform mask ZYX -> TZCYX
+    masks_5d = np.rollaxis(to_5d(masks), -3, -4)
+    task.outputs["labels"] = share_as_ndarray(masks_5d)
     if compute_flows:
-        task.outputs["flows"] = share_as_ndarray((flows[0]))
+        # transform flows ZYXC -> TZCYX
+        flows_5d = np.rollaxis(to_5d(flows[0]), -1, -3)
+        task.outputs["flows"] = share_as_ndarray(flows_5d)
 else:
     io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
     if compute_flows:
