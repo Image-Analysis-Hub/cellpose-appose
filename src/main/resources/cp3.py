@@ -51,10 +51,32 @@ def manage_channels(cell: int|None = None, nuclei: int|None = None) -> list[int]
 ### PROCESSING FUNCTIONS
 ###############################################################################
 
-def run_cellpose_v3(img, model_name, channels, diameter, use_3D, anisotropy, stitch_threshold, z_axis,use_gpu, device):
+def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v3 on a single image with the given parameters."""
-    model = models.CellposeModel(model_type=model_name, gpu=use_gpu, device=device)
-    masks, flows, styles = model.eval(img, channels=channels, diameter=diameter, do_3D=use_3D, anisotropy=anisotropy, stitch_threshold=stitch_threshold, z_axis=z_axis)
+    
+    model = models.CellposeModel(
+        model_type=getattr(kwargs, 'model_name', 'cyto3'),
+        gpu=getattr(kwargs, 'use_gpu', False), 
+        device=getattr(kwargs, 'device', None)
+    )
+    
+    masks, flows, styles = model.eval(
+        img, 
+        channels=getattr(kwargs, 'channels', [0, 0]), 
+        diameter=getattr(kwargs, 'diameter', 30), 
+        do_3D=getattr(kwargs, 'use_3D', False), 
+        anisotropy=getattr(kwargs, 'anisotropy', 1.0), 
+        stitch_threshold=getattr(kwargs, 'stitch_threshold', 0.0), 
+        z_axis=getattr(kwargs, 'z_axis', None),
+ 
+        resample=getattr(kwargs, 'resample', True), 
+        normalize=getattr(kwargs, 'normalize', True), 
+        rescale=getattr(kwargs, 'rescale', None), 
+        flow_threshold=getattr(kwargs, 'flow_threshold', 0.4), 
+        cellprob_threshold=getattr(kwargs, 'cellprob_threshold', 0.0), 
+        min_size=getattr(kwargs, 'min_size', 15), 
+        tile_overlap=getattr(kwargs, 'tile_overlap', 0.1), 
+        )
     return masks, flows, styles
 
 ###############################################################################
@@ -88,11 +110,12 @@ if appose_mode:
     stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
     z_axis = z_axis if z_axis >= 0 else None
     anisotropy = anisotropy if anisotropy > 0 else None
+    rescale = rescale if rescale > 0 else None
     # use_3D
     # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
-    file = './sample_data/test.tif'
+    file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
     model = 'cyto3'
     diameter = 30
@@ -101,30 +124,49 @@ else:
     stitch_threshold = 0
     z_axis = None
     anisotropy = None
+    compute_flows = True
+    resample = True
+    normalize = True
+    rescale = None
+    flow_threshold = 0.4
+    cellprob_threshold = 0.0
+    min_size = 15
+    tile_overlap = 0.1
 
 task.update(f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
-    input_image, 
-    model_name=model, 
-    channels=channels, 
-    diameter=diameter, 
-    use_3D=use_3D, 
-    stitch_threshold=stitch_threshold, 
-    anisotropy=anisotropy,
-    z_axis=z_axis,
-    use_gpu=use_gpu, 
-    device=device
-    )
+    input_image,
+    kwargs={
+        "model_name": model,
+        "channels": channels,
+        "diameter": diameter,
+        "use_3D": use_3D,
+        "stitch_threshold": stitch_threshold,
+        "anisotropy": anisotropy,
+        "z_axis": z_axis,
+        "use_gpu": use_gpu,
+        "device": device,
+
+        ## Advanced
+        'resample': resample,
+        'normalize': normalize,
+        'rescale': rescale,
+        'flow_threshold': flow_threshold,
+        'cellprob_threshold': cellprob_threshold,
+        'min_size': min_size,
+        'tile_overlap': tile_overlap,
+    }
+)
 
 ## return output
 if appose_mode:
-    #task.outputs["labels"] = share_as_ndarray(flip_img(masks))
     task.outputs["labels"] = share_as_ndarray(masks)
-    
-    # task.outputs["flows"] = share_as_ndarray(flip_img(flows[0]))
+    if compute_flows:
+        task.outputs["flows"] = share_as_ndarray((flows[0]))
 else:
-    io.imsave(f'./sample_data/test_masks.tif', masks.astype(np.uint16))
-    io.imsave(f'./sample_data/test_flows.tif', flows[0].astype(np.float32))
+    io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
+    if compute_flows:
+        io.imsave(f'../../../sample_data/test_flows.tif', flows[0].astype(np.float32))
 task.update(f"Finished Cellpose v3 script")
