@@ -82,7 +82,8 @@ else:
 
 ## load images
 if appose_mode:
-    input_image = flip_img(image.ndarray())
+    #input_image = flip_img(image.ndarray())
+    input_image = image.ndarray()
     channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
     stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
     z_axis = z_axis if z_axis >= 0 else None
@@ -119,7 +120,9 @@ masks, flows, styles = run_cellpose_v3(
 
 ## return output
 if appose_mode:
-    task.outputs["labels"] = share_as_ndarray(flip_img(masks))
+    #task.outputs["labels"] = share_as_ndarray(flip_img(masks))
+    task.outputs["labels"] = share_as_ndarray(masks)
+    
     # task.outputs["flows"] = share_as_ndarray(flip_img(flows[0]))
 else:
     io.imsave(f'./sample_data/test_masks.tif', masks.astype(np.uint16))
