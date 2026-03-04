@@ -35,15 +35,15 @@ def get_device() -> tuple[bool, torch.device]:
         print("Using CPU")
     return gpu, device
 
-def manage_channels(cell: int = -1, nuclei: int = -1) -> list[int]:
+def manage_channels(cell: int|None = None, nuclei: int|None = None) -> list[int]:
     """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
     provided integer values from Fiji.
     """
-    if cell >= 0 and nuclei >= 0:
+    if cell is not None and nuclei is not None:
         return [cell, nuclei]
-    if cell >= 0:
+    if cell is not None:
         return [cell, cell]
-    if nuclei >= 0:
+    if nuclei is not None:
         return [nuclei, nuclei]
     raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified")
     
