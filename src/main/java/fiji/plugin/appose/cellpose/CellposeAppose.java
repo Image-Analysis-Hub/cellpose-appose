@@ -91,6 +91,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void initialize() {
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
+		if (imp == null) {
+			// ToDo: Find a cleaner way to exit, the "return" still trigger the plugin interface
+			//       I needed to throw an exception for the process to stop.
+			IJ.error("No image available to process");
+			throw new RuntimeException( "No image available to process" );
+		}
+
 		is3D = is3d( imp );
 		
 		// Set the max possible value of channels based on image dimension
@@ -115,7 +122,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 stitch_threshold.setMaximumValue( 1.0 );
 			 stitch_threshold.setMinimumValue( 0.0 );
 				getInfo().addInput(stitch_threshold);
-				
 		}
 	}
 
