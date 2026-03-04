@@ -5,7 +5,7 @@
 #@ Integer (value=30) diameter
 #@ Integer (value=1) cell_channel
 #@ Integer (value=-1) nuclei_channel
-#@ boolean (persist=true, value=true) use_3D
+#@ Boolean (persist=true, value=true) use_3D
 #@ Integer (value=0) stitch_threshold
 #@ Integer (value=-1) z_axis
 #@ Integer (value=-1) anisotropy
