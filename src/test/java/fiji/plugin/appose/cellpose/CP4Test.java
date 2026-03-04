@@ -1,10 +1,10 @@
 package fiji.plugin.appose.cellpose;
 
-import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
+import fiji.plugin.appose.cellpose.cp4.CellposeSAMAppose;
 import ij.IJ;
 import net.imagej.ImageJ;
 
-public class Main
+public class CP4Test
 {
 
 	public static void main( final String[] args )
@@ -13,6 +13,6 @@ public class Main
 		ij.launch();
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 //		IJ.openImage( "/Users/strigaud/Libraries/development/FijiWS/cellpose-appose/sample_data/test.tif" ).show();
-		ij.command().run( CellposeAppose.class, true );
+		ij.command().run( CellposeSAMAppose.class, true );
 	}
 }

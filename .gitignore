@@ -30,3 +30,6 @@
 .DS_Store
 .pixi/*
 !.pixi/config.toml
+.vscode/settings.json
+.env
+__pycache__

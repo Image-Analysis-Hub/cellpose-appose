@@ -1,4 +1,4 @@
-package fiji.plugin.appose.cellpose;
+package fiji.plugin.appose.cellpose.cp3;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
@@ -36,6 +36,7 @@ import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
+import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -60,10 +61,6 @@ import net.imglib2.type.numeric.RealType;
 @Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose")
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
-	
-	@Parameter( choices = {"cp3","cp4"} )
-	private String cp_version = "cp3"; // cellpose model
-	
 	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
@@ -116,7 +113,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			throw new RuntimeException("No image available to process");
 		}
 
-		is3D = is3d(imp);
+		is3D = ApposeUtils.is3d(imp);
 
 
 		List<String> channelChoices = new ArrayList<>();
@@ -149,13 +146,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 	}
 
-	/*
-	 * Check if the Image is 3D or 2D
-	 */
-	public boolean is3d(final ImagePlus imp)
-	{
-		return imp.getNSlices() > 1;
-	}
+
 	
 	/*
 	 * This is the entry point for the plugin. This is what is called when the
@@ -172,7 +163,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			final boolean is3D = is3d( imp );
+			final boolean is3D = ApposeUtils.is3d( imp );
 			final int nchanels = imp.getNChannels();
 			//getParameters( is3D, nchanels );
 			
@@ -190,7 +181,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				}
 			}
 			// get the z_axis number in what python should receive
-			z_axis = getZAxis( imp );
+			z_axis = ApposeUtils.getZAxis( imp );
 			
 			// Runs the processing code.
 			process( imp );
@@ -202,62 +193,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	}
 
-	/**
-	 * Returns the position at which the Z axis should be in python
-	 * @param imp
-	 * @return
-	 */
-	private int getZAxis( final ImagePlus imp )
-	{
-		// print info about the image in the log
-		System.out.println("─".repeat(50));
-		System.out.println("Image dimension: ");
-		System.out.println("\t"+imp.getNSlices()+" Z slices");
-		System.out.println("\t"+imp.getNChannels()+" C channels");
-		System.out.println("\t"+imp.getNFrames()+" T frames");
-		System.out.println("─".repeat(50));
-		
-		// 2D, easy peasy
-		if ( imp.getNSlices() == 1 )
-				return -1;
-		
-		// 5D -> TZCYX
-		if ( imp.getNDimensions() == 5 )
-			return 1;
-		// Now, 3D or 4D
-		if ( imp.getNDimensions()==3 )
-		{
-			// ZYX
-			return 0;
-		}
-		// if Z and T, TZYX
-		if ( imp.getNFrames() > 1 )
-			return 1;
-		// XYZC is left -> Z,C,Y,X
-		return 0;
-	}
-
-	/**
-	 * Displays the parameters used in a formatted manner
-	 * @param inputs the map containing all input parameters
-	 */
-	private void displayParameters(final Map<String, Object> inputs) {
-		System.out.println("Parameters used: ");
-		System.out.println("─".repeat(50));
-
-		inputs.forEach((key, value) -> {
-			if (!key.equals("image") && !key.equals("cell_channel") && !key.equals("nuclei_channel")) {
-				System.out.printf("  %-20s: %s%n", key, value);
-			}
-		});
-
-		// Add combined channel line
-		final Object cellChannel = inputs.get("cell_channel");
-		final Object nucleiChannel = inputs.get("nuclei_channel");
-		System.out.printf("  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel);
-
-		System.out.println("─".repeat(50));
-	}
+	
 
 	/*
 	 * Actually do something with the image.
@@ -328,7 +264,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "z_axis", z_axis );
 		inputs.put( "anisotropy", anisotropy );
 		// Print out the parameters
-		displayParameters( inputs );
+		ApposeUtils.displayParameters( inputs );
 		// Advance (not printed)
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );
@@ -355,7 +291,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				.subscribeProgress( this::showProgress ) // report progress visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
-				.environment(cp_version)
+				.environment("cp3")
 				.build(); // create the environment
 		hideProgress();
 
@@ -502,8 +438,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		String script = "";
 		try {
+			final URL helperFile = this.getClass().getResource("/cp_utils.py");
 			final URL scriptFile = this.getClass().getResource("/cp3.py");
-			script = IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
+			script = IOUtils.toString(helperFile, StandardCharsets.UTF_8) + 
+					"\n" + IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
 			
 		} catch (final IOException e) {
 			e.printStackTrace();

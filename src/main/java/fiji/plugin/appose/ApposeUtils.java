@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Map;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -112,4 +113,71 @@ public class ApposeUtils
 		tc.pixelHeight = fc.pixelHeight;
 		tc.pixelDepth = fc.pixelDepth;
 	}
+	
+	/*
+	 * Check if the Image is 3D or 2D
+	 */
+	public static boolean is3d(final ImagePlus imp)
+	{
+		return imp.getNSlices() > 1;
+	}
+	
+	/**
+	 * Returns the position at which the Z axis should be in python
+	 * @param imp
+	 * @return
+	 */
+	public static int getZAxis( final ImagePlus imp )
+	{
+		// print info about the image in the log
+		System.out.println("─".repeat(50));
+		System.out.println("Image dimension: ");
+		System.out.println("\t"+imp.getNSlices()+" Z slices");
+		System.out.println("\t"+imp.getNChannels()+" C channels");
+		System.out.println("\t"+imp.getNFrames()+" T frames");
+		System.out.println("─".repeat(50));
+		
+		// 2D, easy peasy
+		if ( imp.getNSlices() == 1 )
+				return -1;
+		
+		// 5D -> TZCYX
+		if ( imp.getNDimensions() == 5 )
+			return 1;
+		// Now, 3D or 4D
+		if ( imp.getNDimensions()==3 )
+		{
+			// ZYX
+			return 0;
+		}
+		// if Z and T, TZYX
+		if ( imp.getNFrames() > 1 )
+			return 1;
+		// XYZC is left -> Z,C,Y,X
+		return 0;
+	}
+	
+	/**
+	 * Displays the parameters used in a formatted manner
+	 * @param inputs the map containing all input parameters
+	 */
+	public static void displayParameters(final Map<String, Object> inputs) {
+		System.out.println("Parameters used: ");
+		System.out.println("─".repeat(50));
+
+		inputs.forEach((key, value) -> {
+			if (!key.equals("image") && !key.equals("cell_channel") && !key.equals("nuclei_channel")) {
+				System.out.printf("  %-20s: %s%n", key, value);
+			}
+		});
+
+		// Add combined channel line
+		final Object cellChannel = inputs.get("cell_channel");
+		final Object nucleiChannel = inputs.get("nuclei_channel");
+		System.out.printf("  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel);
+
+		System.out.println("─".repeat(50));
+	}
+	
+	
 }
