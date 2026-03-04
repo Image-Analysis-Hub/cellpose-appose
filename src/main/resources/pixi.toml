@@ -1,8 +1,7 @@
 [workspace]
 authors = [
     "Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>", 
-    "Gaelle Letort <gaelle.letort@pasteur.fr>"
-    ]
+    "Gaelle Letort <gaelle.letort@pasteur.fr>","Julie Mabon <julie.mabon@pasteur.fr>"]
 channels = ["conda-forge"]
 name = "cellpose-appose"
 platforms = ["osx-arm64", "win-64", "linux-64", "osx-64"]
@@ -15,32 +14,18 @@ test = { cmd = "python cp3.py" }
 python = ">=3.10.3,<3.13"
 
 [pypi-dependencies]
-cellpose = ">=3, <4"
+# Shared dependencies (available in both envs)
 appose = ">=0.10.1, <0.11"
 
-## Not needed if cellpose manage itself gpu/cpu dependencies
-# # GPU feature: CUDA on Linux/Windows, CPU fallback on macOS
-# [feature.gpu.target.linux-64.pypi-dependencies]
-# torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cu124" }
-# torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cu124" }
+# CellPose 3 feature
+[feature.cp3.pypi-dependencies]
+cellpose = ">=3, <4"
 
-# [feature.gpu.target.win-64.pypi-dependencies]
-# torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cu124" }
-# torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cu124" }
+# CellPose 4 feature  
+[feature.cp4.pypi-dependencies]
+cellpose = ">=4, <5"
 
-# [feature.gpu.target.osx-arm64.pypi-dependencies]
-# torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
-# torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
-
-# [feature.gpu.target.osx-64.pypi-dependencies]
-# torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
-# torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
-
-# # CPU feature: CPU-only on all platforms
-# [feature.cpu.pypi-dependencies]
-# torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
-# torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
-
-# [environments]
-# gpu = { features = ["gpu"] }
-# default = { features = ["cpu"] }
+[environments]
+default = { features = ["cp3"] } 
+cp3 = { features = ["cp3"] }
+cp4 = { features = ["cp4"] }

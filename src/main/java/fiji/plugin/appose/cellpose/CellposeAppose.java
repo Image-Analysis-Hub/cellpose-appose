@@ -61,6 +61,9 @@ import net.imglib2.type.numeric.RealType;
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
+	@Parameter( choices = {"cp3","cp4"} )
+	private String cp_version = "cp3"; // cellpose model
+	
 	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
@@ -352,6 +355,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				.subscribeProgress( this::showProgress ) // report progress visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
+				.environment(cp_version)
 				.build(); // create the environment
 		hideProgress();
 

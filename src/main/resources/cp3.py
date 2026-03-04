@@ -8,6 +8,7 @@
 import torch
 import numpy as np
 from cellpose import models, io
+import cellpose
 
 report = print
 def listen(callback):
@@ -139,7 +140,7 @@ else:
     min_size = 15
     tile_overlap = 0.1
 
-task.update(f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+task.update(f"Running Cellpose v{cellpose.version} with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
