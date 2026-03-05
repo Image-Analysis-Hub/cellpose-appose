@@ -64,19 +64,19 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
-			"neurips_cellpose_transformer"} )
+			"neurips_cellpose_transformer"}, description="Choose CP model to run" )
 	private String cp_model = "cyto3"; // cellpose model
 	
-	@Parameter( label = "Diameter", min="0" )
+	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Cytoplasmic channel", choices = {"None"} )
+	@Parameter(label="Cytoplasmic channel", choices = {"N/A"}, description="Number of the channel of cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei channel", choices = {"None"} )
+	@Parameter(label="Nuclei channel", choices = {"N/A"}, description="Number of the channel of nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
-	@Parameter(label="Compute Flows")
+	@Parameter(label="Compute Flows", description="Compute the flows in cellpose or not")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 
@@ -136,12 +136,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
 			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
+			mode_3d.setDescription( "Image is 3D. Run segmentation in 2D then stitch, or in 3D (xy, yx, xz)" );
 			getInfo().addInput(mode_3d);
 
 			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
 					"stitch_threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
+			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z" );
 			getInfo().addInput(stitch_threshold);
 		}
 	}
