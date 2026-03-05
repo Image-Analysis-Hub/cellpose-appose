@@ -73,7 +73,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(label="Cytoplasmic channel", choices = {"N/A"}, description="Channel index of the cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei channel", choices = {"N/A"}, description="Channel index of rhe nuclei channel. N/A for none" )
+	@Parameter(label="Nuclei channel", choices = {"N/A"}, description="Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
 	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
