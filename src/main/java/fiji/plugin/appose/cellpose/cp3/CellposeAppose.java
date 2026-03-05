@@ -70,13 +70,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Cytoplasmic channel", choices = {"N/A"}, description="Number of the channel of cytoplasmic channel. N/A for none" )
+	@Parameter(label="Cytoplasmic channel", choices = {"N/A"}, description="Channel index of the cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei channel", choices = {"N/A"}, description="Number of the channel of nuclei channel. N/A for none" )
+	@Parameter(label="Nuclei channel", choices = {"N/A"}, description="Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
-	@Parameter(label="Compute Flows", description="Compute the flows in cellpose or not")
+	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 
@@ -135,14 +135,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
 			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
-			mode_3d.setDescription( "Image is 3D. Run segmentation in 2D then stitch, or in 3D (xy, yx, xz)" );
+			mode_3d.setDescription( "Run Cellpose in 3D (xy, yx, xz) or in 2D and stitch the labels." );
 			getInfo().addInput(mode_3d);
 
 			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
 					"stitch_threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
-			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z" );
+			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput(stitch_threshold);
 		}
 	}

@@ -22,7 +22,6 @@ def listen(callback):
 # AUXILIARY FUNCTIONS
 ###############################################################################
 
-
 def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[int]:
     """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
     provided integer values from Fiji.
@@ -72,6 +71,7 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 ###############################################################################
 # MAIN PROGRAM
 ###############################################################################
+
 
 
 appose_mode = 'task' in globals()
