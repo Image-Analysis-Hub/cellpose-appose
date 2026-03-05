@@ -1,16 +1,12 @@
 name: build
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-
-  build-os:
-
+  build:
     strategy:
       fail-fast: true
       matrix:
@@ -19,10 +15,6 @@ jobs:
         include:
           - name: ubuntu
             os: ubuntu-20.04
-            c-compiler: gcc
-            cxx-compiler: g++
-            cmake-build-type: Release
-            cmake-build-flag: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -30,11 +22,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install MSVC Dev Cmd
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
+      - name: Setup Java JDK
+        uses: actions/setup-java@v5.2.0
         with:
           java-version: "21"
           distribution: zulu
@@ -42,7 +31,7 @@ jobs:
 
       - name: Build with Maven
         run: |
-          mvn clean install -DskipTests
+          mvn -DskipTests
         shell: bash -l {0}
 
       - name: Get Maven Version and Upload Artifact
@@ -63,7 +52,7 @@ jobs:
         id: mvn_info
 
       - name: Upload native library
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.0
         with:
           name: ${{ matrix.name }}-artifact
           path: target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar
