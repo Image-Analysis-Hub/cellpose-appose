@@ -55,27 +55,27 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     """Runs Cellpose v3 on a single image with the given parameters."""
     
     model = models.CellposeModel(
-        model_type=getattr(kwargs, 'model_name', 'cyto3'),
-        gpu=getattr(kwargs, 'use_gpu', False), 
-        device=getattr(kwargs, 'device', None)
+        model_type=kwargs.get('model_name', 'cyto3'),
+        gpu=kwargs.get('use_gpu', False), 
+        device=kwargs.get('device', None)
     )
     
     masks, flows, styles = model.eval(
         img, 
-        channels=getattr(kwargs, 'channels', [0, 0]), 
-        diameter=getattr(kwargs, 'diameter', 30), 
-        do_3D=getattr(kwargs, 'use_3D', False), 
-        anisotropy=getattr(kwargs, 'anisotropy', 1.0), 
-        stitch_threshold=getattr(kwargs, 'stitch_threshold', 0.0), 
-        z_axis=getattr(kwargs, 'z_axis', None),
+        channels=kwargs.get('channels', [0, 0]), 
+        diameter=kwargs.get('diameter', 30), 
+        do_3D=kwargs.get('use_3D', False), 
+        anisotropy=kwargs.get('anisotropy', 1.0), 
+        stitch_threshold=kwargs.get('stitch_threshold', 0.0), 
+        z_axis=kwargs.get('z_axis', None),
  
-        resample=getattr(kwargs, 'resample', True), 
-        normalize=getattr(kwargs, 'normalize', True), 
-        rescale=getattr(kwargs, 'rescale', None), 
-        flow_threshold=getattr(kwargs, 'flow_threshold', 0.4), 
-        cellprob_threshold=getattr(kwargs, 'cellprob_threshold', 0.0), 
-        min_size=getattr(kwargs, 'min_size', 15), 
-        tile_overlap=getattr(kwargs, 'tile_overlap', 0.1), 
+        resample=kwargs.get('resample', True), 
+        normalize=kwargs.get('normalize', True), 
+        rescale=kwargs.get('rescale', None), 
+        flow_threshold=kwargs.get('flow_threshold', 0.4), 
+        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0), 
+        min_size=kwargs.get('min_size', 15), 
+        tile_overlap=kwargs.get('tile_overlap', 0.1), 
         )
     return masks, flows, styles
 

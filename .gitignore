@@ -30,3 +30,7 @@
 .DS_Store
 .pixi/*
 !.pixi/config.toml
+__pycache__
+sample_data/test_flows.tif
+.gitignore
+sample_data/test_masks.tif
