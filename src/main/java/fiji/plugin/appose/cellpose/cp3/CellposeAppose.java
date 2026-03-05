@@ -1,4 +1,4 @@
-package fiji.plugin.appose.cellpose;
+package fiji.plugin.appose.cellpose.cp3;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
