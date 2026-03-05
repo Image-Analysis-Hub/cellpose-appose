@@ -27,6 +27,8 @@ def listen(callback):
 def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v4 on a single image with the given parameters."""
 
+    # if z_axis, should have stitch_threshold > 0 else raises an error
+
     model = models.CellposeModel(
         pretrained_model="cpsam",
         gpu=kwargs.get('use_gpu', False),
@@ -87,6 +89,7 @@ if appose_mode:
     cellprob_threshold: float = globals()['cellprob_threshold']
     min_size: int = globals()['min_size']
     tile_overlap: float = globals()['tile_overlap']
+    channel_axis: int | None = globals().get('channel_axis', None)  # TODO get it from java
 
     input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
@@ -99,8 +102,9 @@ else:
     model = 'cyto3'
     diameter = 30
     use_3D = False
-    stitch_threshold = 0
-    z_axis = None
+    stitch_threshold = 0.5
+    z_axis = 0
+    channel_axis = 1
     anisotropy = None
     compute_flows = True
     resample = True
@@ -127,6 +131,7 @@ masks, flows, styles = run_cellpose_v4(
         "stitch_threshold": stitch_threshold,
         "anisotropy": anisotropy,
         "z_axis": z_axis,
+        "channel_axis": channel_axis,
         "use_gpu": use_gpu,
         "device": device,
 

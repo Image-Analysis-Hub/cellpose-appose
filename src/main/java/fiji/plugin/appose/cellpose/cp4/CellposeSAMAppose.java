@@ -107,7 +107,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					"stitch_threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
-			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z" );
+			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z. Should be >0 not to trigger an error." );
 			getInfo().addInput(stitch_threshold);
 		}
 	}
