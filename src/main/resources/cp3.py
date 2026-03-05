@@ -1,9 +1,9 @@
 ###############################################################################
-### Cellpose v3 script for Appose
-### Authors: 
-###    Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
-###    Gaelle Letort <gaelle letort.pasteur.fr>
-###    Julie Mabon <julie.mabon@pasteur.fr>
+# Cellpose v3 script for Appose
+# Authors:
+# Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
+# Gaelle Letort <gaelle letort.pasteur.fr>
+# Julie Mabon <julie.mabon@pasteur.fr>
 ###############################################################################
 
 import numpy as np
@@ -51,22 +51,22 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     )
 
     masks, flows, styles = model.eval(
-        img, 
-        channels=kwargs.get('channels', [0, 0]), 
-        diameter=kwargs.get('diameter', 30), 
-        do_3D=kwargs.get('use_3D', False), 
-        anisotropy=kwargs.get('anisotropy', 1.0), 
-        stitch_threshold=kwargs.get('stitch_threshold', 0.0), 
+        img,
+        channels=kwargs.get('channels', [0, 0]),
+        diameter=kwargs.get('diameter', 30),
+        do_3D=kwargs.get('use_3D', False),
+        anisotropy=kwargs.get('anisotropy', 1.0),
+        stitch_threshold=kwargs.get('stitch_threshold', 0.0),
         z_axis=kwargs.get('z_axis', None),
- 
-        resample=kwargs.get('resample', True), 
-        normalize=kwargs.get('normalize', True), 
-        rescale=kwargs.get('rescale', None), 
-        flow_threshold=kwargs.get('flow_threshold', 0.4), 
-        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0), 
-        min_size=kwargs.get('min_size', 15), 
-        tile_overlap=kwargs.get('tile_overlap', 0.1), 
-        )
+
+        resample=kwargs.get('resample', True),
+        normalize=kwargs.get('normalize', True),
+        rescale=kwargs.get('rescale', None),
+        flow_threshold=kwargs.get('flow_threshold', 0.4),
+        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
+        min_size=kwargs.get('min_size', 15),
+        tile_overlap=kwargs.get('tile_overlap', 0.1),
+    )
     return masks, flows, styles
 
 ###############################################################################
