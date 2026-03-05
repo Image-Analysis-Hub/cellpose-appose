@@ -7,6 +7,7 @@ import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +30,7 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
 import org.scijava.module.DefaultMutableModuleItem;
@@ -61,11 +63,14 @@ import net.imglib2.type.numeric.RealType;
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
-	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
+	@Parameter(label= "Cellpose model", choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
-			"neurips_cellpose_transformer"}, description="Choose CP model to run" )
+			"neurips_cellpose_transformer"}, description="Choose CP model to run")
 	private String cp_model = "cyto3"; // cellpose model
+	
+	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false)
+	private File custom_model = null;
 	
 	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
@@ -115,7 +120,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		is3D = is3d(imp);
 
-
+		
 		List<String> channelChoices = new ArrayList<>();
 		for (int i = 1; i <= imp.getNChannels(); i++) {
 			channelChoices.add(String.valueOf(i));
