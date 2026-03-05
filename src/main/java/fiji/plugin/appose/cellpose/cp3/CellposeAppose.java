@@ -84,17 +84,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-
+	@Parameter(label="return ROIs", description="Return the ROIs (only in 2D)")
+	private Boolean return_ROIs; // if true return ROIs  only for 2D image
 
 	private boolean is3D = false;
 
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
 	private MutableModuleItem<Double> stitch_threshold; // stitching value, only for 3D image
 
-	private MutableModuleItem<Boolean> return_ROIs; // if true return ROIs  only for 2D image
 	
 	private double stitch_threshold_value = 0;
-	private boolean return_ROIs_value = false;
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 
@@ -154,11 +153,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput(stitch_threshold);
 		}
-		else {
-			return_ROIs = new DefaultMutableModuleItem<>(getInfo(),
-					"return_ROIs", Boolean.class);
-			getInfo().addInput(return_ROIs);
-		}
 	}
 
 	/*
@@ -200,10 +194,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				} else {
 					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
-			}
-			else
-			{
-				return_ROIs_value = return_ROIs.getValue(this);
+				if ( return_ROIs ) 
+				{
+					IJ.error("Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj");
+			        return;
+				}
 			}
 			// get the z_axis number in what python should receive
 			z_axis = getZAxis( imp );
@@ -437,7 +432,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			transferCalibration( imp, labels );
 			labels.show();
 			
-			if ( return_ROIs_value )
+			if ( return_ROIs )
 			{
 				// from https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
 				
