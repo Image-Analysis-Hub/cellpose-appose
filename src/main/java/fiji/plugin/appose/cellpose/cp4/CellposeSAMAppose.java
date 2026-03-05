@@ -145,6 +145,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				} else {
 					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
+				
+				if ((stitch_threshold_value == 0.0) & (mode.equals( "2D+stitch" ) ))  {
+			        IJ.error("stitch_threshold should be above zero if 2D+stitch ");
+			        return;
+			    }
 			}
 			// get the z_axis number in what python should receive
 			z_axis = ApposeUtils.getZAxis( imp );
