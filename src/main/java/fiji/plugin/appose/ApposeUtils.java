@@ -127,7 +127,7 @@ public class ApposeUtils
 	 * @param imp
 	 * @return
 	 */
-	public static int getZAxis( final ImagePlus imp )
+	public static Object getZAxis( final ImagePlus imp )
 	{
 		// print info about the image in the log
 		System.out.println("─".repeat(50));
@@ -139,7 +139,7 @@ public class ApposeUtils
 		
 		// 2D, easy peasy
 		if ( imp.getNSlices() == 1 )
-				return -1;
+				return null;
 		
 		// 5D -> TZCYX
 		if ( imp.getNDimensions() == 5 )

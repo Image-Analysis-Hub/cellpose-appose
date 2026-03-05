@@ -1,14 +1,15 @@
 ###############################################################################
-# Cellpose v3 script for Appose
-# Authors:
-# Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
-# Gaelle Letort <gaelle letort.pasteur.fr>
-# Julie Mabon <julie mabon.pasteur.fr>
+### Cellpose v3 script for Appose
+### Authors: 
+###    Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
+###    Gaelle Letort <gaelle letort.pasteur.fr>
+###    Julie Mabon <julie.mabon@pasteur.fr>
 ###############################################################################
 
 import numpy as np
 from cellpose import models, io
 import cellpose
+from typing import TYPE_CHECKING
 
 report = print
 
@@ -44,28 +45,28 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     """Runs Cellpose v3 on a single image with the given parameters."""
 
     model = models.CellposeModel(
-        model_type=getattr(kwargs, 'model_name', 'cyto3'),
-        gpu=getattr(kwargs, 'use_gpu', False),
-        device=getattr(kwargs, 'device', None)
+        model_type=kwargs.get('model_name', 'cyto3'),
+        gpu=kwargs.get('use_gpu', False),
+        device=kwargs.get('device', None)
     )
 
     masks, flows, styles = model.eval(
-        img,
-        channels=getattr(kwargs, 'channels', [0, 0]),
-        diameter=getattr(kwargs, 'diameter', 30),
-        do_3D=getattr(kwargs, 'use_3D', False),
-        anisotropy=getattr(kwargs, 'anisotropy', 1.0),
-        stitch_threshold=getattr(kwargs, 'stitch_threshold', 0.0),
-        z_axis=getattr(kwargs, 'z_axis', None),
-
-        resample=getattr(kwargs, 'resample', True),
-        normalize=getattr(kwargs, 'normalize', True),
-        rescale=getattr(kwargs, 'rescale', None),
-        flow_threshold=getattr(kwargs, 'flow_threshold', 0.4),
-        cellprob_threshold=getattr(kwargs, 'cellprob_threshold', 0.0),
-        min_size=getattr(kwargs, 'min_size', 15),
-        tile_overlap=getattr(kwargs, 'tile_overlap', 0.1),
-    )
+        img, 
+        channels=kwargs.get('channels', [0, 0]), 
+        diameter=kwargs.get('diameter', 30), 
+        do_3D=kwargs.get('use_3D', False), 
+        anisotropy=kwargs.get('anisotropy', 1.0), 
+        stitch_threshold=kwargs.get('stitch_threshold', 0.0), 
+        z_axis=kwargs.get('z_axis', None),
+ 
+        resample=kwargs.get('resample', True), 
+        normalize=kwargs.get('normalize', True), 
+        rescale=kwargs.get('rescale', None), 
+        flow_threshold=kwargs.get('flow_threshold', 0.4), 
+        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0), 
+        min_size=kwargs.get('min_size', 15), 
+        tile_overlap=kwargs.get('tile_overlap', 0.1), 
+        )
     return masks, flows, styles
 
 ###############################################################################
@@ -75,6 +76,12 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 
 appose_mode = 'task' in globals()
 if appose_mode:
+    if TYPE_CHECKING:
+        from appose.python_worker import Task
+        task: Task
+
+    from appose.python_worker import Task
+    task = globals()['task']
     listen(task.update)
 else:
     from cp_utils import get_device, share_as_ndarray, to_5d
@@ -87,12 +94,11 @@ if appose_mode:
     input_image = globals()['image']
     input_image = input_image.ndarray()
     channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
-    stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
-    z_axis = z_axis if z_axis >= 0 else None
+    stitch_threshold = stitch_threshold
+    z_axis = z_axis
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale if rescale > 0 else None
+    rescale = rescale
     # use_3D
-    # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
@@ -115,7 +121,8 @@ else:
 
 use_gpu, device = get_device()
 
-task.update(f"Running Cellpose v{cellpose.version} with model '{model}' on device {device}, channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+task.update(
+    f"Running Cellpose v{cellpose.version} with model '{model}' on device {device}, channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 
 masks, flows, styles = run_cellpose_v3(

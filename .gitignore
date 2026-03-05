@@ -33,3 +33,5 @@
 .vscode/settings.json
 .env
 __pycache__
+.gitignore
+sample_data/test_masks.tif

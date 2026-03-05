@@ -6,12 +6,10 @@
 # Julie Mabon <julie mabon.pasteur.fr>
 ###############################################################################
 
-import torch
 import numpy as np
 from cellpose import models, io
 import cellpose
-from typing import TYPE_CHECKING, Any
-
+from typing import TYPE_CHECKING
 
 report = print
 
@@ -30,26 +28,27 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     """Runs Cellpose v4 on a single image with the given parameters."""
 
     model = models.CellposeModel(
-        gpu=getattr(kwargs, 'use_gpu', False),
-        device=getattr(kwargs, 'device', None)
+        pretrained_model="cpsam",
+        gpu=kwargs.get('use_gpu', False),
+        device=kwargs.get('device', None)
     )
 
     masks, flows, styles = model.eval(
         img,
-        channel_axis=getattr(kwargs, 'channel_axis', None),
-        diameter=getattr(kwargs, 'diameter', 30),
-        do_3D=getattr(kwargs, 'use_3D', False),
-        anisotropy=getattr(kwargs, 'anisotropy', 1.0),
-        stitch_threshold=getattr(kwargs, 'stitch_threshold', 0.0),
-        z_axis=getattr(kwargs, 'z_axis', None),
+        channel_axis=kwargs.get('channel_axis', None),
+        diameter=kwargs.get('diameter', 30),
+        do_3D=kwargs.get('use_3D', False),
+        anisotropy=kwargs.get('anisotropy', 1.0),
+        stitch_threshold=kwargs.get('stitch_threshold', 0.0),
+        z_axis=kwargs.get('z_axis', None),
 
-        resample=getattr(kwargs, 'resample', True),
-        normalize=getattr(kwargs, 'normalize', True),
-        rescale=getattr(kwargs, 'rescale', None),
-        flow_threshold=getattr(kwargs, 'flow_threshold', 0.4),
-        cellprob_threshold=getattr(kwargs, 'cellprob_threshold', 0.0),
-        min_size=getattr(kwargs, 'min_size', 15),
-        tile_overlap=getattr(kwargs, 'tile_overlap', 0.1),
+        resample=kwargs.get('resample', True),
+        normalize=kwargs.get('normalize', True),
+        rescale=kwargs.get('rescale', None),
+        flow_threshold=kwargs.get('flow_threshold', 0.4),
+        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
+        min_size=kwargs.get('min_size', 15),
+        tile_overlap=kwargs.get('tile_overlap', 0.1),
     )
     return masks, flows, styles
 
@@ -89,12 +88,10 @@ if appose_mode:
     min_size: int = globals()['min_size']
     tile_overlap: float = globals()['tile_overlap']
 
-    z_axis = z_axis if z_axis >= 0 else None
     input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale if rescale > 0 else None
+    rescale = rescale
     # use_3D
-    # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
@@ -113,7 +110,6 @@ else:
     cellprob_threshold = 0.0
     min_size = 15
     tile_overlap = 0.1
-
 
 use_gpu, device = get_device()
 

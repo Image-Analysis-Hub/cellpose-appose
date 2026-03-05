@@ -49,7 +49,7 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose")
+@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose")
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter( label = "Diameter", min="0" )
@@ -68,7 +68,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 	
-	private int z_axis = -1; // z_axis position
+	private Object z_axis = null; // z_axis position
 	
 	// Advance parameters
 	// ToDo: make them available in the GUI
@@ -78,7 +78,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private double cellprob_threshold = 0.0;
 	private int min_size = 15;
 	private double tile_overlap = 0.1;
-	private int rescale = -1;
+	private Object rescale = null;
 	
 	@Override
 	public void initialize() {
@@ -99,15 +99,19 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
 			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
+			mode_3d.setDescription( "Image is 3D. Run segmentation in 2D then stitch, or in 3D (xy, yx, xz)" );
 			getInfo().addInput(mode_3d);
 
 			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
 					"stitch_threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
+			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z" );
 			getInfo().addInput(stitch_threshold);
 		}
 	}
+
+
 	
 	/*
 	 * This is the entry point for the plugin. This is what is called when the
@@ -154,6 +158,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 	}
 	
+	
+
+	/*
+	 * Actually do something with the image.
+	 */
 	public < T extends RealType< T > & NativeType< T > > void process( final ImagePlus imp ) throws IOException, BuildException
 	{
 		// Print os and arch info
@@ -168,7 +177,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 * corresponding method.
 		 */
 		final String cellposeEnv = pixiEnv();
-
 		/*
 		 * The Python script that we want to run. It is specified as a string,
 		 * but it could be loaded from an existing .py file. In our case the
