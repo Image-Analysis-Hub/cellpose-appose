@@ -1,0 +1,58 @@
+name: build
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        name:
+          - ubuntu
+        include:
+          - name: ubuntu
+            os: ubuntu-22.04
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v5.2.0
+        with:
+          java-version: "21"
+          distribution: zulu
+          cache: maven
+
+      - name: Build with Maven
+        run: |
+          mvn -DskipTests
+        shell: bash -l {0}
+
+      - name: Get Maven Version and Upload Artifact
+        shell: bash
+        run: |
+          MVN_VERSION=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.version}' \
+            --non-recursive \
+            exec:exec)
+          MVN_NAME=$(mvn -q \
+            -Dexec.executable=echo \
+            -Dexec.args='${project.name}' \
+            --non-recursive \
+            exec:exec)
+          echo "version=${MVN_VERSION}" >> $GITHUB_OUTPUT
+          echo "name=${MVN_NAME}" >> $GITHUB_OUTPUT
+        id: mvn_info
+
+      - name: Upload native library
+        uses: actions/upload-artifact@v7.0.0
+        with:
+          name: ${{ matrix.name }}-artifact
+          path: target/${{steps.mvn_info.outputs.name}}-${{steps.mvn_info.outputs.version}}.jar
