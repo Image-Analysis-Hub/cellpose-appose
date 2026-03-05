@@ -1,8 +1,9 @@
 ###############################################################################
-### Cellpose v3 script for Appose
-### Authors: 
-###    Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
-###    Gaelle Letort <gaelle letort.pasteur.fr>
+# Cellpose v3 script for Appose
+# Authors:
+# Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
+# Gaelle Letort <gaelle letort.pasteur.fr>
+# Julie Mabon <julie.mabon@pasteur.fr>
 ###############################################################################
 
 import torch
@@ -10,13 +11,16 @@ import numpy as np
 from cellpose import models, io
 
 report = print
+
+
 def listen(callback):
     global report
     report = callback
 
 ###############################################################################
-### AUXILIARY FUNCTIONS
+# AUXILIARY FUNCTIONS
 ###############################################################################
+
 
 def get_device() -> tuple[bool, torch.device]:
     """Returns (use_gpu, device) using the best available backend: CUDA > MPS > CPU."""
@@ -35,7 +39,8 @@ def get_device() -> tuple[bool, torch.device]:
         print("Using CPU")
     return gpu, device
 
-def manage_channels(cell: int|None = None, nuclei: int|None = None) -> list[int]:
+
+def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[int]:
     """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
     provided integer values from Fiji.
     """
@@ -45,43 +50,46 @@ def manage_channels(cell: int|None = None, nuclei: int|None = None) -> list[int]
         return [cell, cell]
     if nuclei is not None:
         return [nuclei, nuclei]
-    raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified")
-    
+    raise ValueError(
+        "At least one of 'cell' or 'nuclei' channel must be specified")
+
 ###############################################################################
-### PROCESSING FUNCTIONS
+# PROCESSING FUNCTIONS
 ###############################################################################
+
 
 def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v3 on a single image with the given parameters."""
-    
+
     model = models.CellposeModel(
-        model_type=getattr(kwargs, 'model_name', 'cyto3'),
-        gpu=getattr(kwargs, 'use_gpu', False), 
-        device=getattr(kwargs, 'device', None)
+        model_type=kwargs.get('model_name', 'cyto3'),
+        gpu=kwargs.get('use_gpu', False),
+        device=kwargs.get('device', None)
     )
-    
+
     masks, flows, styles = model.eval(
-        img, 
-        channels=getattr(kwargs, 'channels', [0, 0]), 
-        diameter=getattr(kwargs, 'diameter', 30), 
-        do_3D=getattr(kwargs, 'use_3D', False), 
-        anisotropy=getattr(kwargs, 'anisotropy', 1.0), 
-        stitch_threshold=getattr(kwargs, 'stitch_threshold', 0.0), 
-        z_axis=getattr(kwargs, 'z_axis', None),
- 
-        resample=getattr(kwargs, 'resample', True), 
-        normalize=getattr(kwargs, 'normalize', True), 
-        rescale=getattr(kwargs, 'rescale', None), 
-        flow_threshold=getattr(kwargs, 'flow_threshold', 0.4), 
-        cellprob_threshold=getattr(kwargs, 'cellprob_threshold', 0.0), 
-        min_size=getattr(kwargs, 'min_size', 15), 
-        tile_overlap=getattr(kwargs, 'tile_overlap', 0.1), 
-        )
+        img,
+        channels=kwargs.get('channels', [0, 0]),
+        diameter=kwargs.get('diameter', 30),
+        do_3D=kwargs.get('use_3D', False),
+        anisotropy=kwargs.get('anisotropy', 1.0),
+        stitch_threshold=kwargs.get('stitch_threshold', 0.0),
+        z_axis=kwargs.get('z_axis', None),
+
+        resample=kwargs.get('resample', True),
+        normalize=kwargs.get('normalize', True),
+        rescale=kwargs.get('rescale', None),
+        flow_threshold=kwargs.get('flow_threshold', 0.4),
+        cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
+        min_size=kwargs.get('min_size', 15),
+        tile_overlap=kwargs.get('tile_overlap', 0.1),
+    )
     return masks, flows, styles
 
 ###############################################################################
-### MAIN PROGRAM
+# MAIN PROGRAM
 ###############################################################################
+
 
 def to_5d(arr):
     """Convert 2D or 3D array to 5D"""
@@ -89,10 +97,12 @@ def to_5d(arr):
         arr = np.expand_dims(arr, axis=0)
     return arr
 
+
 def flip_img(img):
     """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""
     import numpy as np
     return np.transpose(img, tuple(reversed(range(img.ndim))))
+
 
 def share_as_ndarray(img):
     """Copies a NumPy array into a same-sized newly allocated block of shared memory"""
@@ -101,6 +111,7 @@ def share_as_ndarray(img):
     shared.ndarray()[:] = img
     return shared
 
+
 appose_mode = 'task' in globals()
 if appose_mode:
     listen(task.update)
@@ -108,17 +119,16 @@ else:
     from appose.python_worker import Task
     task = Task()
 
-## load images
+# load images
 if appose_mode:
-    #input_image = flip_img(image.ndarray())
+    # input_image = flip_img(image.ndarray())
     input_image = image.ndarray()
     channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
-    stitch_threshold = stitch_threshold if stitch_threshold >= 0 else None
-    z_axis = z_axis if z_axis >= 0 else None
+    stitch_threshold = stitch_threshold
+    z_axis = z_axis
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale if rescale > 0 else None
+    rescale = rescale
     # use_3D
-    # z_axis
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
@@ -139,7 +149,8 @@ else:
     min_size = 15
     tile_overlap = 0.1
 
-task.update(f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+task.update(
+    f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
@@ -155,7 +166,7 @@ masks, flows, styles = run_cellpose_v3(
         "use_gpu": use_gpu,
         "device": device,
 
-        ## Advanced
+        # Advanced
         'resample': resample,
         'normalize': normalize,
         'rescale': rescale,
@@ -167,8 +178,7 @@ masks, flows, styles = run_cellpose_v3(
 )
 
 
-
-## return output (TZCYX)
+# return output (TZCYX)
 if appose_mode:
     # transform mask ZYX -> TZCYX
     masks_5d = np.rollaxis(to_5d(masks), -3, -4)
@@ -180,5 +190,6 @@ if appose_mode:
 else:
     io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
     if compute_flows:
-        io.imsave(f'../../../sample_data/test_flows.tif', flows[0].astype(np.float32))
+        io.imsave(f'../../../sample_data/test_flows.tif',
+                  flows[0].astype(np.float32))
 task.update(f"Finished Cellpose v3 script")

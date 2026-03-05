@@ -1,5 +1,6 @@
 package fiji.plugin.appose.cellpose;
 
+import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
 import ij.IJ;
 import net.imagej.ImageJ;
 

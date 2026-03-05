@@ -1,5 +1,8 @@
 Fiji plugin to run Cellpose with Appose
 
+This plugin is based on [Appose](https://github.com/apposed/appose), that allows to install python environement and run python script with shared objects.
+It can run [cellpose](https://www.cellpose.org/) on 2D/3D/temporal images/movies. 
+
 ## Installation
 
 To install, copy the `.jar` file in the `plugins` directory of Fiji. Restart Fiji.

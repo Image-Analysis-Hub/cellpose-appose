@@ -1,4 +1,4 @@
-package fiji.plugin.appose.cellpose;
+package fiji.plugin.appose.cellpose.cp3;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
@@ -69,22 +69,19 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
-			"neurips_cellpose_transformer"} )
+			"neurips_cellpose_transformer"}, description="Choose CP model to run" )
 	private String cp_model = "cyto3"; // cellpose model
 	
-	@Parameter( label = "Diameter", min="0" )
+	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Cytoplasmic channel", choices = {"N/A"} )
-	private String cyto_channel = "N/A"; // cytoplasmic channel to segment
+	@Parameter(label="Cytoplasmic channel", choices = {"None"}, description="Channel index of the cytoplasmic channel. N/A for none" )
+	private String cyto_channel = "None"; // cytoplasmic channel to segment
 	
-	@Parameter(label="Nuclei channel", choices = {"N/A"} )
-	private String nuclei_channel = "N/A"; // nuclei channel to segment
-	
-	
-	
+	@Parameter(label="Nuclei channel", choices = {"None"}, description="Channel index of the nuclei channel. N/A for none" )
+	private String nuclei_channel = "None"; // nuclei channel to segment
 
-	@Parameter(label="Compute Flows")
+	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 
@@ -101,7 +98,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
 
-	private int z_axis = -1; // z_axis position
+	private Object z_axis = null; // z_axis position
 
 	// Advance parameters
 	// ToDo: make them available in the GUI
@@ -111,7 +108,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private double cellprob_threshold = 0.0;
 	private int min_size = 15;
 	private double tile_overlap = 0.1;
-	private int rescale = -1;
+	private Object rescale = null;
 	
 	@Override
 	public void initialize() {
@@ -131,7 +128,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		for (int i = 1; i <= imp.getNChannels(); i++) {
 			channelChoices.add(String.valueOf(i));
 		}
-		channelChoices.add("N/A");
+		channelChoices.add("None");
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem<String> cytoItem =
@@ -147,12 +144,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
 					"mode_3d", String.class);
 			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
+			mode_3d.setDescription( "Run Cellpose in 3D (xy, yx, xz) or in 2D and stitch the labels." );
 			getInfo().addInput(mode_3d);
 
 			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
 					"stitch_threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
+			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput(stitch_threshold);
 		}
 		else {
@@ -224,7 +223,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * @param imp
 	 * @return
 	 */
-	private int getZAxis( final ImagePlus imp )
+	private Object getZAxis( final ImagePlus imp )
 	{
 		// print info about the image in the log
 		System.out.println("─".repeat(50));
@@ -236,7 +235,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		
 		// 2D, easy peasy
 		if ( imp.getNSlices() == 1 )
-				return -1;
+				return null;
 		
 		// 5D -> TZCYX
 		if ( imp.getNDimensions() == 5 )
@@ -635,7 +634,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	}
 	
 	public static Integer parseChannelChoice(String str) {
-	    if (str == null || str.equalsIgnoreCase("N/A")) {
+	    if (str == null || str.equalsIgnoreCase("None")) {
 	        return null;
 	    }
 	    return Integer.parseInt(str);
