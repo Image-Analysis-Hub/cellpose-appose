@@ -80,7 +80,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 
-
 	private boolean is3D = false;
 
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image

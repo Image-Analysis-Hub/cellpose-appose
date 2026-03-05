@@ -52,10 +52,11 @@ import net.imglib2.type.numeric.RealType;
 @Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose")
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
-	@Parameter( label = "Diameter", min="0" )
+	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 	
-	@Parameter(label="Compute Flows")
+
+	@Parameter(label="Compute Flows", description="Compute the flows in cellpose or not")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 	
