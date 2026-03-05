@@ -1,7 +1,8 @@
 [workspace]
 authors = [
     "Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>", 
-    "Gaelle Letort <gaelle.letort@pasteur.fr>"
+    "Gaelle Letort <gaelle.letort@pasteur.fr>",
+    "Julie Mabon",
     ]
 channels = ["conda-forge"]
 name = "cellpose-appose"
