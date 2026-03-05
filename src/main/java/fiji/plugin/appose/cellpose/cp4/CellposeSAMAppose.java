@@ -175,7 +175,10 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 * script is very simple and has no parameters. We give details on how
 		 * to pass input and receive outputs below.
 		 */
-		final String script = getScript();
+		final String utilsScript = IOUtils.toString(
+				getClass().getResource("/cp_utils.py"), StandardCharsets.UTF_8);
+		final String cp3Script = IOUtils.toString(
+				getClass().getResource("/cp4.py"), StandardCharsets.UTF_8);
 
 		/*
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
@@ -252,17 +255,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 * Using this environment, we create a service that will run the Python
 		 * script.
 		 */
-		try ( Service python = env.python() )
+		try ( Service python = env.python().init(utilsScript) )
 		{
-			/*
-			 * With this service, we can now create a task that will run the
-			 * Python script with the specified inputs. This command takes the
-			 * script as first argument, and a map of inputs as second argument.
-			 * The keys of the map will be the variable names in the Python
-			 * script, and the values are the data that will be passed to
-			 * Python.
-			 */
-			final Task task = python.task( script, inputs );
+			final Task task = python.task(cp3Script, inputs);
 
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
@@ -342,21 +337,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			e.printStackTrace();
 		}
 		return env;
-	}
-	
-	private String getScript()
-	{
-		String script = "";
-		try {
-			final URL helperFile = this.getClass().getResource("/cp_utils.py");
-			final URL scriptFile = this.getClass().getResource("/cp4.py");
-			script = IOUtils.toString(helperFile, StandardCharsets.UTF_8) + 
-					"\n" + IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
-			
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
-		return script;
 	}
 	
 	private volatile JDialog progressDialog;

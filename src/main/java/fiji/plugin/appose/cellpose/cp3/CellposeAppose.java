@@ -212,14 +212,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * corresponding method.
 		 */
 		final String cellposeEnv = pixiEnv();
-
 		/*
 		 * The Python script that we want to run. It is specified as a string,
 		 * but it could be loaded from an existing .py file. In our case the
 		 * script is very simple and has no parameters. We give details on how
 		 * to pass input and receive outputs below.
 		 */
-		final String script = getScript();
+		final String utilsScript = IOUtils.toString(
+				getClass().getResource("/cp_utils.py"), StandardCharsets.UTF_8);
+		final String cp3Script = IOUtils.toString(
+				getClass().getResource("/cp3.py"), StandardCharsets.UTF_8);
 
 		/*
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
@@ -299,18 +301,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * Using this environment, we create a service that will run the Python
 		 * script.
 		 */
-		try ( Service python = env.python() )
+		try ( Service python = env.python().init(utilsScript) )
 		{
-			/*
-			 * With this service, we can now create a task that will run the
-			 * Python script with the specified inputs. This command takes the
-			 * script as first argument, and a map of inputs as second argument.
-			 * The keys of the map will be the variable names in the Python
-			 * script, and the values are the data that will be passed to
-			 * Python.
-			 */
-			final Task task = python.task( script, inputs );
-
+			final Task task = python.task(cp3Script, inputs);
+			
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
@@ -406,48 +400,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		return env;
 	}
 
-	/*
-	 * The Python script.
-	 * 
-	 * This is the Python code that will be run by the service. It is specified
-	 * as a string here for simplicity, but it could be loaded from an existing
-	 * .py file. In this example, the script receives an input image as a shared
-	 * memory NDArray (the 'image' variable), rotates it by 90 degrees using
-	 * scikit-image, and then sends the result back to Fiji by creating a new
-	 * NDArray (the 'rotated' variable) and putting it in the task outputs.
-	 * 
-	 * The string is monolithic and has not parameters for simplicity, but you
-	 * can imagine more complex scripts that take multiple inputs, have
-	 * parameters, call functions defined in other .py files, etc. The only
-	 * requirement is that the script can be run as a standalone script, and
-	 * that it uses the appose library to receive inputs and send outputs.
-	 * 
-	 * To pass on-the-fly parameters, you can:
-	 * 
-	 * 1/ modify the string below before creating the task, by using replace,
-	 * string concatenation, string format, or any other method to inject the
-	 * parameters into the script string before it is run. This approach
-	 * requires you to write the script as a template with placeholders for the
-	 * parameters, and then fill in the placeholders with the actual parameters
-	 * when you create the task.
-	 * 
-	 * 2/or you can use the input map to pass parameters as well, by putting
-	 * them in the map with a specific key.
-	 */
-	private String getScript()
-	{
-		String script = "";
-		try {
-			final URL helperFile = this.getClass().getResource("/cp_utils.py");
-			final URL scriptFile = this.getClass().getResource("/cp3.py");
-			script = IOUtils.toString(helperFile, StandardCharsets.UTF_8) + 
-					"\n" + IOUtils.toString(scriptFile, StandardCharsets.UTF_8);
-			
-		} catch (final IOException e) {
-			e.printStackTrace();
-		}
-		return script;
-	}
 	
 	// Helper functions to display progress while building the Appose environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
@@ -497,18 +449,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				progressDialog.dispose();
 			progressDialog = null;
 		} );
-	}
-
-	/*
-	 * A utility to pretty print things. Probably will go away in your code.
-	 */
-	private static String indent( final String script )
-	{
-		final String[] split = script.split( "\n" );
-		String out = "";
-		for ( final String string : split )
-			out += "    " + string + "\n";
-		return out;
 	}
 	
 	public static Integer parseChannelChoice(String str) {

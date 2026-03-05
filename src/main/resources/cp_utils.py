@@ -30,13 +30,10 @@ def get_device() -> tuple[bool, torch.device]:
         device = torch.device("cuda")
         gpu = True
         name = torch.cuda.get_device_name(0)
-        print(f"Using CUDA: {name}")
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         device = torch.device("mps")
         gpu = True
-        print("Using MPS (Metal)")
     else:
         device = torch.device("cpu")
         gpu = False
-        print("Using CPU")
     return gpu, device

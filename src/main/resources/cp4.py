@@ -114,12 +114,15 @@ else:
     min_size = 15
     tile_overlap = 0.1
 
-task.update(f"{__name__=}")
-
-task.update(
-    f"Running Cellpose v{cellpose.version}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 use_gpu, device = get_device()
+
+task.update(
+    f"Running Cellpose v{cellpose.version} on device {device}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+
+if not use_gpu:
+    task.update("WARNING: Cellpose v4 is running on CPU, it will be very slow")
+
 masks, flows, styles = run_cellpose_v4(
     input_image,
     kwargs={
