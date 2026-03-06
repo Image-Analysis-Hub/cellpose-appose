@@ -4,6 +4,7 @@ import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ApposeUtils;
+import fiji.plugin.appose.ImageAxisInfo;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -122,7 +123,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-	private Object z_axis = null; // z_axis position
+	private ImageAxisInfo axis_info; // position of the different axes
 
 	// Advance parameters
 	// ToDo: make them available in the GUI
@@ -222,7 +223,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				}
 			}
 			// get the z_axis number in what python should receive
-			z_axis = ApposeUtils.getZAxis( imp );
+			axis_info = ApposeUtils.getImageAxisInfo( imp );
 
 			// Runs the processing code.
 			process( imp );
@@ -305,7 +306,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel ) );
 		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
-		inputs.put( "z_axis", z_axis );
+		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "anisotropy", anisotropy );
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );
