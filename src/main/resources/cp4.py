@@ -47,11 +47,11 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 
     masks, flows, styles = model.eval(
         img,
-        channel_axis=kwargs.get('channel_axis', None),
         diameter=kwargs.get('diameter', 30),
         do_3D=kwargs.get('use_3D', False),
         anisotropy=kwargs.get('anisotropy', 1.0),
         stitch_threshold=kwargs.get('stitch_threshold', 0.0),
+        channel_axis=kwargs.get('channel_axis', None),
         z_axis=kwargs.get('z_axis', None),
         flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
@@ -88,6 +88,7 @@ if appose_mode:
     image = globals()['image']
     stitch_threshold = globals()['stitch_threshold']
     z_axis: int | None = globals()['z_axis']
+    channel_axis: int | None = globals()['channel_axis']
     anisotropy: float = globals()['anisotropy']
     diameter: int = globals()['diameter']
     use_3D: bool = globals()['use_3D']
@@ -124,6 +125,7 @@ else:
     stitch_threshold = 0.5
     z_axis = 0
     channel_axis = 1
+    channel_axis = 1
     anisotropy = None
     compute_flows = True
     resample = True
@@ -149,6 +151,7 @@ masks, flows, styles = run_cellpose_v4(
         "use_3D": use_3D,
         "stitch_threshold": stitch_threshold,
         "anisotropy": anisotropy,
+        "channel_axis": channel_axis,
         "z_axis": z_axis,
         "channel_axis": channel_axis,
         "use_gpu": use_gpu,
