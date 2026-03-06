@@ -4,6 +4,7 @@ import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ApposeUtils;
+import fiji.plugin.appose.ImageAxisInfo;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -123,7 +124,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-	private Object z_axis = null; // z_axis position
+	private ImageAxisInfo axis_info; // position of the different axes
 
 	// Advance parameters
 	// ToDo: make them available in the GUI
@@ -235,7 +236,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				}
 			}
 			// get the z_axis number in what python should receive
-			z_axis = getZAxis( imp );
+			axis_info = ApposeUtils.getImageAxisInfo( imp );
 
 			// Runs the processing code.
 			process( imp );
@@ -254,35 +255,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * @param imp
 	 * @return
 	 */
-	private Object getZAxis( final ImagePlus imp )
-	{
-		// print info about the image in the log
-		System.out.println( "─".repeat( 50 ) );
-		System.out.println( "Image dimension: " );
-		System.out.println( "\t" + imp.getNSlices() + " Z slices" );
-		System.out.println( "\t" + imp.getNChannels() + " C channels" );
-		System.out.println( "\t" + imp.getNFrames() + " T frames" );
-		System.out.println( "─".repeat( 50 ) );
-
-		// 2D, easy peasy
-		if ( imp.getNSlices() == 1 )
-			return null;
-
-		// 5D -> TZCYX
-		if ( imp.getNDimensions() == 5 )
-			return 1;
-		// Now, 3D or 4D
-		if ( imp.getNDimensions() == 3 )
-		{
-			// ZYX
-			return 0;
-		}
-		// if Z and T, TZYX
-		if ( imp.getNFrames() > 1 )
-			return 1;
-		// XYZC is left -> Z,C,Y,X
-		return 0;
-	}
 
 	/**
 	 * Displays the parameters used in a formatted manner
@@ -378,7 +350,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "cell_channel", parseChannelChoice( cyto_channel ) );
 		inputs.put( "nuclei_channel", parseChannelChoice( nuclei_channel ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
-		inputs.put( "z_axis", z_axis );
+		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "anisotropy", anisotropy );
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );

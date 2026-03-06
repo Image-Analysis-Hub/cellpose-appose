@@ -164,4 +164,34 @@ public class ApposeUtils
 			}
 		}
 	}
+
+	public static ImageAxisInfo getImageAxisInfo( final ImagePlus imp )
+	{
+		// print info about the image in the log
+		System.out.println( "─".repeat( 50 ) );
+		System.out.println( "Image dimension: " );
+		System.out.println( "\t" + imp.getNSlices() + " Z slices" );
+		System.out.println( "\t" + imp.getNChannels() + " C channels" );
+		System.out.println( "\t" + imp.getNFrames() + " T frames" );
+		System.out.println( "─".repeat( 50 ) );
+
+		// 2D, easy peasy
+		if ( imp.getNSlices() == 1 )
+			return new ImageAxisInfo( null, null, null );
+
+		// 5D -> TZCYX
+		if ( imp.getNDimensions() == 5 )
+			return new ImageAxisInfo( 1, 2, 0 );
+		// Now, 3D or 4D
+		if ( imp.getNDimensions() == 3 )
+		{
+			// ZYX
+			return new ImageAxisInfo( 0, null, null );
+		}
+		// if Z and T, TZYX
+		if ( imp.getNFrames() > 1 )
+			return new ImageAxisInfo( 1, null, 0 );
+		// XYZC is left -> Z,C,Y,X
+		return new ImageAxisInfo( 0, 1, null );
+	}
 }
