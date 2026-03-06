@@ -3,8 +3,7 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import fiji.plugin.appose.RoiUtils.Polygon2D;
-import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
+import fiji.plugin.appose.ApposeUtils;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -44,9 +43,6 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
-import ij.process.ImageProcessor;
-import ij.plugin.frame.RoiManager;
-import ij.gui.PolygonRoi;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -201,8 +197,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			final boolean is3D = ApposeUtils.is3d( imp );
-			final int nchanels = imp.getNChannels();
+			final boolean is3D = is3d( imp );
+//			final int nchanels = imp.getNChannels();
 			// getParameters( is3D, nchanels );
 
 			use3d = false;
@@ -403,47 +399,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 			if ( return_ROIs )
 			{
-				// from
-				// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
-
-				ImageProcessor image = labels.getProcessor();
-
-				int conn = 4;
-				LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
-				String pattern = "r%03d";
-
-				// compute boundaries
-				LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
-				Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
-
-				RoiManager rm = RoiManager.getInstance();
-				if ( rm == null )
-				{
-					rm = new RoiManager();
-				}
-				// populate RoiManager with PolygonRoi
-				for ( int label : boundaries.keySet() )
-				{
-					ArrayList< Polygon2D > polygons = boundaries.get( label );
-					String name = String.format( pattern, label );
-
-					if ( polygons.size() == 1 )
-					{
-						PolygonRoi roi = polygons.get( 0 ).createRoi();
-						roi.setName( name );
-						rm.addRoi( roi );
-					}
-					else
-					{
-						int index = 0;
-						for ( Polygon2D poly : polygons )
-						{
-							PolygonRoi roi = poly.createRoi();
-							roi.setName( name + "-" + ( index++ ) );
-							rm.addRoi( roi );
-						}
-					}
-				}
+				ApposeUtils.addROIs( labels );
 			}
 
 			if ( compute_flows )

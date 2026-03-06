@@ -9,9 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
+import fiji.plugin.appose.RoiUtils.Polygon2D;
 import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.PolygonRoi;
 import ij.measure.Calibration;
+import ij.plugin.frame.RoiManager;
+import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
 import net.imglib2.img.ImagePlusAdapter;
@@ -197,4 +202,49 @@ public class ApposeUtils
                (input == null ? null : Integer.parseInt(input) - 1);
     }
 
+
+	public static void addROIs( ImagePlus labels )
+	{
+		// from
+		// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
+
+		ImageProcessor image = labels.getProcessor();
+
+		int conn = 4;
+		LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
+		String pattern = "r%03d";
+
+		// compute boundaries
+		LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
+		Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+
+		RoiManager rm = RoiManager.getInstance();
+		if ( rm == null )
+		{
+			rm = new RoiManager();
+		}
+		// populate RoiManager with PolygonRoi
+		for ( int label : boundaries.keySet() )
+		{
+			ArrayList< Polygon2D > polygons = boundaries.get( label );
+			String name = String.format( pattern, label );
+
+			if ( polygons.size() == 1 )
+			{
+				PolygonRoi roi = polygons.get( 0 ).createRoi();
+				roi.setName( name );
+				rm.addRoi( roi );
+			}
+			else
+			{
+				int index = 0;
+				for ( Polygon2D poly : polygons )
+				{
+					PolygonRoi roi = poly.createRoi();
+					roi.setName( name + "-" + ( index++ ) );
+					rm.addRoi( roi );
+				}
+			}
+		}
+	}
 }
