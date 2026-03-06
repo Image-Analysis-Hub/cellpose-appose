@@ -150,7 +150,9 @@ else:
     flow3D_smooth = 0
 
 task.update(
-    f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
+# current = 1,
+# maximum= 10,
+message=f"Running Cellpose v3 with model '{model}', channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
 
 use_gpu, device = get_device()
 masks, flows, styles = run_cellpose_v3(
