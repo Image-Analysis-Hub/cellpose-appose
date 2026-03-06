@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +37,6 @@ import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -197,8 +195,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			final boolean is3D = is3d( imp );
-//			final int nchanels = imp.getNChannels();
+			final boolean is3D = ApposeUtils.is3d( imp );
+			// final int nchanels = imp.getNChannels();
 			// getParameters( is3D, nchanels );
 
 			use3d = false;
@@ -218,10 +216,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				}
 
 				if ( return_ROIs )
-					{
-						IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
-						return;
-					}
+				{
+					IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+					return;
+				}
 			}
 			// get the z_axis number in what python should receive
 			z_axis = ApposeUtils.getZAxis( imp );

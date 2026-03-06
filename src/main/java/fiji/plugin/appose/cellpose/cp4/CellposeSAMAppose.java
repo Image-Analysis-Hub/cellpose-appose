@@ -3,6 +3,7 @@ package fiji.plugin.appose.cellpose.cp4;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import fiji.plugin.appose.ApposeUtils;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -11,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +37,6 @@ import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
-import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -61,6 +60,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
+
+	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
+	private Boolean return_ROIs; // if true return ROIs only for 2D image
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
@@ -193,7 +195,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		{
 			// Get the parameters based on the image properties
 			final boolean is3D = ApposeUtils.is3d( imp );
-			final int nchanels = imp.getNChannels();
+			// final int nchanels = imp.getNChannels();
 			// getParameters( is3D, nchanels );
 
 			use3d = false;
@@ -215,6 +217,12 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				if ( ( stitch_threshold_value == 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
 					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
+					return;
+				}
+
+				if ( return_ROIs )
+				{
+					IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
 					return;
 				}
 			}
@@ -391,6 +399,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
+
+			if ( return_ROIs )
+			{
+				ApposeUtils.addROIs( labels );
+			}
 
 			if ( compute_flows )
 			{
