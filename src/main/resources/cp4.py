@@ -35,16 +35,23 @@ def merge_channels(selected_channels: list[int | None]):
 def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v4 on a single image with the given parameters."""
 
-    # if z_axis, should have stitch_threshold > 0 else raises an error
-
     custom_model = kwargs.get('custom_model', None)
-
+    model = "cpsam" if custom_model is None else custom_model
+    task.update(
+        current = 2,
+        maximum= 5,
+        message=f"CP4: Deploy model {model}"
+    )
     model = models.CellposeModel(
-        pretrained_model="cpsam" if custom_model is None else custom_model,
+        pretrained_model=model,
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
-
+    task.update(
+        current = 3,
+        maximum= 5,
+        message=f"CP4: Predict labels"
+    )
     masks, flows, styles = model.eval(
         img,
         diameter=kwargs.get('diameter', 30),
@@ -106,15 +113,18 @@ if appose_mode:
     input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
-    task.update(f"Input image of shape: {input_image.shape}")
+    
     if n_channels > 3:
         chan0: int | None = globals()['chan0']
         chan1: int | None = globals()['chan1']
         chan2: int | None = globals()['chan2']
         channels = merge_channels([chan0, chan1, chan2])
         input_image = input_image[..., channels, :, :]
-        task.update(
-            f"Because {n_channels=} > 3, Input image cropped to shape: {input_image.shape}")
+    task.update(
+        current = 0,
+        maximum = 5,
+        message = f"CP4: Fetch image from Fiji ({input_image.shape})"
+        )
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
@@ -139,10 +149,10 @@ else:
 use_gpu, device = get_device()
 
 task.update(
-    f"Running Cellpose v{cellpose.version} on device {device}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
-
-if not use_gpu:
-    task.update("WARNING: Cellpose v4 is running on CPU, it will be very slow")
+    current = 1,
+    maximum= 5,
+    message=f"CP3: Start Cellpose script (device={device})"
+)
 
 masks, flows, styles = run_cellpose_v4(
     input_image,
@@ -166,6 +176,11 @@ masks, flows, styles = run_cellpose_v4(
     }
 )
 
+task.update(
+    current = 4,
+    maximum = 5,
+    message=f"CP4: Returning results"
+)
 
 # return output (TZCYX)
 if appose_mode:
@@ -181,4 +196,9 @@ else:
     if compute_flows:
         io.imsave(f'../../../sample_data/test_flows.tif',
                   flows[0].astype(np.float32))
-task.update(f"Finished Cellpose v3 script")
+
+task.update(
+    current = 5,
+    maximum = 5,
+    message=f"CP4: Finished Cellpose script"
+)

@@ -49,10 +49,14 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import org.scijava.task.TaskService;
 
 @Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
+	@Parameter
+	private TaskService taskService;
+	
 	@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
 	private File custom_model = null;
 
@@ -112,6 +116,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	// Advance parameters
 	// ToDo: make them available in the GUI
 	private double cellprob_threshold = 0.0;
+
+	// Fiji task
+	private org.scijava.task.Task fijiTask;
 
 	@Override
 	public void initialize()
@@ -190,6 +197,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Override
 	public void run()
 	{
+		// start task
+		fijiTask = taskService.createTask("cellposeSAM-appose");
+		fijiTask.setStatusMessage( "Launching CellposeSAM appose task." );
+		fijiTask.start();
+
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		try
@@ -359,7 +371,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
 			task.listen( e -> {
-				System.out.println( "\tInfo: " + e.message );
+				if (e.message != null) {this.fijiTask.setStatusMessage(e.message);}
+				if (e.current >= 0) {this.fijiTask.setProgressValue(e.current);}
+				if (e.maximum >= 0) {this.fijiTask.setProgressMaximum(e.maximum);}
 			} );
 			task.start();
 
@@ -370,6 +384,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			 * running.
 			 */
 			task.waitFor();
+			// close the fiji task when python is done
+			this.fijiTask.finish();
 
 			// Verify that it worked.
 			if ( task.status != TaskStatus.COMPLETE )
