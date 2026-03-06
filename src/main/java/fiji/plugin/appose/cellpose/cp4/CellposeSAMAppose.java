@@ -70,6 +70,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
 	private Boolean return_ROIs; // if true return ROIs only for 2D image
 
+	@Parameter( label = "Cell probability threshold", min = "0", max = "1", description = "Threshold on cell detection", stepSize = "0.1" )
+	private double cellprob_threshold = 0.0;
+
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
 
@@ -113,10 +116,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private double anisotropy = 1.0;
 
 	private ImageAxisInfo axis_info; // position of the different axes
-
-	// Advance parameters
-	// ToDo: make them available in the GUI
-	private double cellprob_threshold = 0.0;
 
 	// Fiji task
 	private org.scijava.task.Task fijiTask;
