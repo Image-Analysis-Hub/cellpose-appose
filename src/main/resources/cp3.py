@@ -63,6 +63,7 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 
     model = models.CellposeModel(
         model_type=kwargs.get('model_name', 'cyto3'),
+        pretrained_model=kwargs.get('custom_model', None),
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
@@ -133,6 +134,7 @@ if appose_mode:
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
+    custom_model = None
     model = 'cyto3'
     diameter = 30
     channels = [0, 1]
@@ -157,6 +159,7 @@ masks, flows, styles = run_cellpose_v3(
     input_image,
     kwargs={
         "model_name": model,
+        "custom_model": custom_model,
         "channels": channels,
         "diameter": diameter,
         "use_3D": use_3D,

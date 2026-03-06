@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.management.RuntimeErrorException;
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
 import javax.swing.WindowConstants;
@@ -69,7 +70,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			"neurips_cellpose_transformer"}, description="Choose CP model to run")
 	private String cp_model = "cyto3"; // cellpose model
 	
-	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false)
+	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false, validater = "validateCustomModel")
 	private File custom_model = null;
 	
 	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
@@ -324,7 +325,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		inputs.put( "model", cp_model );
+		// return null if custom model
+		inputs.put( "model", ( custom_model == null ) ? cp_model : null );
+		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "cell_channel", parseChannelChoice( cyto_channel ) );
 		inputs.put( "nuclei_channel", parseChannelChoice( nuclei_channel ));
@@ -581,6 +584,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	        return null;
 	    }
 	    return Integer.parseInt(str);
+	}
+	
+	public void validateCustomModel() {
+		if ( custom_model != null) {
+			if ( ! custom_model.exists() ) {
+				IJ.error("The path " + custom_model.toString() + " does not exist !");
+				throw new RuntimeException("The path " + custom_model.toString() + " does not exist !");
+			}
+		}
 	}
 	
 
