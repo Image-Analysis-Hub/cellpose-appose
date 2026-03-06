@@ -3,6 +3,8 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import fiji.plugin.appose.RoiUtils.Polygon2D;
+import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -41,6 +43,9 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import ij.process.ImageProcessor;
+import ij.plugin.frame.RoiManager;
+import ij.gui.PolygonRoi;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -74,14 +79,17 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 
-	@Parameter( label = "Cytoplasmic channel", choices = { "N/A" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
+	@Parameter( label = "Cytoplasmic channel", choices = { "None" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 
-	@Parameter( label = "Nuclei channel", choices = { "N/A" }, description = "Channel index of the nuclei channel. N/A for none" )
+	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
+
+	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
+	private Boolean return_ROIs; // if true return ROIs only for 2D image
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
@@ -223,6 +231,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				else
 				{
 					stitch_threshold_value = stitch_threshold.getValue( this );
+				}
+				if ( return_ROIs )
+				{
+					IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+					return;
 				}
 			}
 			// get the z_axis number in what python should receive
@@ -465,6 +478,51 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
+
+			if ( return_ROIs )
+			{
+				// from
+				// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
+
+				ImageProcessor image = labels.getProcessor();
+
+				int conn = 4;
+				LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
+				String pattern = "r%03d";
+
+				// compute boundaries
+				LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
+				Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+
+				RoiManager rm = RoiManager.getInstance();
+				if ( rm == null )
+				{
+					rm = new RoiManager();
+				}
+				// populate RoiManager with PolygonRoi
+				for ( int label : boundaries.keySet() )
+				{
+					ArrayList< Polygon2D > polygons = boundaries.get( label );
+					String name = String.format( pattern, label );
+
+					if ( polygons.size() == 1 )
+					{
+						PolygonRoi roi = polygons.get( 0 ).createRoi();
+						roi.setName( name );
+						rm.addRoi( roi );
+					}
+					else
+					{
+						int index = 0;
+						for ( Polygon2D poly : polygons )
+						{
+							PolygonRoi roi = poly.createRoi();
+							roi.setName( name + "-" + ( index++ ) );
+							rm.addRoi( roi );
+						}
+					}
+				}
+			}
 
 			if ( compute_flows )
 			{
