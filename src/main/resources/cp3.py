@@ -3,7 +3,7 @@
 # Authors:
 # Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
 # Gaelle Letort <gaelle letort.pasteur.fr>
-# Julie Mabon <julie.mabon@pasteur.fr>
+# Julie Mabon <julie mabon@pasteur.fr>
 ###############################################################################
 
 import numpy as np
@@ -21,6 +21,7 @@ def listen(callback):
 ###############################################################################
 # AUXILIARY FUNCTIONS
 ###############################################################################
+
 
 def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[int]:
     """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
@@ -71,7 +72,6 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 ###############################################################################
 # MAIN PROGRAM
 ###############################################################################
-
 
 
 appose_mode = 'task' in globals()
@@ -138,7 +138,7 @@ masks, flows, styles = run_cellpose_v3(
         "z_axis": z_axis,
         "use_gpu": use_gpu,
         "device": device,
-        'flow3D_smooth' : flow3D_smooth,
+        'flow3D_smooth': flow3D_smooth,
         'resample': resample,
         'normalize': normalize,
         'flow_threshold': flow_threshold,

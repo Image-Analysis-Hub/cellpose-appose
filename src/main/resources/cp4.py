@@ -3,7 +3,7 @@
 # Authors:
 # Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
 # Gaelle Letort <gaelle letort.pasteur.fr>
-# Julie Mabon <julie mabon.pasteur.fr>
+# Julie Mabon <julie mabon@pasteur.fr>
 ###############################################################################
 
 import numpy as np
@@ -29,8 +29,10 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 
     # if z_axis, should have stitch_threshold > 0 else raises an error
 
+    custom_model = kwargs.get('custom_model', None)
+
     model = models.CellposeModel(
-        pretrained_model="cpsam",
+        pretrained_model="cpsam" if custom_model is None else custom_model,
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
@@ -43,10 +45,9 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         anisotropy=kwargs.get('anisotropy', 1.0),
         stitch_threshold=kwargs.get('stitch_threshold', 0.0),
         z_axis=kwargs.get('z_axis', None),
-
+        flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
         normalize=kwargs.get('normalize', True),
-        rescale=kwargs.get('rescale', None),
         flow_threshold=kwargs.get('flow_threshold', 0.4),
         cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
         min_size=kwargs.get('min_size', 15),
@@ -80,7 +81,6 @@ if appose_mode:
     stitch_threshold = globals()['stitch_threshold']
     z_axis: int | None = globals()['z_axis']
     anisotropy: float = globals()['anisotropy']
-    rescale: float = globals()['rescale']
     diameter: int = globals()['diameter']
     use_3D: bool = globals()['use_3D']
     resample: bool = globals()['resample']
@@ -89,16 +89,18 @@ if appose_mode:
     cellprob_threshold: float = globals()['cellprob_threshold']
     min_size: int = globals()['min_size']
     tile_overlap: float = globals()['tile_overlap']
-    channel_axis: int | None = globals().get('channel_axis', None)  # TODO get it from java
+    flow3D_smooth: float = globals()['flow3D_smooth']
+    channel_axis: int | None = globals().get(
+        'channel_axis', None)  # TODO get it from java
 
     input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale
     # use_3D
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
+    custom_model = None
     model = 'cyto3'
     diameter = 30
     use_3D = False
@@ -109,11 +111,11 @@ else:
     compute_flows = True
     resample = True
     normalize = True
-    rescale = None
     flow_threshold = 0.4
     cellprob_threshold = 0.0
     min_size = 15
     tile_overlap = 0.1
+    flow3D_smooth = 0
 
 use_gpu, device = get_device()
 
@@ -134,11 +136,9 @@ masks, flows, styles = run_cellpose_v4(
         "channel_axis": channel_axis,
         "use_gpu": use_gpu,
         "device": device,
-
-        # Advanced
+        'flow3D_smooth': flow3D_smooth,
         'resample': resample,
         'normalize': normalize,
-        'rescale': rescale,
         'flow_threshold': flow_threshold,
         'cellprob_threshold': cellprob_threshold,
         'min_size': min_size,

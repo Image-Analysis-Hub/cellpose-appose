@@ -7,6 +7,7 @@ import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -52,19 +53,38 @@ import net.imglib2.type.numeric.RealType;
 @Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose")
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
+	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false, validater = "validateCustomModel")
+	private File custom_model = null;
+	
 	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 	
 
-	@Parameter(label="Compute Flows", description="Compute the flows in cellpose or not")
+	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
+	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
+	private double flow_threshold = 0.4; // probability threshold on flows
+
+	@Parameter(label="Minimum Object Size", min="0", description="Minimum object size (in pixels) to keep")
+	private int min_size = 15; // minimum object size
+
+	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
+	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
+
+	@Parameter(label="Normalize", description="Normalize intensity on each channels")
+	private Boolean normalize = true; // intensity normalization before prediction
+
+	@Parameter(label="Resample", description="Resample detection to image scale for smoother output")
+	private Boolean resample = true; // resample mask (slower but nicer)
 	
 	private boolean is3D = false;
 	
 	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
 	private MutableModuleItem<Double> stitch_threshold; // stitching value, only for 3D image
+	private MutableModuleItem<Integer> flow3D_smooth; // gaussian smooth of the 3D flows (only with use3d = true)
 	
+	private int flow3D_smooth_value = 0;
 	private double stitch_threshold_value = 0;
 	private boolean use3d = false;
 	private double anisotropy = 1.0;
@@ -73,13 +93,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	
 	// Advance parameters
 	// ToDo: make them available in the GUI
-	private boolean resample = true;
-	private boolean normalize = true;
-    private double flow_threshold = 0.4;
 	private double cellprob_threshold = 0.0;
-	private int min_size = 15;
-	private double tile_overlap = 0.1;
-	private Object rescale = null;
 	
 	@Override
 	public void initialize() {
@@ -98,16 +112,23 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Set the 3D mode selected by the user if the image is 3D
 		if (is3D) {
 			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
-					"mode_3d", String.class);
+					"Mode 3d", String.class);
 			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
-			mode_3d.setDescription( "Image is 3D. Run segmentation in 2D then stitch, or in 3D (xy, yx, xz)" );
+			mode_3d.setDescription( "Run Cellpose in 3D (xy, yx, xz) or in 2D and stitch the labels." );
 			getInfo().addInput(mode_3d);
 
+			flow3D_smooth = new DefaultMutableModuleItem<>(getInfo(),
+					"flow3D smooth", Integer.class);
+			flow3D_smooth.setMinimumValue(0);
+			flow3D_smooth.setDescription( "3D mode only: Gaussian smoothing sigma applied on flows." );
+			getInfo().addInput(flow3D_smooth);
+
 			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
-					"stitch_threshold", Double.class);
+					"Stitch threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
-			stitch_threshold.setDescription( "For 2D+stitch mode, IOU threshold to stitch labels together accross Z. Should be >0 not to trigger an error." );
+			stitch_threshold.setStepSize( 0.1 );
+			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput(stitch_threshold);
 		}
 	}
@@ -142,6 +163,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				if ( mode.equals( "3D" ) )
 				{
 					use3d = true;
+					flow3D_smooth_value = flow3D_smooth.getValue( this );
 				} else {
 					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
@@ -229,21 +251,22 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
+		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", z_axis );
 		inputs.put( "anisotropy", anisotropy );
-		// Print out the parameters
-		ApposeUtils.displayParameters( inputs );
-		// Advance (not printed)
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );
 		inputs.put( "normalize", normalize );
-		inputs.put( "rescale", rescale );
 		inputs.put( "flow_threshold", flow_threshold );
 		inputs.put( "cellprob_threshold", cellprob_threshold );
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
+		inputs.put( "flow3D_smooth", flow3D_smooth_value );
+		// Print out the parameters
+		ApposeUtils.displayParameters( inputs );
+
 
 
 		/*
@@ -398,5 +421,14 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				progressDialog.dispose();
 			progressDialog = null;
 		} );
+	}
+
+	public void validateCustomModel() {
+		if ( custom_model != null) {
+			if ( ! custom_model.exists() ) {
+				IJ.error("The path " + custom_model.toString() + " does not exist !");
+				throw new RuntimeException("The path " + custom_model.toString() + " does not exist !");
+			}
+		}
 	}
 }
