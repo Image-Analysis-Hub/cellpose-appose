@@ -50,91 +50,101 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose")
+@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
-	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false, validater = "validateCustomModel")
+	@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
 	private File custom_model = null;
-	
-	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
-	private int cell_diameter = 30; // cell diameter
-	
 
-	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
+	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
+	private int cell_diameter = 30; // cell diameter
+
+	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
 
-	@Parameter(label="Minimum Object Size", min="0", description="Minimum object size (in pixels) to keep")
+	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
 	private int min_size = 15; // minimum object size
 
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
-	@Parameter(label="Normalize", description="Normalize intensity on each channels")
-	private Boolean normalize = true; // intensity normalization before prediction
+	@Parameter( label = "Normalize", description = "Normalize intensity on each channels" )
+	private Boolean normalize = true; // intensity normalization before
+										// prediction
 
-	@Parameter(label="Resample", description="Resample detection to image scale for smoother output")
+	@Parameter( label = "Resample", description = "Resample detection to image scale for smoother output" )
 	private Boolean resample = true; // resample mask (slower but nicer)
-	
+
 	private boolean is3D = false;
-	
-	private MutableModuleItem<String> mode_3d; // mode 3D of CP to use, only for 3D image
-	private MutableModuleItem<Double> stitch_threshold; // stitching value, only for 3D image
-	private MutableModuleItem<Integer> flow3D_smooth; // gaussian smooth of the 3D flows (only with use3d = true)
-	
+
+	private MutableModuleItem< String > mode_3d; // mode 3D of CP to use, only
+													// for 3D image
+
+	private MutableModuleItem< Double > stitch_threshold; // stitching value,
+															// only for 3D image
+
+	private MutableModuleItem< Integer > flow3D_smooth; // gaussian smooth of
+														// the 3D flows (only
+														// with use3d = true)
+
 	private int flow3D_smooth_value = 0;
+
 	private double stitch_threshold_value = 0;
+
 	private boolean use3d = false;
+
 	private double anisotropy = 1.0;
-	
+
 	private Object z_axis = null; // z_axis position
-	
+
 	// Advance parameters
 	// ToDo: make them available in the GUI
 	private double cellprob_threshold = 0.0;
-	
+
 	@Override
-	public void initialize() {
+	public void initialize()
+	{
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
-		if (imp == null) {
-			// ToDo: Find a cleaner way to exit, the "return" still trigger the plugin interface
-			//       I needed to throw an exception for the process to stop.
-			IJ.error("No image available to process");
-			throw new RuntimeException("No image available to process");
+		if ( imp == null )
+		{
+			// ToDo: Find a cleaner way to exit, the "return" still trigger the
+			// plugin interface
+			// I needed to throw an exception for the process to stop.
+			IJ.error( "No image available to process" );
+			throw new RuntimeException( "No image available to process" );
 		}
 
-		is3D = ApposeUtils.is3d(imp);
-
+		is3D = ApposeUtils.is3d( imp );
 
 		// Set the 3D mode selected by the user if the image is 3D
-		if (is3D) {
-			mode_3d = new DefaultMutableModuleItem<>(getInfo(),
-					"Mode 3d", String.class);
-			mode_3d.setChoices(Arrays.asList("2D+stitch", "3D"));
+		if ( is3D )
+		{
+			mode_3d = new DefaultMutableModuleItem<>( getInfo(),
+					"Mode 3d", String.class );
+			mode_3d.setChoices( Arrays.asList( "2D+stitch", "3D" ) );
 			mode_3d.setDescription( "Run Cellpose in 3D (xy, yx, xz) or in 2D and stitch the labels." );
-			getInfo().addInput(mode_3d);
+			getInfo().addInput( mode_3d );
 
-			flow3D_smooth = new DefaultMutableModuleItem<>(getInfo(),
-					"flow3D smooth", Integer.class);
-			flow3D_smooth.setMinimumValue(0);
+			flow3D_smooth = new DefaultMutableModuleItem<>( getInfo(),
+					"flow3D smooth", Integer.class );
+			flow3D_smooth.setMinimumValue( 0 );
 			flow3D_smooth.setDescription( "3D mode only: Gaussian smoothing sigma applied on flows." );
-			getInfo().addInput(flow3D_smooth);
+			getInfo().addInput( flow3D_smooth );
 
-			stitch_threshold = new DefaultMutableModuleItem<>(getInfo(),
-					"Stitch threshold", Double.class);
-			stitch_threshold.setMaximumValue(1.0);
-			stitch_threshold.setMinimumValue(0.0);
+			stitch_threshold = new DefaultMutableModuleItem<>( getInfo(),
+					"Stitch threshold", Double.class );
+			stitch_threshold.setMaximumValue( 1.0 );
+			stitch_threshold.setMinimumValue( 0.0 );
 			stitch_threshold.setStepSize( 0.1 );
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
-			getInfo().addInput(stitch_threshold);
+			getInfo().addInput( stitch_threshold );
 		}
 	}
 
-
-	
 	/*
 	 * This is the entry point for the plugin. This is what is called when the
 	 * user select the plugin menu entry: 'Plugins > Examples >
@@ -152,41 +162,43 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			// Get the parameters based on the image properties
 			final boolean is3D = ApposeUtils.is3d( imp );
 			final int nchanels = imp.getNChannels();
-			//getParameters( is3D, nchanels );
-			
+			// getParameters( is3D, nchanels );
+
 			use3d = false;
 			if ( is3D )
 			{
 				final String mode = mode_3d.getValue( this );
 				final Calibration cal = imp.getCalibration();
-				anisotropy = cal.pixelDepth/cal.pixelHeight;
+				anisotropy = cal.pixelDepth / cal.pixelHeight;
 				if ( mode.equals( "3D" ) )
 				{
 					use3d = true;
 					flow3D_smooth_value = flow3D_smooth.getValue( this );
-				} else {
-					stitch_threshold_value = stitch_threshold.getValue(this);
 				}
-				
-				if ((stitch_threshold_value == 0.0) & (mode.equals( "2D+stitch" ) ))  {
-			        IJ.error("stitch_threshold should be above zero if 2D+stitch ");
-			        return;
-			    }
+				else
+				{
+					stitch_threshold_value = stitch_threshold.getValue( this );
+				}
+
+				if ( ( stitch_threshold_value == 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
+				{
+					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
+					return;
+				}
 			}
 			// get the z_axis number in what python should receive
 			z_axis = ApposeUtils.getZAxis( imp );
-			
+
 			// Runs the processing code.
 			process( imp );
 		}
-		catch ( final IOException | BuildException e ) {
-			IJ.error("An error occurred: " + e.getMessage());
+		catch ( final IOException | BuildException e )
+		{
+			IJ.error( "An error occurred: " + e.getMessage() );
 			e.printStackTrace();
 		}
 
 	}
-	
-	
 
 	/*
 	 * Actually do something with the image.
@@ -212,9 +224,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 * to pass input and receive outputs below.
 		 */
 		final String utilsScript = IOUtils.toString(
-				getClass().getResource("/cp_utils.py"), StandardCharsets.UTF_8);
+				getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
 		final String cp3Script = IOUtils.toString(
-				getClass().getResource("/cp4.py"), StandardCharsets.UTF_8);
+				getClass().getResource( "/cp4.py" ), StandardCharsets.UTF_8 );
 
 		/*
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
@@ -233,7 +245,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 		// Wrap the ImagePlus into a ImgLib2 image.
 		final ImgPlus< T > img = rawWraps( imp );
-		
+
 		/*
 		 * Copy the image into a shared memory image and wrap it into an
 		 * NDArray, then store it in an input map that we will pass to the
@@ -267,8 +279,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 
-
-
 		/*
 		 * Create or retrieve the environment.
 		 * 
@@ -280,11 +290,13 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 */
 		final Environment env = Appose // the builder
 				.pixi() // we chose pixi as the environment manager
-				.content( cellposeEnv ) // specify the environment with the string defined above
-				.subscribeProgress( this::showProgress ) // report progress visually
+				.content( cellposeEnv ) // specify the environment with the
+										// string defined above
+				.subscribeProgress( this::showProgress ) // report progress
+															// visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
-				.environment("cp4")
+				.environment( "cp4" )
 				.build(); // create the environment
 		hideProgress();
 
@@ -292,16 +304,16 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		 * Using this environment, we create a service that will run the Python
 		 * script.
 		 */
-		try ( Service python = env.python().init(utilsScript) )
+		try (Service python = env.python().init( utilsScript ))
 		{
-			final Task task = python.task(cp3Script, inputs);
+			final Task task = python.task( cp3Script, inputs );
 
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
-			task.listen( e->{
-				System.out.println("\tInfo: "+e.message);
+			task.listen( e -> {
+				System.out.println( "\tInfo: " + e.message );
 			} );
 			task.start();
 
@@ -337,7 +349,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
 			// Return is a TZCYX arrays, so no need of setDimensions anymore
-            // labels.setDimensions( 1, labels.getNChannels(), labels.getNFrames() );
+			// labels.setDimensions( 1, labels.getNChannels(),
+			// labels.getNFrames() );
 			labels.getProcessor().resetMinAndMax();
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
@@ -350,7 +363,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				final Img< T > flows = new ShmImg<>( flowsArr );
 				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
 				// Return is a TZCYX arrays, so no need of setDimensions anymore
-				// flowsImp.setDimensions( 3, flowsImp.getNChannels(), flowsImp.getNFrames() );
+				// flowsImp.setDimensions( 3, flowsImp.getNChannels(),
+				// flowsImp.getNFrames() );
 				flowsImp.getProcessor().resetMinAndMax();
 				transferCalibration( imp, flowsImp );
 				flowsImp.show();
@@ -362,20 +376,23 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			IJ.handleException( e );
 		}
 	}
-	
+
 	private String pixiEnv()
 	{
 		String env = "";
-		try {
-			final URL pixiFile = this.getClass().getResource("/pixi.toml");
-			env = IOUtils.toString(pixiFile, StandardCharsets.UTF_8);
-			
-		} catch (final IOException e) {
+		try
+		{
+			final URL pixiFile = this.getClass().getResource( "/pixi.toml" );
+			env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
+
+		}
+		catch ( final IOException e )
+		{
 			e.printStackTrace();
 		}
 		return env;
 	}
-	
+
 	private volatile JDialog progressDialog;
 
 	private volatile JProgressBar progressBar;
@@ -387,9 +404,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 	private void showProgress( final String msg, final Long cur, final Long max )
 	{
-		EventQueue.invokeLater( () ->
-		{
-			if ( progressDialog == null ) {
+		EventQueue.invokeLater( () -> {
+			if ( progressDialog == null )
+			{
 				final Window owner = IJ.getInstance();
 				progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
 				progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
@@ -397,37 +414,43 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				progressDialog.getContentPane().add( progressBar );
 				progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
 				progressBar.setString(
-					"--------------------==================== " +
-					"Building Python environment " +
-					"====================--------------------"
-				);
+						"--------------------==================== " +
+								"Building Python environment " +
+								"====================--------------------" );
 				progressBar.setStringPainted( true );
 				progressBar.setIndeterminate( true );
 				progressDialog.pack();
 				progressDialog.setLocationRelativeTo( owner );
 				progressDialog.setVisible( true );
 			}
-			if ( msg != null && !msg.trim().isEmpty() ) progressBar.setString( "Building Python environment: " + msg.trim() );
-			if ( cur != null || max != null ) progressBar.setIndeterminate( false );
-			if ( max != null ) progressBar.setMaximum( max.intValue() );
-			if ( cur != null ) progressBar.setValue( cur.intValue() );
+			if ( msg != null && !msg.trim().isEmpty() )
+				progressBar.setString( "Building Python environment: " + msg.trim() );
+			if ( cur != null || max != null )
+				progressBar.setIndeterminate( false );
+			if ( max != null )
+				progressBar.setMaximum( max.intValue() );
+			if ( cur != null )
+				progressBar.setValue( cur.intValue() );
 		} );
 	}
+
 	private void hideProgress()
 	{
-		EventQueue.invokeLater( () ->
-		{
+		EventQueue.invokeLater( () -> {
 			if ( progressDialog != null )
 				progressDialog.dispose();
 			progressDialog = null;
 		} );
 	}
 
-	public void validateCustomModel() {
-		if ( custom_model != null) {
-			if ( ! custom_model.exists() ) {
-				IJ.error("The path " + custom_model.toString() + " does not exist !");
-				throw new RuntimeException("The path " + custom_model.toString() + " does not exist !");
+	public void validateCustomModel()
+	{
+		if ( custom_model != null )
+		{
+			if ( !custom_model.exists() )
+			{
+				IJ.error( "The path " + custom_model.toString() + " does not exist !" );
+				throw new RuntimeException( "The path " + custom_model.toString() + " does not exist !" );
 			}
 		}
 	}
