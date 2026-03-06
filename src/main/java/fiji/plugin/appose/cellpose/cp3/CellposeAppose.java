@@ -3,6 +3,7 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ImageAxisInfo;
 
@@ -52,11 +53,11 @@ import net.imglib2.type.numeric.RealType;
 import org.scijava.task.TaskService;
 
 /*
- * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
+ * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin),
  * that calls native Python code with Appose.
- * 
- * We use a simple examples of rotating an input image by 90 degrees, using the scikit-image 
- * library in Python, and returning the result back to Fiji. Everything is contained in a 
+ *
+ * We use a simple examples of rotating an input image by 90 degrees, using the scikit-image
+ * library in Python, and returning the result back to Fiji. Everything is contained in a
  * single class, but you can imagine restructuring the code and the Python script as you see fit.
  */
 
@@ -101,7 +102,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	@Parameter( label = "Normalize", description = "Normalize intensity on each channels" )
 	private Boolean normalize = true; // intensity normalization before
-										// prediction
+	// prediction
 
 	@Parameter( label = "Resample", description = "Resample detection to image scale for smoother output" )
 	private Boolean resample = true; // resample mask (slower but nicer)
@@ -109,14 +110,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private boolean is3D = false;
 
 	private MutableModuleItem< String > mode_3d; // mode 3D of CP to use, only
-													// for 3D image
+	// for 3D image
 
 	private MutableModuleItem< Double > stitch_threshold; // stitching value,
-															// only for 3D image
+	// only for 3D image
 
 	private MutableModuleItem< Integer > flow3D_smooth; // gaussian smooth of
-														// the 3D flows (only
-														// with use3d = true)
+	// the 3D flows (only
+	// with use3d = true)
 
 	private int flow3D_smooth_value = 0;
 
@@ -198,7 +199,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void run()
 	{
 		// start task
-		fijiTask = taskService.createTask("cellpose-appose");
+		fijiTask = taskService.createTask( "cellpose-appose" );
 		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
 		fijiTask.start();
 
@@ -279,7 +280,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
 		 * into an Appose NDArray, which is a shared memory array that can be
 		 * passed to Python without copying the data.
-		 * 
+		 *
 		 * As an ImagePlus is not mapped on a shared memory array, the ImgLib2
 		 * image wrapping the ImagePlus is actually copied to a shared memory
 		 * image (the ShmImg) when we wrap it into an NDArray. This is because
@@ -297,15 +298,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		 * Copy the image into a shared memory image and wrap it into an
 		 * NDArray, then store it in an input map that we will pass to the
 		 * Python script.
-		 * 
+		 *
 		 * Note that we could have passed multiple inputs to the Python script
 		 * by putting more entries in the input map, and they would all be
 		 * available in the Python script as shared memory NDArrays.
-		 * 
+		 *
 		 * A ND array is a multi-dimensional array that is stored in shared
 		 * memory, that can be unwrapped as a NumPy array in Python, and wrapped
 		 * as a ImgLib2 image in Java.
-		 * 
+		 *
 		 */
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
@@ -332,7 +333,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		/*
 		 * Create or retrieve the environment.
-		 * 
+		 *
 		 * The first time this code is run, Appose will create the pixi
 		 * environment as specified by the cellposeEnv string, download and
 		 * install the dependencies. This can take a few minutes, but it is only
@@ -342,9 +343,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final Environment env = Appose // the builder
 				.pixi() // we chose pixi as the environment manager
 				.content( cellposeEnv ) // specify the environment with the
-										// string defined above
+				// string defined above
 				.subscribeProgress( this::showProgress ) // report progress
-															// visually
+				// visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
 				.environment( "cp3" )
@@ -364,9 +365,18 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
 			task.listen( e -> {
-				if (e.message != null) {this.fijiTask.setStatusMessage(e.message);}
-				if (e.current >= 0) {this.fijiTask.setProgressValue(e.current);}
-				if (e.maximum >= 0) {this.fijiTask.setProgressMaximum(e.maximum);}
+				if ( e.message != null )
+				{
+					this.fijiTask.setStatusMessage( e.message );
+				}
+				if ( e.current >= 0 )
+				{
+					this.fijiTask.setProgressValue( e.current );
+				}
+				if ( e.maximum >= 0 )
+				{
+					this.fijiTask.setProgressMaximum( e.maximum );
+				}
 			} );
 			task.start();
 
@@ -390,7 +400,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 			/*
 			 * Unwrap output.
-			 * 
+			 *
 			 * In the Python script (see below), we create a new NDArray called
 			 * 'rotated' that contains the result of the processing. Here we
 			 * retrieve this NDArray from the task outputs, and wrap it into a
@@ -439,13 +449,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	/*
 	 * The environment specification.
-	 * 
+	 *
 	 * This is a YAML specification of a pixi environment, that specifies the
 	 * dependencies that we need in Python to run our script. In this case we
 	 * need scikit-image for the rotation, and appose to be able to receive the
 	 * input and send the output back to Fiji. Note that we specify appose as a
 	 * pip dependency, as it is not available on conda-forge.
-	 * 
+	 *
 	 * Most likely in your scripts the dependencies will be different, but you
 	 * will always need appose.
 	 */
