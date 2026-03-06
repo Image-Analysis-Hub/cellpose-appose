@@ -2,7 +2,7 @@
 authors = [
     "Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>", 
     "Gaelle Letort <gaelle.letort@pasteur.fr>",
-    "Julie Mabon",
+    "Julie Mabon <julie.mabon@pasteur.fr>",
     ]
 channels = ["conda-forge"]
 name = "cellpose-appose"
