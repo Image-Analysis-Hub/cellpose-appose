@@ -90,7 +90,7 @@
 		<scijava.jvm.version>21</scijava.jvm.version>
 		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
 
-		<appose.version>0.10.0</appose.version>
+		<appose.version>0.11.0</appose.version>
 		<imglib2-appose.version>0.9.0</imglib2-appose.version>
 	</properties>
 

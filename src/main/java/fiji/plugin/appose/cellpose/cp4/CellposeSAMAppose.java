@@ -1,4 +1,4 @@
-package fiji.plugin.appose.cellpose.cp3;
+package fiji.plugin.appose.cellpose.cp4;
 
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
@@ -51,38 +51,17 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import org.scijava.task.TaskService;
 
-/*
- * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
- * that calls native Python code with Appose.
- * 
- * We use a simple examples of rotating an input image by 90 degrees, using the scikit-image 
- * library in Python, and returning the result back to Fiji. Everything is contained in a 
- * single class, but you can imagine restructuring the code and the Python script as you see fit.
- */
-
-@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose" )
-public class CellposeAppose extends DynamicCommand implements Initializable
+@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
+public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
 	private TaskService taskService;
-
-	@Parameter( label = "Cellpose model", choices = { "cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
-			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3",
-			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default",
-			"neurips_cellpose_transformer" }, description = "Choose CP model to run" )
-	private String cp_model = "cyto3"; // cellpose model
-
+	
 	@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
 	private File custom_model = null;
 
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
-
-	@Parameter( label = "Cytoplasmic channel", choices = { "None" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
-	private String cyto_channel = "None"; // cytoplasmic channel to segment
-
-	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
-	private String nuclei_channel = "None"; // nuclei channel to segment
 
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
@@ -118,6 +97,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 														// the 3D flows (only
 														// with use3d = true)
 
+	private MutableModuleItem< String > chan0; // channel 0 if nchan>3
+
+	private MutableModuleItem< String > chan1; // channel 1 if nchan>3
+
+	private MutableModuleItem< String > chan2; // channel 2 if nchan>3
+
 	private int flow3D_smooth_value = 0;
 
 	private double stitch_threshold_value = 0;
@@ -151,17 +136,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		is3D = ApposeUtils.is3d( imp );
 
-		List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
-
-		// Set the max possible value of channels based on image dimension
-		final MutableModuleItem< String > cytoItem =
-				getInfo().getMutableInput( "cyto_channel", String.class );
-		cytoItem.setChoices( channelChoices );
-
-		final MutableModuleItem< String > nucItem =
-				getInfo().getMutableInput( "nuclei_channel", String.class );
-		nucItem.setChoices( channelChoices );
-
 		// Set the 3D mode selected by the user if the image is 3D
 		if ( is3D )
 		{
@@ -185,6 +159,32 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput( stitch_threshold );
 		}
+
+		final int nchanels = imp.getNChannels();
+
+		if ( nchanels > 3 )
+		{
+			IJ.showMessage( "Cellpose SAM can only handle 3 channels, pick the 3 channels to feed to the model." );
+			List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
+
+			chan0 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 0", String.class );
+			chan0.setChoices( channelChoices );
+			chan0.setDescription( "First channel to feed into cellpose SAM" );
+			getInfo().addInput( chan0 );
+
+			chan1 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 1", String.class );
+			chan1.setChoices( channelChoices );
+			chan1.setDescription( "Second channel to feed into cellpose SAM" );
+			getInfo().addInput( chan1 );
+
+			chan2 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 2", String.class );
+			chan2.setChoices( channelChoices );
+			chan2.setDescription( "Third channel to feed into cellpose SAM" );
+			getInfo().addInput( chan2 );
+		}
 	}
 
 	/*
@@ -198,8 +198,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void run()
 	{
 		// start task
-		fijiTask = taskService.createTask("cellpose-appose");
-		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
+		fijiTask = taskService.createTask("cellposeSAM-appose");
+		fijiTask.setStatusMessage( "Launching CellposeSAM appose task." );
 		fijiTask.start();
 
 		// Grab the current image.
@@ -225,6 +225,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				else
 				{
 					stitch_threshold_value = stitch_threshold.getValue( this );
+				}
+
+				if ( ( stitch_threshold_value == 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
+				{
+					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
+					return;
 				}
 
 				if ( return_ROIs )
@@ -273,7 +279,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final String utilsScript = IOUtils.toString(
 				getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
 		final String cp3Script = IOUtils.toString(
-				getClass().getResource( "/cp3.py" ), StandardCharsets.UTF_8 );
+				getClass().getResource( "/cp4.py" ), StandardCharsets.UTF_8 );
 
 		/*
 		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
@@ -310,14 +316,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		// return null if custom model
-		inputs.put( "model", ( custom_model == null ) ? cp_model : null );
 		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel ) );
-		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", axis_info.z_axis );
+		inputs.put( "channel_axis", axis_info.channel_axis );
 		inputs.put( "anisotropy", anisotropy );
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );
@@ -327,6 +330,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3D_smooth_value );
+		inputs.put( "n_channels", imp.getNChannels() );
+		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0.getValue( this ) ) );
+		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1.getValue( this ) ) );
+		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2.getValue( this ) ) );
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 
@@ -347,7 +354,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 															// visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
-				.environment( "cp3" )
+				.environment( "cp4" )
 				.build(); // create the environment
 		hideProgress();
 
@@ -437,18 +444,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 	}
 
-	/*
-	 * The environment specification.
-	 * 
-	 * This is a YAML specification of a pixi environment, that specifies the
-	 * dependencies that we need in Python to run our script. In this case we
-	 * need scikit-image for the rotation, and appose to be able to receive the
-	 * input and send the output back to Fiji. Note that we specify appose as a
-	 * pip dependency, as it is not available on conda-forge.
-	 * 
-	 * Most likely in your scripts the dependencies will be different, but you
-	 * will always need appose.
-	 */
 	private String pixiEnv()
 	{
 		String env = "";
@@ -464,10 +459,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 		return env;
 	}
-
-	// Helper functions to display progress while building the Appose
-	// environment.
-	// Temporary solution until Appose has a nicer built-in way to do this.
 
 	private volatile JDialog progressDialog;
 
@@ -530,5 +521,4 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			}
 		}
 	}
-
 }

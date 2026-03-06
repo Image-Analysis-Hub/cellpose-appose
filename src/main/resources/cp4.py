@@ -18,56 +18,47 @@ def listen(callback):
     global report
     report = callback
 
-###############################################################################
-# AUXILIARY FUNCTIONS
-###############################################################################
-
-
-def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[int]:
-    """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
-    provided integer values from Fiji.
-    """
-    if cell is not None and nuclei is not None:
-        return [cell, nuclei]
-    if cell is not None:
-        return [cell, cell]
-    if nuclei is not None:
-        return [nuclei, nuclei]
-    raise ValueError(
-        "At least one of 'cell' or 'nuclei' channel must be specified")
 
 ###############################################################################
 # PROCESSING FUNCTIONS
 ###############################################################################
 
+def merge_channels(selected_channels: list[int | None]):
+    chan_merged = []
+    for c in selected_channels:
+        if c is not None:
+            chan_merged.append(c)
+    assert len(chan_merged) > 0, "at least one channel should be not None"
+    return chan_merged
 
-def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Runs Cellpose v3 on a single image with the given parameters."""
 
-    model = kwargs.get('model_name', 'cyto3')
+def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Runs Cellpose v4 on a single image with the given parameters."""
+
+    custom_model = kwargs.get('custom_model', None)
+    model = "cpsam" if custom_model is None else custom_model
     task.update(
         current = 2,
         maximum= 5,
-        message=f"CP3: Deploy model {model}"
+        message=f"CP4: Deploy model {model}"
     )
     model = models.CellposeModel(
-        model_type=model,
-        pretrained_model=kwargs.get('custom_model', None),
+        pretrained_model=model,
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
     task.update(
         current = 3,
         maximum= 5,
-        message=f"CP3: Predict labels"
+        message=f"CP4: Predict labels"
     )
     masks, flows, styles = model.eval(
         img,
-        channels=kwargs.get('channels', [0, 0]),
         diameter=kwargs.get('diameter', 30),
         do_3D=kwargs.get('use_3D', False),
         anisotropy=kwargs.get('anisotropy', 1.0),
         stitch_threshold=kwargs.get('stitch_threshold', 0.0),
+        channel_axis=kwargs.get('channel_axis', None),
         z_axis=kwargs.get('z_axis', None),
         flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
@@ -100,18 +91,39 @@ else:
 
 # load images
 if appose_mode:
-    # input_image = flip_img(image.ndarray())
-    input_image = globals()['image']
-    input_image = input_image.ndarray()
-    channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
-    stitch_threshold = stitch_threshold
-    z_axis = z_axis
+
+    image = globals()['image']
+    stitch_threshold = globals()['stitch_threshold']
+    z_axis: int | None = globals()['z_axis']
+    channel_axis: int | None = globals()['channel_axis']
+    anisotropy: float = globals()['anisotropy']
+    diameter: int = globals()['diameter']
+    use_3D: bool = globals()['use_3D']
+    resample: bool = globals()['resample']
+    normalize: bool = globals()['normalize']
+    flow_threshold: float = globals()['flow_threshold']
+    cellprob_threshold: float = globals()['cellprob_threshold']
+    min_size: int = globals()['min_size']
+    tile_overlap: float = globals()['tile_overlap']
+    flow3D_smooth: float = globals()['flow3D_smooth']
+    n_channels: int = globals()['n_channels']
+    channel_axis: int | None = globals().get(
+        'channel_axis', None)  # TODO get it from java
+
+    input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
+    
+    if n_channels > 3:
+        chan0: int | None = globals()['chan0']
+        chan1: int | None = globals()['chan1']
+        chan2: int | None = globals()['chan2']
+        channels = merge_channels([chan0, chan1, chan2])
+        input_image = input_image[..., channels, :, :]
     task.update(
         current = 0,
         maximum = 5,
-        message = f"CP3: Fetch image from Fiji ({input_image.shape})"
+        message = f"CP4: Fetch image from Fiji ({input_image.shape})"
         )
 else:
     file = '../../../sample_data/test.tif'
@@ -119,10 +131,11 @@ else:
     custom_model = None
     model = 'cyto3'
     diameter = 30
-    channels = [0, 1]
     use_3D = False
-    stitch_threshold = 0
-    z_axis = None
+    stitch_threshold = 0.5
+    z_axis = 0
+    channel_axis = 1
+    channel_axis = 1
     anisotropy = None
     compute_flows = True
     resample = True
@@ -134,23 +147,23 @@ else:
     flow3D_smooth = 0
 
 use_gpu, device = get_device()
+
 task.update(
     current = 1,
     maximum= 5,
     message=f"CP3: Start Cellpose script (device={device})"
 )
 
-masks, flows, styles = run_cellpose_v3(
+masks, flows, styles = run_cellpose_v4(
     input_image,
     kwargs={
-        "model_name": model,
-        "custom_model": custom_model,
-        "channels": channels,
         "diameter": diameter,
         "use_3D": use_3D,
         "stitch_threshold": stitch_threshold,
         "anisotropy": anisotropy,
+        "channel_axis": channel_axis,
         "z_axis": z_axis,
+        "channel_axis": channel_axis,
         "use_gpu": use_gpu,
         "device": device,
         'flow3D_smooth': flow3D_smooth,
@@ -166,7 +179,7 @@ masks, flows, styles = run_cellpose_v3(
 task.update(
     current = 4,
     maximum = 5,
-    message=f"CP3: Returning results"
+    message=f"CP4: Returning results"
 )
 
 # return output (TZCYX)
@@ -187,5 +200,5 @@ else:
 task.update(
     current = 5,
     maximum = 5,
-    message=f"CP3: Finished Cellpose script"
+    message=f"CP4: Finished Cellpose script"
 )
