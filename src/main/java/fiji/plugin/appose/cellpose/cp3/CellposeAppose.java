@@ -144,12 +144,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		is3D = ApposeUtils.is3d( imp );
 
-		List< String > channelChoices = new ArrayList<>();
-		for ( int i = 1; i <= imp.getNChannels(); i++ )
-		{
-			channelChoices.add( String.valueOf( i ) );
-		}
-		channelChoices.add( "None" );
+		List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > cytoItem =

@@ -90,6 +90,12 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 														// the 3D flows (only
 														// with use3d = true)
 
+	private MutableModuleItem< String > chan0; // channel 0 if nchan>3
+
+	private MutableModuleItem< String > chan1; // channel 1 if nchan>3
+
+	private MutableModuleItem< String > chan2; // channel 2 if nchan>3
+
 	private int flow3D_smooth_value = 0;
 
 	private double stitch_threshold_value = 0;
@@ -142,6 +148,32 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			stitch_threshold.setStepSize( 0.1 );
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput( stitch_threshold );
+		}
+
+		final int nchanels = imp.getNChannels();
+
+		if ( nchanels > 3 )
+		{
+			IJ.showMessage( "Cellpose SAM can only handle 3 channels, pick the 3 channels to feed to the model." );
+			List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
+
+			chan0 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 0", String.class );
+			chan0.setChoices( channelChoices );
+			chan0.setDescription( "First channel to feed into cellpose SAM" );
+			getInfo().addInput( chan0 );
+
+			chan1 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 1", String.class );
+			chan1.setChoices( channelChoices );
+			chan1.setDescription( "Second channel to feed into cellpose SAM" );
+			getInfo().addInput( chan1 );
+
+			chan2 = new DefaultMutableModuleItem<>( getInfo(),
+					"Channel 2", String.class );
+			chan2.setChoices( channelChoices );
+			chan2.setDescription( "Third channel to feed into cellpose SAM" );
+			getInfo().addInput( chan2 );
 		}
 	}
 
@@ -276,6 +308,10 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3D_smooth_value );
+		inputs.put( "n_channels", imp.getNChannels() );
+		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0.getValue( this ) ) );
+		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1.getValue( this ) ) );
+		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2.getValue( this ) ) );
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 

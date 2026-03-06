@@ -4,7 +4,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -179,5 +182,19 @@ public class ApposeUtils
 		System.out.println("─".repeat(50));
 	}
 	
+	public static List<String> getChannelChoices(ImagePlus imp){
+		List< String > channelChoices = new ArrayList<>();
+		for ( int i = 1; i <= imp.getNChannels(); i++ )
+		{
+			channelChoices.add( String.valueOf( i ) );
+		}
+		channelChoices.add( "None" );
+		return channelChoices;
+	}
 	
+	public static Integer convertChannelChoiceToInt(String input) {
+        return Objects.equals(input, "None") ? null :
+               (input == null ? null : Integer.parseInt(input) - 1);
+    }
+
 }

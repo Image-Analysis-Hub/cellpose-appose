@@ -23,6 +23,14 @@ def listen(callback):
 # PROCESSING FUNCTIONS
 ###############################################################################
 
+def merge_channels(selected_channels: list[int | None]):
+    chan_merged = []
+    for c in selected_channels:
+        if c is not None:
+            chan_merged.append(c)
+    assert len(chan_merged) > 0, "at least one channel should be not None"
+    return chan_merged
+
 
 def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v4 on a single image with the given parameters."""
@@ -90,6 +98,7 @@ if appose_mode:
     min_size: int = globals()['min_size']
     tile_overlap: float = globals()['tile_overlap']
     flow3D_smooth: float = globals()['flow3D_smooth']
+    n_channels: int = globals()['n_channels']
     channel_axis: int | None = globals().get(
         'channel_axis', None)  # TODO get it from java
 
@@ -97,6 +106,14 @@ if appose_mode:
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
     task.update(f"Input image of shape: {input_image.shape}")
+    if n_channels > 3:
+        chan0: int | None = globals()['chan0']
+        chan1: int | None = globals()['chan1']
+        chan2: int | None = globals()['chan2']
+        channels = merge_channels([chan0, chan1, chan2])
+        input_image = input_image[..., channels, :, :]
+        task.update(
+            f"Because {n_channels=} > 3, Input image cropped to shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
