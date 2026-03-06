@@ -7,6 +7,7 @@ import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.management.RuntimeErrorException;
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
 import javax.swing.WindowConstants;
@@ -29,6 +31,7 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
 import org.scijava.module.DefaultMutableModuleItem;
@@ -61,11 +64,14 @@ import net.imglib2.type.numeric.RealType;
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	
-	@Parameter( choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
+	@Parameter(label= "Cellpose model", choices = {"cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3", 
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default", 
-			"neurips_cellpose_transformer"}, description="Choose CP model to run" )
+			"neurips_cellpose_transformer"}, description="Choose CP model to run")
 	private String cp_model = "cyto3"; // cellpose model
+	
+	@Parameter(label = "Custom model", description = "Custom model path, overrides the Cellpose model", style="file", required = false, validater = "validateCustomModel")
+	private File custom_model = null;
 	
 	@Parameter( label = "Diameter", min="0", description="Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
@@ -124,7 +130,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		is3D = is3d(imp);
 
-
+		
 		List<String> channelChoices = new ArrayList<>();
 		for (int i = 1; i <= imp.getNChannels(); i++) {
 			channelChoices.add(String.valueOf(i));
@@ -336,7 +342,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		inputs.put( "model", cp_model );
+		// return null if custom model
+		inputs.put( "model", ( custom_model == null ) ? cp_model : null );
+		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "cell_channel", parseChannelChoice( cyto_channel ) );
 		inputs.put( "nuclei_channel", parseChannelChoice( nuclei_channel ));
@@ -593,6 +601,15 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	        return null;
 	    }
 	    return Integer.parseInt(str);
+	}
+	
+	public void validateCustomModel() {
+		if ( custom_model != null) {
+			if ( ! custom_model.exists() ) {
+				IJ.error("The path " + custom_model.toString() + " does not exist !");
+				throw new RuntimeException("The path " + custom_model.toString() + " does not exist !");
+			}
+		}
 	}
 	
 
