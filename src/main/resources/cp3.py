@@ -166,7 +166,7 @@ masks, flows, styles = run_cellpose_v3(
         "z_axis": z_axis,
         "use_gpu": use_gpu,
         "device": device,
-        'flow3D_smooth' : flow3D_smooth,
+        'flow3D_smooth': flow3D_smooth,
         'resample': resample,
         'normalize': normalize,
         'flow_threshold': flow_threshold,
