@@ -45,6 +45,7 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
 
     model = models.CellposeModel(
         model_type=kwargs.get('model_name', 'cyto3'),
+        pretrained_model=kwargs.get('custom_model', None),
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
@@ -57,10 +58,9 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         anisotropy=kwargs.get('anisotropy', 1.0),
         stitch_threshold=kwargs.get('stitch_threshold', 0.0),
         z_axis=kwargs.get('z_axis', None),
-
+        flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
         normalize=kwargs.get('normalize', True),
-        rescale=kwargs.get('rescale', None),
         flow_threshold=kwargs.get('flow_threshold', 0.4),
         cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
         min_size=kwargs.get('min_size', 15),
@@ -97,12 +97,12 @@ if appose_mode:
     stitch_threshold = stitch_threshold
     z_axis = z_axis
     anisotropy = anisotropy if anisotropy > 0 else None
-    rescale = rescale
     # use_3D
     task.update(f"Input image of shape: {input_image.shape}")
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
+    custom_model = None
     model = 'cyto3'
     diameter = 30
     channels = [0, 1]
@@ -113,11 +113,11 @@ else:
     compute_flows = True
     resample = True
     normalize = True
-    rescale = None
     flow_threshold = 0.4
     cellprob_threshold = 0.0
     min_size = 15
     tile_overlap = 0.1
+    flow3D_smooth = 0
 
 use_gpu, device = get_device()
 
@@ -129,6 +129,7 @@ masks, flows, styles = run_cellpose_v3(
     input_image,
     kwargs={
         "model_name": model,
+        "custom_model": custom_model,
         "channels": channels,
         "diameter": diameter,
         "use_3D": use_3D,
@@ -137,11 +138,9 @@ masks, flows, styles = run_cellpose_v3(
         "z_axis": z_axis,
         "use_gpu": use_gpu,
         "device": device,
-
-        # Advanced
+        'flow3D_smooth' : flow3D_smooth,
         'resample': resample,
         'normalize': normalize,
-        'rescale': rescale,
         'flow_threshold': flow_threshold,
         'cellprob_threshold': cellprob_threshold,
         'min_size': min_size,
