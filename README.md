@@ -15,7 +15,8 @@ To install the plugin, download and copy the `.jar` file in the `plugins` direct
 
 ## Usage
 
-From Fiji, open the image that you want to process.
-Launch the plugin from `Plugins>Cellpose-Appose>cellpose appose`.
-An interface will pop-up to let you choose the parameters to run Cellpose.
+From Fiji, open the image that you want to process.  
+Launch the plugin from `Plugins>Cellpose-Appose>cellpose appose`.  
+An interface will pop-up to let you choose the parameters to run Cellpose.  
+Enjoy!   
 
