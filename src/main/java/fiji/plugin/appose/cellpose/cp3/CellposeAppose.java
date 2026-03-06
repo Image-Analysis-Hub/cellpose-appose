@@ -3,6 +3,8 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import fiji.plugin.appose.RoiUtils.Polygon2D;
+import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -17,7 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.management.RuntimeErrorException;
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
 import javax.swing.WindowConstants;
@@ -31,7 +32,6 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
-import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
 import org.scijava.module.DefaultMutableModuleItem;
@@ -44,6 +44,9 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import ij.process.ImageProcessor;
+import ij.plugin.frame.RoiManager;
+import ij.gui.PolygonRoi;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -77,14 +80,17 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 
-	@Parameter( label = "Cytoplasmic channel", choices = { "N/A" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
+	@Parameter( label = "Cytoplasmic channel", choices = { "None" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 
-	@Parameter( label = "Nuclei channel", choices = { "N/A" }, description = "Channel index of the nuclei channel. N/A for none" )
+	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
+
+	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
+	private Boolean return_ROIs; // if true return ROIs only for 2D image
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
@@ -214,6 +220,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				{
 					stitch_threshold_value = stitch_threshold.getValue( this );
 				}
+
+				if ( return_ROIs )
+					{
+						IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+						return;
+					}
 			}
 			// get the z_axis number in what python should receive
 			z_axis = ApposeUtils.getZAxis( imp );
@@ -296,8 +308,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "model", ( custom_model == null ) ? cp_model : null );
 		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cell_channel", parseChannelChoice( cyto_channel ) );
-		inputs.put( "nuclei_channel", parseChannelChoice( nuclei_channel ) );
+		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel ) );
+		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", z_axis );
 		inputs.put( "anisotropy", anisotropy );
@@ -388,6 +400,51 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
+
+			if ( return_ROIs )
+			{
+				// from
+				// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
+
+				ImageProcessor image = labels.getProcessor();
+
+				int conn = 4;
+				LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
+				String pattern = "r%03d";
+
+				// compute boundaries
+				LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
+				Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+
+				RoiManager rm = RoiManager.getInstance();
+				if ( rm == null )
+				{
+					rm = new RoiManager();
+				}
+				// populate RoiManager with PolygonRoi
+				for ( int label : boundaries.keySet() )
+				{
+					ArrayList< Polygon2D > polygons = boundaries.get( label );
+					String name = String.format( pattern, label );
+
+					if ( polygons.size() == 1 )
+					{
+						PolygonRoi roi = polygons.get( 0 ).createRoi();
+						roi.setName( name );
+						rm.addRoi( roi );
+					}
+					else
+					{
+						int index = 0;
+						for ( Polygon2D poly : polygons )
+						{
+							PolygonRoi roi = poly.createRoi();
+							roi.setName( name + "-" + ( index++ ) );
+							rm.addRoi( roi );
+						}
+					}
+				}
+			}
 
 			if ( compute_flows )
 			{
@@ -490,13 +547,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				progressDialog.dispose();
 			progressDialog = null;
 		} );
-	}
-
-	public static Integer parseChannelChoice( String str )
-	{
-		if ( str == null || str.equalsIgnoreCase( "None" ) )
-		{ return null; }
-		return Integer.parseInt( str );
 	}
 
 	public void validateCustomModel()
