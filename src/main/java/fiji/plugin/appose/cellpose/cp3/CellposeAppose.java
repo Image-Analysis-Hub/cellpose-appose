@@ -214,7 +214,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		{
 			// Get the parameters based on the image properties
 			final boolean is3D = is3d( imp );
-			final int nchanels = imp.getNChannels();	
+			final int nchanels = imp.getNChannels();
 			// getParameters( is3D, nchanels );
 
 			use3d = false;
