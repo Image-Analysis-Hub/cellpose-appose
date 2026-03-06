@@ -79,13 +79,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(label="Compute Flows", description="Compute the segmentation flows output")
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter(label="Flows Threshold", min="0", max="1", description="Threshold on flows to detect objects (only for 2D)")
+	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
 
 	@Parameter(label="Minimum Object Size", min="0", description="Minimum object size (in pixels) to keep")
 	private int min_size = 15; // minimum object size
 
-	@Parameter(label="Tile overlap", min="0", max="1", description="Overlap ratio between tiles")
+	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
 	@Parameter(label="Normalize", description="Normalize intensity on each channels")
@@ -158,6 +158,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					"Stitch threshold", Double.class);
 			stitch_threshold.setMaximumValue(1.0);
 			stitch_threshold.setMinimumValue(0.0);
+			stitch_threshold.setStepSize( 0.1 );
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput(stitch_threshold);
 		}
