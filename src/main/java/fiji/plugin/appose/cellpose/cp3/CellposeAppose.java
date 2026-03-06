@@ -49,6 +49,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
+import org.scijava.task.TaskService;
 
 /*
  * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin), 
@@ -62,6 +63,8 @@ import net.imglib2.type.numeric.RealType;
 @Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose" )
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
+	@Parameter
+	private TaskService taskService;
 
 	@Parameter( label = "Cellpose model", choices = { "cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3",
@@ -129,6 +132,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	// ToDo: make them available in the GUI
 	private double cellprob_threshold = 0.0;
 
+	// Fiji task
+	private org.scijava.task.Task fijiTask;
+
 	@Override
 	public void initialize()
 	{
@@ -191,6 +197,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Override
 	public void run()
 	{
+		// start task
+		fijiTask = taskService.createTask("cellpose-appose");
+		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
+		fijiTask.start();
+
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		try
@@ -353,7 +364,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
 			task.listen( e -> {
-				System.out.println( "\tInfo: " + e.message );
+				if (e.message != null) {this.fijiTask.setStatusMessage(e.message);}
+				if (e.current >= 0) {this.fijiTask.setProgressValue(e.current);}
+				if (e.maximum >= 0) {this.fijiTask.setProgressMaximum(e.maximum);}
 			} );
 			task.start();
 
@@ -364,6 +377,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			 * running.
 			 */
 			task.waitFor();
+			// close the fiji task when python is done
+			this.fijiTask.finish();
 
 			// Verify that it worked.
 			if ( task.status != TaskStatus.COMPLETE )

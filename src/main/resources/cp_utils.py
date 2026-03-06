@@ -29,7 +29,6 @@ def get_device() -> tuple[bool, torch.device]:
     if torch.cuda.is_available():
         device = torch.device("cuda")
         gpu = True
-        name = torch.cuda.get_device_name(0)
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         device = torch.device("mps")
         gpu = True

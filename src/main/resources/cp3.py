@@ -44,13 +44,23 @@ def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[
 def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Runs Cellpose v3 on a single image with the given parameters."""
 
+    model = kwargs.get('model_name', 'cyto3')
+    task.update(
+        current = 2,
+        maximum= 5,
+        message=f"CP3: Deploy model {model}"
+    )
     model = models.CellposeModel(
-        model_type=kwargs.get('model_name', 'cyto3'),
+        model_type=model,
         pretrained_model=kwargs.get('custom_model', None),
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
-
+    task.update(
+        current = 3,
+        maximum= 5,
+        message=f"CP3: Predict labels"
+    )
     masks, flows, styles = model.eval(
         img,
         channels=kwargs.get('channels', [0, 0]),
@@ -98,7 +108,11 @@ if appose_mode:
     z_axis = z_axis
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
-    task.update(f"Input image of shape: {input_image.shape}")
+    task.update(
+        current = 0,
+        maximum = 5,
+        message = f"CP3: Fetch image from Fiji ({input_image.shape})"
+        )
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
@@ -120,10 +134,11 @@ else:
     flow3D_smooth = 0
 
 use_gpu, device = get_device()
-
 task.update(
-    f"Running Cellpose v{cellpose.version} with model '{model}' on device {device}, channels {channels}, diameter {diameter}, use_3D={use_3D}, stitch_threshold={stitch_threshold}, anisotropy={anisotropy}, z_axis={z_axis}")
-
+    current = 1,
+    maximum= 5,
+    message=f"CP3: Start Cellpose script (device={device})"
+)
 
 masks, flows, styles = run_cellpose_v3(
     input_image,
@@ -148,6 +163,11 @@ masks, flows, styles = run_cellpose_v3(
     }
 )
 
+task.update(
+    current = 4,
+    maximum = 5,
+    message=f"CP3: Returning results"
+)
 
 # return output (TZCYX)
 if appose_mode:
@@ -163,4 +183,9 @@ else:
     if compute_flows:
         io.imsave(f'../../../sample_data/test_flows.tif',
                   flows[0].astype(np.float32))
-task.update(f"Finished Cellpose v3 script")
+
+task.update(
+    current = 5,
+    maximum = 5,
+    message=f"CP3: Finished Cellpose script"
+)
