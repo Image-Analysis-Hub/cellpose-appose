@@ -4,7 +4,7 @@ import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
 import ij.IJ;
 import net.imagej.ImageJ;
 
-public class Main
+public class MainCP3
 {
 
 	public static void main( final String[] args )
