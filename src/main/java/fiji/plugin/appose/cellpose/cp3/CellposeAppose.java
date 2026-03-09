@@ -85,11 +85,17 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
-	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
-	private Boolean compute_flows = false; // whether to compute flows channel
+	@Parameter( label = "Normalize Channel Intensity", description = "Normalize intensity on each channels" )
+	private Boolean normalize = true; // intensity normalization
+
+	@Parameter( label = "Resample Segmentation", description = "Resample detection to image scale for smoother output" )
+	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
 	private Boolean return_ROIs; // if true return ROIs only for 2D image
+
+	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
+	private int min_size = 15; // minimum object size
 
 	@Parameter( label = "Cell probability threshold", min = "0", max = "1", description = "Threshold on cell detection", stepSize = "0.1" )
 	private double cellprob_threshold = 0.0;
@@ -97,18 +103,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
 
-	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
-	private int min_size = 15; // minimum object size
-
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
-	@Parameter( label = "Normalize", description = "Normalize intensity on each channels" )
-	private Boolean normalize = true; // intensity normalization before
-	// prediction
+	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
+	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Resample", description = "Resample detection to image scale for smoother output" )
-	private Boolean resample = true; // resample mask (slower but nicer)
 
 	private boolean is3D = false;
 
@@ -229,8 +229,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 				if ( return_ROIs )
 				{
-					IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
-					return;
+					IJ.error( "Cannot return ROI in 3D, switching to 3D label output. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+					return_ROIs  = false;
+//					return;
 				}
 			}
 			// get the z_axis number in what python should receive
