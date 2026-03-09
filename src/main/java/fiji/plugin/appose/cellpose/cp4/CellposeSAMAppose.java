@@ -331,9 +331,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3D_smooth_value );
 		inputs.put( "n_channels", imp.getNChannels() );
-		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0.getValue( this ) ) );
-		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1.getValue( this ) ) );
-		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2.getValue( this ) ) );
+		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0.getValue( this ), false ) );
+		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1.getValue( this ), false ) );
+		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2.getValue( this ), false ) );
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 

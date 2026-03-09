@@ -203,9 +203,11 @@ public class ApposeUtils
 		return channelChoices;
 	}
 
-	public static Integer convertChannelChoiceToInt( String input )
+	public static Integer convertChannelChoiceToInt( String input, boolean cp3_mode )
 	{
-		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input )  );
+		if ( cp3_mode )
+			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
+		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) -1 );
 	}
 
 	public static void addROIs( ImagePlus labels )

@@ -27,7 +27,7 @@ def merge_channels(selected_channels: list[int | None]):
     chan_merged = []
     for c in selected_channels:
         if c is not None:
-            chan_merged.append(c-1)
+            chan_merged.append(c)
     assert len(chan_merged) > 0, "at least one channel should be not None"
     return chan_merged
 

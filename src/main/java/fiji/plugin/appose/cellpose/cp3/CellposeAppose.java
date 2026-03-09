@@ -79,7 +79,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 
-	@Parameter( label = "Cytoplasmic channel", choices = { "None" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
+	@Parameter( label = "Cytoplasmic channel", choices = { "None", "Average" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
 	private String cyto_channel = "None"; // cytoplasmic channel to segment
 
 	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
@@ -314,8 +314,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "model", ( custom_model == null ) ? cp_model : null );
 		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel ) );
-		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel ) );
+		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ) );
+		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "anisotropy", anisotropy );
