@@ -11,8 +11,8 @@ public class MainCP4
 	{
 		final ImageJ ij = new ImageJ();
 		ij.launch();
-//		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		IJ.openImage( "sample_data/test.tif" ).show();
+		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
+//		IJ.openImage( "sample_data/test.tif" ).show();
 		ij.command().run( CellposeSAMAppose.class, true );
 	}
 }
