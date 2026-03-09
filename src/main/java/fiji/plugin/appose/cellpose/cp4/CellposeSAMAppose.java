@@ -165,7 +165,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		if ( nchanels > 3 )
 		{
 			IJ.showMessage( "Cellpose SAM can only handle 3 channels, pick the 3 channels to feed to the model." );
-			List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
+			List< String > channelChoices = ApposeUtils.getChannelChoices( imp, false );
 
 			chan0 = new DefaultMutableModuleItem<>( getInfo(),
 					"Channel 0", String.class );

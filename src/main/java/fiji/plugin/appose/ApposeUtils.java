@@ -192,7 +192,7 @@ public class ApposeUtils
 		System.out.println( "─".repeat( 50 ) );
 	}
 
-	public static List< String > getChannelChoices( ImagePlus imp )
+	public static List< String > getChannelChoices( ImagePlus imp, boolean cp3_mode )
 	{
 		List< String > channelChoices = new ArrayList<>();
 		for ( int i = 1; i <= imp.getNChannels(); i++ )
@@ -200,6 +200,8 @@ public class ApposeUtils
 			channelChoices.add( String.valueOf( i ) );
 		}
 		channelChoices.add( "None" );
+		if ( cp3_mode )
+			channelChoices.add( "Average" );
 		return channelChoices;
 	}
 
