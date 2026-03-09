@@ -205,7 +205,7 @@ public class ApposeUtils
 
 	public static Integer convertChannelChoiceToInt( String input )
 	{
-		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
+		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input )  );
 	}
 
 	public static void addROIs( ImagePlus labels )
