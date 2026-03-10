@@ -136,4 +136,16 @@
 			<url>https://maven.scijava.org/content/groups/public</url>
 		</repository>
 	</repositories>
+
+	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>__pycache__/*</exclude>
+					<exclude>.pixi/**</exclude>
+				</excludes>
+			</resource>
+		</resources>
+	</build>
 </project>

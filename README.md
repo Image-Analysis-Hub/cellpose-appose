@@ -8,10 +8,20 @@ This plugin is based on [Appose](https://github.com/apposed/appose), that automa
 
 ## Plugin Installation
 
+Build with :
+```
+mvn
+``
+or (to install it to Fiji directlys)
+```
+mvn -Dscijava.app.directory=/path/to/your/fiji
+```
+
 To install the plugin, download and copy the `.jar` file in the `plugins` directory of Fiji, and restart Fiji. The plugin should now be accessible in the plugin menu.
 
 > [!NOTE]
 > The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
+
 
 ## Usage
 
