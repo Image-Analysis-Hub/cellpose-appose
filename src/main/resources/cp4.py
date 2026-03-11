@@ -108,19 +108,19 @@ if appose_mode:
     flow3D_smooth: float = globals()['flow3D_smooth']
     n_channels: int = globals()['n_channels']
     channel_axis: int | None = globals().get(
-        'channel_axis', None)  # TODO get it from java
-
+        'channel_axis', None)
+    
     input_image = image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
     
-#     if n_channels > 3:
-    chan0: int | None = globals()['chan0']
-    chan1: int | None = globals()['chan1']
-    chan2: int | None = globals()['chan2']
-    channels = merge_channels([chan0, chan1, chan2])
-    if len(input_image.shape) > 2 :
-        input_image = input_image[..., channels, :, :]
+    if channel_axis is not None:
+    	chan0: int | None = globals()['chan0']
+    	chan1: int | None = globals()['chan1']
+    	chan2: int | None = globals()['chan2']
+    	channels = merge_channels([chan0, chan1, chan2])
+    	if len(input_image.shape) > 2 :
+        	input_image = input_image[..., channels, :, :]
     task.update(
         current = 0,
         maximum = 5,
@@ -135,7 +135,6 @@ else:
     use_3D = False
     stitch_threshold = 0.5
     z_axis = 0
-    channel_axis = 1
     channel_axis = 1
     anisotropy = None
     compute_flows = True
@@ -152,7 +151,7 @@ use_gpu, device = get_device()
 task.update(
     current = 1,
     maximum= 5,
-    message=f"CP3: Start Cellpose script (device={device})"
+    message=f"CP4: Start Cellpose script (device={device})"
 )
 
 masks, flows, styles = run_cellpose_v4(
@@ -164,7 +163,6 @@ masks, flows, styles = run_cellpose_v4(
         "anisotropy": anisotropy,
         "channel_axis": channel_axis,
         "z_axis": z_axis,
-        "channel_axis": channel_axis,
         "use_gpu": use_gpu,
         "device": device,
         'flow3D_smooth': flow3D_smooth,
