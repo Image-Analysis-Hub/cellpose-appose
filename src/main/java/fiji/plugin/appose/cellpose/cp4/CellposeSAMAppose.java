@@ -139,7 +139,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 		is3D = ApposeUtils.is3d( imp );
 
-		List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
+		List< String > channelChoices = ApposeUtils.getChannelChoices( imp, false );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > c0Item =
@@ -323,9 +323,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3D_smooth_value );
 		inputs.put( "n_channels", imp.getNChannels() );
-		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0 ) );
-		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1 ) );
-		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2 ) );
+		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
+		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );
+		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2, false ) );
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 

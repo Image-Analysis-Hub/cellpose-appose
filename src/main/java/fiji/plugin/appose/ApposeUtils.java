@@ -183,7 +183,7 @@ public class ApposeUtils
 		System.out.println( "─".repeat( 50 ) );
 	}
 
-	public static List< String > getChannelChoices( ImagePlus imp )
+	public static List< String > getChannelChoices( ImagePlus imp, boolean cp3_mode )
 	{
 		List< String > channelChoices = new ArrayList<>();
 		for ( int i = 1; i <= imp.getNChannels(); i++ )
@@ -191,12 +191,16 @@ public class ApposeUtils
 			channelChoices.add( String.valueOf( i ) );
 		}
 		channelChoices.add( "None" );
+		if ( cp3_mode )
+			channelChoices.add( "Average" );
 		return channelChoices;
 	}
 
-	public static Integer convertChannelChoiceToInt( String input )
+	public static Integer convertChannelChoiceToInt( String input, boolean cp3_mode )
 	{
-		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
+		if ( cp3_mode )
+			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
+		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) -1 );
 	}
 
 	public static void addROIs( ImagePlus labels )
