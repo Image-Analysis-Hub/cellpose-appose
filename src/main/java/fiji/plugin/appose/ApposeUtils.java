@@ -178,17 +178,8 @@ public class ApposeUtils
 		System.out.println( "─".repeat( 50 ) );
 
 		inputs.forEach( ( key, value ) -> {
-			if ( !key.equals( "image" ) && !key.equals( "cell_channel" ) && !key.equals( "nuclei_channel" ) )
-			{
 				System.out.printf( "  %-20s: %s%n", key, value );
-			}
 		} );
-
-		// Add combined channel line
-		final Object cellChannel = inputs.get( "cell_channel" );
-		final Object nucleiChannel = inputs.get( "nuclei_channel" );
-		System.out.printf( "  %-20s: [%d, %d]%n", "channel[cell,nuclei]", cellChannel, nucleiChannel );
-
 		System.out.println( "─".repeat( 50 ) );
 	}
 

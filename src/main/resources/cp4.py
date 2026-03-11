@@ -114,11 +114,12 @@ if appose_mode:
     anisotropy = anisotropy if anisotropy > 0 else None
     # use_3D
     
-    if n_channels > 3:
-        chan0: int | None = globals()['chan0']
-        chan1: int | None = globals()['chan1']
-        chan2: int | None = globals()['chan2']
-        channels = merge_channels([chan0, chan1, chan2])
+#     if n_channels > 3:
+    chan0: int | None = globals()['chan0']
+    chan1: int | None = globals()['chan1']
+    chan2: int | None = globals()['chan2']
+    channels = merge_channels([chan0, chan1, chan2])
+    if len(input_image.shape) > 2 :
         input_image = input_image[..., channels, :, :]
     task.update(
         current = 0,

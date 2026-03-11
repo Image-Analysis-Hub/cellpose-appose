@@ -52,7 +52,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import org.scijava.task.TaskService;
 
-@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
+@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>cellpose-sam appose" )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
@@ -64,11 +64,26 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 
-	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
-	private Boolean compute_flows = false; // whether to compute flows channel
+	@Parameter( label = "First channel", choices = { "None" }, description = "First channel index. N/A for none" )
+	private String chan0 = "None"; // cytoplasmic channel to segment
+
+	@Parameter( label = "Second channel", choices = { "None" }, description = "Second channel index. N/A for none" )
+	private String chan1 = "None"; // nuclei channel to segment
+
+	@Parameter( label = "Third channel", choices = { "None" }, description = "Third channel index. N/A for none" )
+	private String chan2 = "None"; // nuclei channel to segment
+
+	@Parameter( label = "Normalize Channel Intensity", description = "Normalize intensity on each channels" )
+	private Boolean normalize = true; // intensity normalization
+
+	@Parameter( label = "Resample Segmentation", description = "Resample detection to image scale for smoother output" )
+	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
 	private Boolean return_ROIs; // if true return ROIs only for 2D image
+
+	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
+	private int min_size = 15; // minimum object size
 
 	@Parameter( label = "Cell probability threshold", min = "0", max = "1", description = "Threshold on cell detection", stepSize = "0.1" )
 	private double cellprob_threshold = 0.0;
@@ -76,18 +91,12 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
 
-	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
-	private int min_size = 15; // minimum object size
-
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
-	@Parameter( label = "Normalize", description = "Normalize intensity on each channels" )
-	private Boolean normalize = true; // intensity normalization before
-	// prediction
+	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
+	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Resample", description = "Resample detection to image scale for smoother output" )
-	private Boolean resample = true; // resample mask (slower but nicer)
 
 	private boolean is3D = false;
 
@@ -100,12 +109,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private MutableModuleItem< Integer > flow3D_smooth; // gaussian smooth of
 	// the 3D flows (only
 	// with use3d = true)
-
-	private MutableModuleItem< String > chan0; // channel 0 if nchan>3
-
-	private MutableModuleItem< String > chan1; // channel 1 if nchan>3
-
-	private MutableModuleItem< String > chan2; // channel 2 if nchan>3
 
 	private int flow3D_smooth_value = 0;
 
@@ -131,10 +134,25 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			// plugin interface
 			// I needed to throw an exception for the process to stop.
 			IJ.error( "No image available to process" );
-			throw new RuntimeException( "No image available to process" );
+			return;
 		}
 
 		is3D = ApposeUtils.is3d( imp );
+
+		List< String > channelChoices = ApposeUtils.getChannelChoices( imp );
+
+		// Set the max possible value of channels based on image dimension
+		final MutableModuleItem< String > c0Item =
+				getInfo().getMutableInput( "chan0", String.class );
+		c0Item.setChoices( channelChoices );
+
+		final MutableModuleItem< String > c1Item =
+				getInfo().getMutableInput( "chan1", String.class );
+		c1Item.setChoices( channelChoices );
+
+		final MutableModuleItem< String > c2Item =
+				getInfo().getMutableInput( "chan2", String.class );
+		c2Item.setChoices( channelChoices );
 
 		// Set the 3D mode selected by the user if the image is 3D
 		if ( is3D )
@@ -158,32 +176,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			stitch_threshold.setStepSize( 0.1 );
 			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
 			getInfo().addInput( stitch_threshold );
-		}
-
-		final int nchanels = imp.getNChannels();
-
-		if ( nchanels > 3 )
-		{
-			IJ.showMessage( "Cellpose SAM can only handle 3 channels, pick the 3 channels to feed to the model." );
-			List< String > channelChoices = ApposeUtils.getChannelChoices( imp, false );
-
-			chan0 = new DefaultMutableModuleItem<>( getInfo(),
-					"Channel 0", String.class );
-			chan0.setChoices( channelChoices );
-			chan0.setDescription( "First channel to feed into cellpose SAM" );
-			getInfo().addInput( chan0 );
-
-			chan1 = new DefaultMutableModuleItem<>( getInfo(),
-					"Channel 1", String.class );
-			chan1.setChoices( channelChoices );
-			chan1.setDescription( "Second channel to feed into cellpose SAM" );
-			getInfo().addInput( chan1 );
-
-			chan2 = new DefaultMutableModuleItem<>( getInfo(),
-					"Channel 2", String.class );
-			chan2.setChoices( channelChoices );
-			chan2.setDescription( "Third channel to feed into cellpose SAM" );
-			getInfo().addInput( chan2 );
 		}
 	}
 
@@ -235,8 +227,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
 				if ( return_ROIs )
 				{
-					IJ.error( "Cannot return ROI in 3D. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
-					return;
+					IJ.error( "Cannot return ROI in 3D, switching to 3D label output. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+					return_ROIs =  false;
 				}
 			}
 			// get the z_axis number in what python should receive
@@ -331,9 +323,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3D_smooth_value );
 		inputs.put( "n_channels", imp.getNChannels() );
-		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0.getValue( this ), false ) );
-		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1.getValue( this ), false ) );
-		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2.getValue( this ), false ) );
+		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0 ) );
+		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1 ) );
+		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2 ) );
 		// Print out the parameters
 		ApposeUtils.displayParameters( inputs );
 
