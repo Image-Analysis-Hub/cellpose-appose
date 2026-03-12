@@ -32,6 +32,7 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
+import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
 import org.scijava.module.DefaultMutableModuleItem;
@@ -52,13 +53,13 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import org.scijava.task.TaskService;
 
-@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>cellpose-sam appose" )
+@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
 	private TaskService taskService;
 
-	@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
+	//@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
 	private File custom_model = null;
 
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
@@ -97,23 +98,17 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
+	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation")
+	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	private MutableModuleItem< String > mode_3d; // mode 3D of CP to use, only
-	// for 3D image
-
-	private MutableModuleItem< Double > stitch_threshold; // stitching value,
-	// only for 3D image
-
-	private MutableModuleItem< Integer > flow3D_smooth; // gaussian smooth of
-	// the 3D flows (only
-	// with use3d = true)
-
-	private int flow3D_smooth_value = 0;
-
-	private double stitch_threshold_value = 0;
-
+	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"" )
+	private Double stitch_threshold = 0.1; 
+	
+	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.") 
+	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
+	
 	private boolean use3d = false;
 
 	private double anisotropy = 1.0;
@@ -157,25 +152,39 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Set the 3D mode selected by the user if the image is 3D
 		if ( is3D )
 		{
-			mode_3d = new DefaultMutableModuleItem<>( getInfo(),
-					"Mode 3d", String.class );
-			mode_3d.setChoices( Arrays.asList( "2D+stitch", "3D" ) );
-			mode_3d.setDescription( "Run Cellpose in 3D (xy, yx, xz) or in 2D and stitch the labels." );
-			getInfo().addInput( mode_3d );
+			//mode_3d = new DefaultMutableModuleItem<>( getInfo(),
+			//		"Mode 3d", String.class );
+			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			mode3dItem.setChoices( modeChoices );
+			mode3dItem.setVisibility(ItemVisibility.NORMAL);
 
-			flow3D_smooth = new DefaultMutableModuleItem<>( getInfo(),
-					"flow3D smooth", Integer.class );
-			flow3D_smooth.setMinimumValue( 0 );
-			flow3D_smooth.setDescription( "3D mode only: Gaussian smoothing sigma applied on flows." );
-			getInfo().addInput( flow3D_smooth );
-
-			stitch_threshold = new DefaultMutableModuleItem<>( getInfo(),
-					"Stitch threshold", Double.class );
-			stitch_threshold.setMaximumValue( 1.0 );
-			stitch_threshold.setMinimumValue( 0.0 );
-			stitch_threshold.setStepSize( 0.1 );
-			stitch_threshold.setDescription( "2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" );
-			getInfo().addInput( stitch_threshold );
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			flowItem.setMinimumValue( 0 );
+			flowItem.setVisibility(ItemVisibility.NORMAL);
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			stitchItem.setMinimumValue( 0.0 );
+			stitchItem.setMaximumValue( 1.0 );
+			stitchItem.setStepSize( 0.05 );
+			stitchItem.setVisibility(ItemVisibility.NORMAL);					
+		}
+		else 
+		{
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			mode3dItem.setVisibility(ItemVisibility.MESSAGE);	
+			
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			flowItem.setVisibility( ItemVisibility.MESSAGE );
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			stitchItem.setVisibility(ItemVisibility.MESSAGE);	
 		}
 	}
 
@@ -206,20 +215,16 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			use3d = false;
 			if ( is3D )
 			{
-				final String mode = mode_3d.getValue( this );
+				final String mode = mode_3d;
 				final Calibration cal = imp.getCalibration();
 				anisotropy = cal.pixelDepth / cal.pixelHeight;
 				if ( mode.equals( "3D" ) )
 				{
 					use3d = true;
-					flow3D_smooth_value = flow3D_smooth.getValue( this );
 				}
-				else
-				{
-					stitch_threshold_value = stitch_threshold.getValue( this );
-				}
+			
 
-				if ( ( stitch_threshold_value == 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
+				if ( ( stitch_threshold <= 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
 					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
 					return;
@@ -230,6 +235,10 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					IJ.error( "Cannot return ROI in 3D, switching to 3D label output. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
 					return_ROIs =  false;
 				}
+			}
+			else
+			{
+				stitch_threshold = 0.0; // ensure it's 0
 			}
 			// get the z_axis number in what python should receive
 			axis_info = ApposeUtils.getImageAxisInfo( imp );
@@ -310,7 +319,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "use_3D", use3d );
 		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
 		inputs.put( "diameter", cell_diameter );
-		inputs.put( "stitch_threshold", stitch_threshold_value );
+		inputs.put( "stitch_threshold", stitch_threshold );
 		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "channel_axis", axis_info.channel_axis );
 		inputs.put( "anisotropy", anisotropy );
@@ -321,7 +330,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "cellprob_threshold", cellprob_threshold );
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
-		inputs.put( "flow3D_smooth", flow3D_smooth_value );
+		inputs.put( "flow3D_smooth", flow3d_smooth );
 		inputs.put( "n_channels", imp.getNChannels() );
 		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
 		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );
