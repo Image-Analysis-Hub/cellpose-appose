@@ -24,7 +24,7 @@ package fiji.plugin.appose.RoiUtils;
 /**
  * A bounding Box in 2 dimensions.
  *
- * @see Box3D
+ * see Box3D
  * 
  * @author dlegland
  *
@@ -55,7 +55,7 @@ public class Box2D
 	 * @param ymax
 	 *            the maximum y coordinate
 	 */
-	public Box2D(double xmin, double xmax, double ymin, double ymax)
+	public Box2D(final double xmin, final double xmax, final double ymin, final double ymax)
 	{
 		this.xmin = xmin;
 		this.xmax = xmax;
