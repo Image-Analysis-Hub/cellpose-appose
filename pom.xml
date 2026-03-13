@@ -11,7 +11,7 @@
 
 	<groupId>fiji.plugin</groupId>
 	<artifactId>Cellpose_Appose</artifactId>
-	<version>0.1.0</version>
+    <version>0.1.0-SNAPSHOT</version>
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
