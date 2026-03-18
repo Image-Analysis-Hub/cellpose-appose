@@ -73,13 +73,14 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         maximum= 5,
         message=f"CP4: Predict labels"
     )
+
     masks, flows, styles = model.eval(
         img,
         diameter=kwargs.get('diameter', 30),
         do_3D=kwargs.get('use_3D', False),
         anisotropy=kwargs.get('anisotropy', 1.0),
         stitch_threshold=kwargs.get('stitch_threshold', 0.0),
-        channel_axis=kwargs.get('channel_axis', None),
+        channel_axis=kwargs.get("channel_axis", None),
         z_axis=kwargs.get('z_axis', None),
         flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
@@ -117,6 +118,7 @@ if appose_mode:
     stitch_threshold = globals()['stitch_threshold']
     z_axis: int | None = globals()['z_axis']
     channel_axis: int | None = globals()['channel_axis']
+    time_axis: int | None = globals()['time_axis']
     anisotropy: float = globals()['anisotropy']
     diameter: int = globals()['diameter']
     use_3D: bool = globals()['use_3D']
@@ -142,6 +144,11 @@ if appose_mode:
     	channels = merge_channels([chan0, chan1, chan2])
     	if len(input_image.shape) > 2 :
         	input_image = input_image[..., channels, :, :]
+    if time_axis is not None:
+        if (z_axis is None) and (channel_axis is None):
+            input_image = input_image[..., np.newaxis]
+            channel_axis = None
+
     task.update(
         current = 0,
         maximum = 5,

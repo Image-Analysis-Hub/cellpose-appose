@@ -334,6 +334,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "stitch_threshold", stitch_threshold_value );
 		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "channel_axis", axis_info.channel_axis );
+		inputs.put( "time_axis", axis_info.time_axis );
 		inputs.put( "anisotropy", anisotropy );
 		inputs.put( "compute_flows", compute_flows );
 		inputs.put( "resample", resample );

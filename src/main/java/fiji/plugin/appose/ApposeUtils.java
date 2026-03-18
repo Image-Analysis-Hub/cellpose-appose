@@ -279,9 +279,28 @@ public class ApposeUtils
 		System.out.println( "\t" + imp.getNFrames() + " T frames" );
 		System.out.println( "─".repeat( 50 ) );
 
-		// 2D, easy peasy
+		// no Z
 		if ( imp.getNSlices() == 1 )
+		{
+			if (imp.getNChannels() > 1 )
+			{
+				if (imp.getNFrames() > 1 )
+				{
+					//XYCT -> TCYX
+					return new ImageAxisInfo( null, 1, 0 );
+				}
+				//XYC -> CYX
+				return new ImageAxisInfo( null, 0, null );
+			}
+			
+			if (imp.getNFrames() > 1 )
+			{
+				//XYT -> TYX
+				return new ImageAxisInfo( null, null, 0 );
+			}
+			//XY
 			return new ImageAxisInfo( null, null, null );
+		}
 
 		// 5D -> TZCYX
 		if ( imp.getNDimensions() == 5 )

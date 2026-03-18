@@ -339,6 +339,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ) );
 		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ) );
 		inputs.put( "stitch_threshold", stitch_threshold_value );
+		inputs.put( "t_axis", axis_info.time_axis);
 		inputs.put( "z_axis", axis_info.z_axis );
 		inputs.put( "anisotropy", anisotropy );
 		inputs.put( "compute_flows", compute_flows );
