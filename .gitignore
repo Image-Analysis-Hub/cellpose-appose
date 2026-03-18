@@ -36,3 +36,4 @@ __pycache__
 .gitignore
 sample_data/test_masks.tif
 sample_data/test_flows.tif
+sample_data/test-1.tif
