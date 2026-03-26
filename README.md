@@ -11,20 +11,15 @@ This plugin is based on [Appose](https://github.com/apposed/appose), that automa
 
 ## Plugin Installation
 
-Build with :
-```
-mvn
-``
-or (to install it to Fiji directlys)
-```
-mvn -Dscijava.app.directory=/path/to/your/fiji
-```
+You can install the plugin for the unliste update site `Appose-Playground`:
+in Fiji, go to `Help>Update...` then to `Manage Update Sites` in the window that opens.
+Click `Add unliste update site`, name it `Appose-Playground` and write its address `https://sites.imagej.net/Appose-Playground`.
 
-To install the plugin, download and copy the `.jar` file in the `plugins` directory of Fiji, and restart Fiji. The plugin should now be accessible in the plugin menu.
+Select the Appose-Cellpose `.jar` file to install only this plugin, or keep all proposed plugins. 
+Press `Apply changes` and restart Fiji when it's done.
 
 > [!NOTE]
-> The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
-
+> You should have a recent version of Fiji, based on Java 21 or more. Download a new version if you're current installation is too old.
 
 ## Usage
 
@@ -39,3 +34,5 @@ From Fiji
 > [!NOTE]
 > Be aware that the first run can be a bit long as the model has to be downloaded.
 
+> [!NOTE]
+> The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
