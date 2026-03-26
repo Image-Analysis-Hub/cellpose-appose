@@ -80,8 +80,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter
 	private TaskService taskService;
 
-	//@Parameter( label = "Custom model", description = "Custom model path, overrides the Cellpose model", style = "file", required = false, validater = "validateCustomModel" )
-	private File custom_model = null;
+	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
+	private String custom_model = "";
 
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
@@ -119,15 +119,15 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation")
+	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation", visibility=ItemVisibility.MESSAGE )
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"" )
+	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"", visibility=ItemVisibility.MESSAGE  )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.") 
+	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.", visibility=ItemVisibility.MESSAGE ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
 	private boolean use3d = false;
@@ -192,20 +192,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			stitchItem.setMaximumValue( 1.0 );
 			stitchItem.setStepSize( 0.05 );
 			stitchItem.setVisibility(ItemVisibility.NORMAL);					
-		}
-		else 
-		{
-			final MutableModuleItem< String > mode3dItem =
-					getInfo().getMutableInput( "mode_3d", String.class );
-			mode3dItem.setVisibility(ItemVisibility.MESSAGE);	
-			
-			final MutableModuleItem< Integer > flowItem = 
-					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-			flowItem.setVisibility( ItemVisibility.MESSAGE );
-			
-			final MutableModuleItem< Double > stitchItem = 
-					getInfo().getMutableInput( "stitch_threshold", Double.class );
-			stitchItem.setVisibility(ItemVisibility.MESSAGE);	
 		}
 	}
 
@@ -338,7 +324,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		inputs.put( "custom_model", ( custom_model == null ) ? null : custom_model.toString() );
+		inputs.put( "custom_model", ( custom_model.equals("") ) ? null : custom_model );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "stitch_threshold", stitch_threshold );
 		inputs.put( "z_axis", axis_info.z_axis );
@@ -542,7 +528,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		} );
 	}
 
-	public void validateCustomModel()
+	/**public void validateCustomModel()
 	{
 		if ( custom_model != null )
 		{
@@ -552,5 +538,5 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				throw new RuntimeException( "The path " + custom_model.toString() + " does not exist !" );
 			}
 		}
-	}
+	}*/
 }
