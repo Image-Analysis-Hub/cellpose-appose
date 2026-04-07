@@ -107,7 +107,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
 	private int min_size = 15; // minimum object size
 
-	@Parameter( label = "Cell probability threshold", min = "0", max = "1", description = "Threshold on cell detection", stepSize = "0.1" )
+	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
 	private double cellprob_threshold = 0.0;
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
