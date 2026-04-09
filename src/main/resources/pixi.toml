@@ -16,7 +16,7 @@ test = { cmd = "python cp3.py" }
 python = ">=3.10.3,<3.13"
 
 [pypi-dependencies]
-appose = ">=0.10.1, <0.11"
+appose = ">=0.10.1, <0.12"
 
 # --- Platform-specific PyTorch ---
 # CUDA 12.6 for Linux
@@ -26,8 +26,11 @@ torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/
 
 # CUDA 12.6 for Windows
 [target.win.pypi-dependencies]
-torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/cu126" }
+#torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu126" }
+#torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/cu126" }
+torch = { version = ">=2.7.0, <2.8", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.22, <0.23", index = "https://download.pytorch.org/whl/cu126" }
+
 
 # CPU-only for macOS (no CUDA support)
 [target.osx-arm64.pypi-dependencies]
