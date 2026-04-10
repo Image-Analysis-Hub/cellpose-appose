@@ -27,6 +27,7 @@ import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ImageAxisInfo;
+import fiji.plugin.appose.cellpose.AdvancedOptions;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -59,6 +60,7 @@ import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.prefs.PrefService;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -87,6 +89,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
 	private TaskService taskService;
+	
+	@Parameter
+    private PrefService prefService; 
 
 	@Parameter( label = "Cellpose model", choices = { "cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3",
@@ -493,6 +498,25 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		catch ( final IOException e )
 		{
 			e.printStackTrace();
+		}
+		
+		String torch_version = prefService.get(AdvancedOptions.class, "torch_version", "Default");
+		if ( !torch_version.equals("Default") )
+		{
+			env = env.replaceAll( "torch = { version = \">=2.5.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
+			        "torch = { version = \"=="+torch_version+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
+		}
+		String torchvision_version = prefService.get(AdvancedOptions.class, "torchvision_version", "Default");
+		if ( !torchvision_version.equals("Default") )
+		{
+			env = env.replaceAll( "torchvision = { version = \">=0.20.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
+			        "torchvision = { version = \"=="+torchvision_version+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
+		}
+		String cuda_version = prefService.get(AdvancedOptions.class, "cuda_version", "Default");
+		if ( !cuda_version.equals("Default") )
+		{
+			env = env.replaceAll( "index = \"https://download.pytorch.org/whl/cu126\" }",
+			        "index = \"https://download.pytorch.org/whl/cu"+cuda_version.replace(".", "")+"\" }");
 		}
 		return env;
 	}
