@@ -24,6 +24,7 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ImageAxisInfo;
@@ -501,24 +502,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			e.printStackTrace();
 		}
 		
-		String torch_version = prefService.get(AdvancedOptions.class, "torch_version", "Default");
-		if ( !torch_version.equals("Default") )
-		{
-			env = env.replaceAll( "torch = { version = \">=2.5.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
-			        "torch = { version = \"=="+torch_version+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
-		}
-		String torchvision_version = prefService.get(AdvancedOptions.class, "torchvision_version", "Default");
-		if ( !torchvision_version.equals("Default") )
-		{
-			env = env.replaceAll( "torchvision = { version = \">=0.20.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
-			        "torchvision = { version = \"=="+torchvision_version+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
-		}
-		String cuda_version = prefService.get(AdvancedOptions.class, "cuda_version", "Default");
-		if ( !cuda_version.equals("Default") )
-		{
-			env = env.replaceAll( "index = \"https://download.pytorch.org/whl/cu126\" }",
-			        "index = \"https://download.pytorch.org/whl/cu"+cuda_version.replace(".", "")+"\" }");
-		}
+		// Check if should change some module version in the pixi string
+		env = handleModuleVersion( prefService, env );		
 		return env;
 	}
 

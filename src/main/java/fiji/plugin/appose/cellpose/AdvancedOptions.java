@@ -6,12 +6,16 @@ import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.prefs.PrefService;
 
 import ij.IJ;
 
-@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Set advanced parameters")
+@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Set advanced options")
 public class AdvancedOptions implements Command
 {
+	@Parameter
+    private PrefService prefService; 
+	
 	@Parameter( label="-------", description="Information",  visibility=ItemVisibility.MESSAGE )
 	private String info_version = "-------- Change torch/cuda versions (Windows and Linux)";
 	
@@ -33,23 +37,23 @@ public class AdvancedOptions implements Command
 	 */
 	public void checkValidity()
 	{
-		checkModule( torch_version);
-		checkModule( torchvision_version );
-		checkModule( cuda_version );
+		checkModule( "torch_version", torch_version );
+		checkModule( "torchvision_version", torchvision_version );
+		checkModule( "cuda_version", cuda_version );
 	}
 
 		/**
 		 * Check the version entered of a module and modify it if needed
 		 * param module
 		 */
-	public void checkModule( String module )
+	public void checkModule( String module, String value )
 	{
-		boolean ok = moduleVersionValidity( module );
+		boolean ok = moduleVersionValidity( value );
 		if ( !ok )
 		{
 			IJ.log( "Version for module "+module+" is not valid: should be Default or a number of version." );
 			IJ.log( "The version is set back to Default. Re-update with a valid version if you want to modify it." );
-			module = "Default";
+			prefService.put(AdvancedOptions.class, module, "Default");
 		}
 	}
 	
@@ -64,6 +68,34 @@ public class AdvancedOptions implements Command
 			return true;
 		
 		return version.matches("[0-9.]+");
+	}
+	
+	/**
+	 * Check and change if necessary some modules version
+	 * param env
+	 * return
+	 */
+	public static String handleModuleVersion( PrefService prefService, String env )
+	{
+		String tversion = prefService.get(AdvancedOptions.class, "torch_version", "Default");
+			if ( !tversion.equals("Default") )
+			{
+				env = env.replace( "torch = { version = \">=2.5.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
+		        "torch = { version = \"=="+tversion+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
+			}
+			String tvversion = prefService.get(AdvancedOptions.class, "torchvision_version", "Default");
+			if ( !tvversion.equals("Default") )
+			{
+				env = env.replace( "torchvision = { version = \">=0.20.1\", index = \"https://download.pytorch.org/whl/cu126\" }",
+		        "torchvision = { version = \"=="+tvversion+"\", index = \"https://download.pytorch.org/whl/cu126\" }");
+			}
+			String cuversion = prefService.get(AdvancedOptions.class, "cuda_version", "Default");
+			if ( !cuversion.equals("Default") )
+			{
+				env = env.replace( "index = \"https://download.pytorch.org/whl/cu126\" }",
+		        "index = \"https://download.pytorch.org/whl/cu"+cuversion.replace(".", "")+"\" }");
+			}	
+		return env;
 	}
 	
 	@Override
