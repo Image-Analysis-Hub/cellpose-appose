@@ -71,7 +71,7 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     task.update(
         current = 3,
         maximum= 5,
-        message=f"CP4: Predict labels"
+        message=f"CP4: Predict labels with (device={device})"
     )
 
     masks, flows, styles = model.eval(
