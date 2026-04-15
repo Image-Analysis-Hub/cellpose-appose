@@ -24,9 +24,11 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ImageAxisInfo;
+import fiji.plugin.appose.cellpose.AdvancedOptions;
 
 import java.awt.EventQueue;
 import java.awt.Font;
@@ -60,6 +62,7 @@ import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.prefs.PrefService;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -88,6 +91,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
 	private TaskService taskService;
+	
+	@Parameter
+    private PrefService prefService; 
 
 	@Parameter( label = "Cellpose model", choices = { "cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3",
@@ -495,6 +501,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		{
 			e.printStackTrace();
 		}
+		
+		// Check if should change some module version in the pixi string
+		env = handleModuleVersion( prefService, env );		
 		return env;
 	}
 
