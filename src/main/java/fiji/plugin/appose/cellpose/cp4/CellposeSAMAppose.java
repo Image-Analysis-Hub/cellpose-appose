@@ -24,6 +24,7 @@ package fiji.plugin.appose.cellpose.cp4;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ImageAxisInfo;
@@ -60,6 +61,7 @@ import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
+import org.scijava.prefs.PrefService;
 
 import ij.IJ;
 import ij.ImagePlus;
@@ -79,6 +81,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
 	private TaskService taskService;
+	
+	@Parameter
+	private PrefService prefService;
 
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
 	private String custom_model = "";
@@ -475,6 +480,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		{
 			e.printStackTrace();
 		}
+		
+		// Check if should change some module version in the pixi string
+		env = handleModuleVersion( prefService, env );	
 		return env;
 	}
 
