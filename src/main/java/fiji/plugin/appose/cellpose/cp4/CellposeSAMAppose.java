@@ -135,6 +135,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.", visibility=ItemVisibility.MESSAGE ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
+	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
+	private Integer niter = 0; // number of iterations. If 0, put None and use default
+	
 	private boolean use3d = false;
 
 	private double anisotropy = 1.0;
@@ -344,6 +347,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "min_size", min_size );
 		inputs.put( "tile_overlap", tile_overlap );
 		inputs.put( "flow3D_smooth", flow3d_smooth );
+		inputs.put( "niter", niter==0?null:niter );
 		inputs.put( "n_channels", imp.getNChannels() );
 		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
 		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );

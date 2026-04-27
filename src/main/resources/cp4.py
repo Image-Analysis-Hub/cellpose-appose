@@ -88,6 +88,7 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         flow_threshold=kwargs.get('flow_threshold', 0.4),
         cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
         min_size=kwargs.get('min_size', 15),
+        niter=kwargs.get( 'niter', None ),
         tile_overlap=kwargs.get('tile_overlap', 0.1),
     )
     return masks, flows, styles
@@ -127,6 +128,7 @@ if appose_mode:
     flow_threshold: float = globals()['flow_threshold']
     cellprob_threshold: float = globals()['cellprob_threshold']
     min_size: int = globals()['min_size']
+    niter: int | None = globals()['niter']
     tile_overlap: float = globals()['tile_overlap']
     flow3D_smooth: float = globals()['flow3D_smooth']
     n_channels: int = globals()['n_channels']
@@ -171,6 +173,7 @@ else:
     flow_threshold = 0.4
     cellprob_threshold = 0.0
     min_size = 15
+    niter = None
     tile_overlap = 0.1
     flow3D_smooth = 0
 
@@ -199,6 +202,7 @@ masks, flows, styles = run_cellpose_v4(
         'flow_threshold': flow_threshold,
         'cellprob_threshold': cellprob_threshold,
         'min_size': min_size,
+        'niter': niter,
         'tile_overlap': tile_overlap,
     }
 )

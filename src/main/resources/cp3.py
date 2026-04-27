@@ -96,6 +96,7 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         flow_threshold=kwargs.get('flow_threshold', 0.4),
         cellprob_threshold=kwargs.get('cellprob_threshold', 0.0),
         min_size=kwargs.get('min_size', 15),
+        niter=kwargs.get( 'niter', None ),
         tile_overlap=kwargs.get('tile_overlap', 0.1),
     )
     return masks, flows, styles
@@ -153,6 +154,7 @@ else:
     min_size = 15
     tile_overlap = 0.1
     flow3D_smooth = 0
+    niter = None
 
 use_gpu, device = get_device()
 task.update(
@@ -181,6 +183,7 @@ masks, flows, styles = run_cellpose_v3(
         'cellprob_threshold': cellprob_threshold,
         'min_size': min_size,
         'tile_overlap': tile_overlap,
+        'niter': niter,
     }
 )
 
