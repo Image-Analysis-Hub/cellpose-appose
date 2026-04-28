@@ -26,8 +26,8 @@ Press `Apply changes` and restart Fiji when it's done.
 From Fiji
 - Open the image that you want to process.  
 - Launch one of the cellpose version available in the plugin:
-  - `Plugins>Cellpose-Appose>cellpose appose`
-  - `Plugins>Cellpose-Appose>cellpose-sam appose`
+  - `Plugins>Segmentation>Cellpose-Appose>Cellpose...`
+  - `Plugins>Segmentation>Cellpose-Appose>CellposeSAM...`
 - Configure your Cellpose run through the Graphic Interface
 - Press "Ok" and Enjoy!   
 
