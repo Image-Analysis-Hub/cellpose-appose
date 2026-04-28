@@ -86,7 +86,7 @@ import org.scijava.task.TaskService;
  * single class, but you can imagine restructuring the code and the Python script as you see fit.
  */
 
-@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>Cellpose appose" )
+@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Cellpose..." )
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	@Parameter

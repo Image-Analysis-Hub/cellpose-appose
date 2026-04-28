@@ -10,7 +10,7 @@ import org.scijava.prefs.PrefService;
 
 import ij.IJ;
 
-@Plugin(type = Command.class, menuPath = "Plugins>Cellpose-Appose>Set advanced options")
+@Plugin(type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Set advanced options...")
 public class AdvancedOptions implements Command
 {
 	@Parameter

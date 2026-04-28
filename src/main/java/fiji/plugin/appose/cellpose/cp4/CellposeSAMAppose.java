@@ -76,7 +76,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 import org.scijava.task.TaskService;
 
-@Plugin( type = Command.class, menuPath = "Plugins>Cellpose-Appose>CellposeSAM appose" )
+@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>CellposeSAM..." )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
