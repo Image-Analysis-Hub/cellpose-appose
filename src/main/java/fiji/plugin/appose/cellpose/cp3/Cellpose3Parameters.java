@@ -73,6 +73,16 @@ public record Cellpose3Parameters(
 
 		private double stitchThreshold = 0.;
 
+		private boolean resample = true;
+
+		private double tileOverlap = 0.1;
+
+		private boolean computeFlows = false;
+
+		private int flow3dSmooth = 0;
+
+		private int nIter = 0;
+
 		public Builder model( final Cellpose3Model model )
 		{
 			this.model = model;
