@@ -67,6 +67,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
@@ -440,7 +441,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			// Return is a TZCYX arrays, so no need of setDimensions anymore
 			// labels.setDimensions( 1, labels.getNChannels(),
 			// labels.getNFrames() );
-			labels.getProcessor().resetMinAndMax();
+			//labels.getProcessor().resetMinAndMax();
+			StackStatistics stats = new StackStatistics(labels);
+			labels.setDisplayRange(stats.min, stats.max);
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
