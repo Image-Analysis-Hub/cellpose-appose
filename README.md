@@ -18,7 +18,7 @@ Click `Add unliste update site`, name it `Appose-Playground` and write its addre
 Select the Appose-Cellpose `.jar` file to install only this plugin, or keep all proposed plugins. 
 Press `Apply changes` and restart Fiji when it's done.
 
-> [!NOTE]
+> [!IMPORTANT]
 > You should have a recent version of Fiji, based on Java 21 or more. Download a new version if you're current installation is too old.
 
 ## Usage
@@ -31,8 +31,26 @@ From Fiji
 - Configure your Cellpose run through the Graphic Interface
 - Press "Ok" and Enjoy!   
 
+### Additional Options
+
+Cellpose rely on GPU acceleration through `CUDA` for windows and linux system. By default the plugin will target `CUDA 12.6`.
+The use of the `CPU` or a different `CUDA` version can be set in the configuration panel:
+- `Plugins>Segmentation>Cellpose-Appose>Cellpose configuration...`
+
 > [!NOTE]
-> Be aware that the first run can be a bit long as the model has to be downloaded.
+> MacOS user will automatically rely on `MPS` acceleration backend.
 
 > [!NOTE]
 > The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
+
+## Development
+
+To build the repository from source you will need both [Maven](https://maven.apache.org/) and [Java SDK 21](https://www.azul.com/downloads/?package=jdk#zulu) install on your system and available in your `PATH`.
+
+At the root of the repo, run:
+
+```bash
+mvn clean install
+```
+
+You can also directly install the `.jar` in a Fiji via the option `-Dscijava.app.directory=<path/to/your/Fiji>`

@@ -1,56 +1,28 @@
-###
-# #%L
-# Running Cellpose with a Fiji plugin based on Appose.
-# %%
-# Copyright (C) 2026 My Company, Inc.
-# %%
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as
-# published by the Free Software Foundation, either version 2 of the
-# License, or (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public
-# License along with this program.  If not, see
-# <http://www.gnu.org/licenses/gpl-2.0.html>.
-# #L%
-###
-
 import numpy as np
 import torch
-import numpy as np
-from cellpose import models, io
-import cellpose
-from typing import TYPE_CHECKING
 
-
-def to_5d(arr):
-    """Convert 2D or 3D array to 5D"""
+def make_5d(arr: np.ndarray) -> np.ndarray:
+    """Convert NumPy array to 5D NumPy array, adding singleton dimensions as needed."""
     while arr.ndim < 5:
         arr = np.expand_dims(arr, axis=0)
     return arr
 
 
-def flip_img(img):
+def flip_image(image: np.ndarray) -> np.ndarray:
     """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""
-    import numpy as np
-    return np.transpose(img, tuple(reversed(range(img.ndim))))
+    return np.transpose(image, tuple(reversed(range(image.ndim))))
 
 
-def share_as_ndarray(img):
+def share_as_ndarray(arr: np.ndarray) -> 'NDArray':
     """Copies a NumPy array into a same-sized newly allocated block of shared memory"""
     from appose import NDArray
-    shared = NDArray(str(img.dtype), img.shape)
-    shared.ndarray()[:] = img
+    shared = NDArray(str(arr.dtype), arr.shape)
+    shared.ndarray()[:] = arr
     return shared
 
 
-def get_device() -> tuple[bool, torch.device]:
-    """Returns (use_gpu, device) using the best available backend: CUDA > MPS > CPU."""
+def get_torch_device() -> tuple[bool, torch.device]:
+    """Check torch device availability and returns a tupple (use_gpu: bool, device: torch.device) using the best available backend: CUDA > MPS > CPU."""
     if torch.cuda.is_available():
         device = torch.device("cuda")
         gpu = True

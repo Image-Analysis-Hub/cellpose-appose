@@ -23,13 +23,22 @@
 	</organization>
 	<licenses>
 		<license>
-			<name>GNU General Public License v2+</name>
-			<url>https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html</url>
+			<name>BSD-3-clause</name>
+			<url>https://opensource.org/license/bsd-3-clause/</url>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
 
 	<developers>
+		<developer>
+			<id>StRigaud</id>
+			<name>Stephane Rigaud</name>
+			<url>https://github.com/StRigaud</url>
+			<roles>
+				<role>developer</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
 		<developer>
 			<id>your-id-here</id>
 			<name>Your Name Here</name>
@@ -45,6 +54,7 @@
 			</roles>
 		</developer>
 	</developers>
+
 	<contributors>
 		<contributor>
 			<name>Someone Who Contributed</name>
@@ -66,7 +76,7 @@
 		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
-		<tag>Cellpose_Appose-0.1.0</tag>
+		<tag>Cellpose_Appose-0.1.6</tag>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
 	</scm>
 
@@ -81,7 +91,7 @@
 	<properties>
 		<package-name>fiji.plugin.appose.cellpose</package-name>
 		<main-class>fiji.plugin.appose.cellpose.CellposeAppose</main-class>
-		<license.licenseName>gpl_v2</license.licenseName>
+		<license.licenseName>bsd_3_clause</license.licenseName>
 		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
 
 		<!-- Use Java 21. -->
@@ -127,7 +137,6 @@
 	</dependencies>
 	
 	
-
 	<repositories>
 		<repository>
 			<id>scijava.public</id>
@@ -142,6 +151,7 @@
 				<excludes>
 					<exclude>__pycache__/*</exclude>
 					<exclude>.pixi/**</exclude>
+					<exclude>.mypy_cache</exclude>
 				</excludes>
 			</resource>
 		</resources>
