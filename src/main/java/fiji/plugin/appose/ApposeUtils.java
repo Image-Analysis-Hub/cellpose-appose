@@ -325,7 +325,7 @@ public class ApposeUtils
 	static
 	{
 		CUDA_VERSION_MAP = new HashMap<>();
-		CUDA_VERSION_MAP.put( "12", "126" );\
+		CUDA_VERSION_MAP.put( "12", "126" );
 		// CUDA_VERSION_MAP.put( "13", "130" );  --- IGNORE --- feature not yet supported in the pixi.toml
 	}
 
