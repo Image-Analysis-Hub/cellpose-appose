@@ -1,10 +1,5 @@
 package fiji.plugin.appose.cellpose;
 
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -22,10 +17,12 @@ import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.apposed.appose.TaskException;
-import org.scijava.prefs.PrefService;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ApposeUtils.ApposeLogger;
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.IJ;
@@ -281,8 +278,6 @@ public class Cellpose
 	{
 		final URL pixiFile = Cellpose.class.getResource( "/pixi.toml" );
 		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
-		// Check if should change some module version in the pixi string
-		final PrefService prefService = ApposeUtils.getContext().getService( PrefService.class );
-		return handleTorchBackend( prefService, env );
+		return env;
 	}
 }
