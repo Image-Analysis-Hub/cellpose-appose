@@ -1,11 +1,10 @@
 
 package fiji.plugin.appose.cellpose.cp3;
 
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 
 import java.awt.EventQueue;
 import java.awt.Font;

@@ -1,5 +1,9 @@
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -20,9 +24,6 @@ import org.apposed.appose.TaskException;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ApposeUtils.ApposeLogger;
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.IJ;
