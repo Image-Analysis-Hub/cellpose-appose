@@ -3,7 +3,7 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
+import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 
 import java.io.IOException;
 import java.net.URL;
@@ -186,6 +186,6 @@ public class Cellpose3
 		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
 		// Check if should change some module version in the pixi string
 		final PrefService prefService = ApposeUtils.getContext().getService( PrefService.class );
-		return handleModuleVersion( prefService, env );
+		return handleTorchBackend( prefService, env );
 	}
 }
