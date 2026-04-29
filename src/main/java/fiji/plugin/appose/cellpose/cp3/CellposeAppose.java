@@ -323,7 +323,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		ApposeUtils.displayParameters( inputs );
 
 		String envSuffix = getBestTorchConfig();
-		System.err.println("Selected environment suffix used: " + envSuffix);
+		//System.err.println("Selected environment suffix used: " + envSuffix);
 
 		// Install the environment if needed
 		final Environment env = Appose // the builder
