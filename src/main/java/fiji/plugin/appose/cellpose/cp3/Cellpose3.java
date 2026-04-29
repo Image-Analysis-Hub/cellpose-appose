@@ -23,7 +23,6 @@ import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
 import org.apposed.appose.TaskException;
 import org.scijava.prefs.PrefService;
-import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ApposeUtils.ApposeLogger;
@@ -66,29 +65,20 @@ public class Cellpose3
 	 */
 	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > run( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		// Fiji task to notify of progress.
-		final TaskService taskService = ApposeUtils.getContext().getService( TaskService.class );
-		final org.scijava.task.Task fijiTask = taskService.createTask( "cellpose-appose" );
-		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
-		fijiTask.start();
-
 		// Inputs.
 		final Map< String, Object > inputs = params.toApposeMap( img );
-		ApposeUtils.displayParameters( inputs );
 
 		// Python env. specifications.
 		final String cellposeEnv = pixiEnv();
 
-		// Logger
-		final ApposeLogger logger = new ApposeUtils.ApposeLogger();
-
 		// Create Python env.
+		final ApposeLogger logger = new ApposeUtils.ApposeLogger();
 		final Environment env = Appose
 				.pixi()
 				.content( cellposeEnv )
 				.subscribeProgress( logger::showProgress )
 				.subscribeOutput( logger::showProgress )
-				.subscribeError( IJ::log )
+				.subscribeError( logger::showProgress )
 				.environment( "cp3" )
 				.build();
 		logger.close();
@@ -102,10 +92,10 @@ public class Cellpose3
 			final Task task = python.task( cp3Script, inputs );
 
 			// Start the script, and return to Java immediately.
-			IJ.showMessage( "Starting Cellpose-Appose task..." );
+			IJ.showStatus( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
-			task.listen( ApposeUtils.apposeTaskListener( fijiTask ) );
+			task.listen( ApposeUtils.ijTaskListener() );
 			task.start();
 			// Wait for task completion.
 			task.waitFor();
@@ -116,7 +106,7 @@ public class Cellpose3
 
 			// Benchmark.
 			final long end = System.currentTimeMillis();
-			fijiTask.setStatusMessage( "Task finished in " + ( end - start ) / 1000. + " s" );
+			IJ.showStatus( "Cellpose finished in " + ( end - start ) / 1000. + " s" );
 
 			// Unwrap and process outputs.
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
@@ -128,10 +118,6 @@ public class Cellpose3
 				return Arrays.asList( output, flows );
 			}
 			return Collections.singletonList( output );
-		}
-		finally
-		{
-			fijiTask.finish();
 		}
 	}
 
