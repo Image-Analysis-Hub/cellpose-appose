@@ -1,25 +1,36 @@
 package fiji.plugin.appose.cellpose.cp3;
 
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apposed.appose.Appose;
+import org.apposed.appose.BuildException;
 import org.apposed.appose.Environment;
 import org.apposed.appose.NDArray;
 import org.apposed.appose.Service;
 import org.apposed.appose.Service.Task;
 import org.apposed.appose.Service.TaskStatus;
+import org.apposed.appose.TaskException;
+import org.scijava.prefs.PrefService;
+import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.ImageAxisInfo;
+import fiji.plugin.appose.ApposeUtils.ApposeLogger;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
-import net.imglib2.appose.NDArrays;
 import net.imglib2.appose.ShmImg;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -32,99 +43,72 @@ import net.imglib2.type.numeric.RealType;
 public class Cellpose3
 {
 
-	public static < T extends RealType< T > & NativeType< T > > void run( final ImgPlus< T > img, final Cellpose3Parameters params )
+	/**
+	 * Run Cellpose 3 with the given parameters on the given image, and return
+	 * the resulting label image, and optionally the flows.
+	 * 
+	 * @param <T>
+	 *            the pixel type of the input image.
+	 * @param img
+	 *            the input image.
+	 * @param params
+	 *            the parameters to run Cellpose with.
+	 * @return a list containing the label image, and optionally the flows
+	 *         image. If flows are not computed, the list will contain only the
+	 *         label image.
+	 * @throws BuildException
+	 *             if installing and building the Python environment fails.
+	 * @throws IOException
+	 *             if reading the Python scripts or environment specifications
+	 *             fails.
+	 * @throws TaskException
+	 *             if executing the Python script fails.
+	 */
+	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > run( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		// Get axis info for the input image
-		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
+		// Fiji task to notify of progress.
+		final TaskService taskService = ApposeUtils.getContext().getService( TaskService.class );
+		final org.scijava.task.Task fijiTask = taskService.createTask( "cellpose-appose" );
+		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
+		fijiTask.start();
 
-		// Pass the param object to an Appose map.
-		final Map< String, Object > inputs = new HashMap<>();
-		inputs.put( "image", NDArrays.asNDArray( img ) );
-		inputs.put( "use_3D", params.do3D() );
-		// return null if custom model
-		final String customModel = params.customModel();
-		final boolean isBuiltInModel = customModel == null || customModel.equals( "" );
-		inputs.put( "model", isBuiltInModel ? params.buitInModel().modelName() : null );
-		inputs.put( "custom_model", isBuiltInModel ? null : customModel );
-		inputs.put( "diameter", params.diameter() );
-		inputs.put( "cell_channel", params.channels().get( 0 ) );
-		inputs.put( "nuclei_channel", params.channels().get( 1 ) );
-
-		inputs.put( "t_axis", axisInfo.time_axis );
-		inputs.put( "stitch_threshold", params.stitchThreshold() );
-		inputs.put( "z_axis", axisInfo.z_axis );
-		inputs.put( "anisotropy", params.anisotropy() );
-		inputs.put( "compute_flows", compute_flows );
-		inputs.put( "resample", resample );
-		inputs.put( "normalize", params.normalize() );
-		inputs.put( "flow_threshold", params.flowThreshold() );
-		inputs.put( "cellprob_threshold", params.cellProbThreshold() );
-		inputs.put( "min_size", params.minSize() );
-		inputs.put( "tile_overlap", tile_overlap );
-		inputs.put( "flow3D_smooth", flow3d_smooth );
-		inputs.put( "niter", niter == 0 ? null : niter );
-
-		// Print out the parameters
+		// Inputs.
+		final Map< String, Object > inputs = params.toApposeMap( img );
 		ApposeUtils.displayParameters( inputs );
 
-		/*
-		 * Create or retrieve the environment.
-		 *
-		 * The first time this code is run, Appose will create the pixi
-		 * environment as specified by the cellposeEnv string, download and
-		 * install the dependencies. This can take a few minutes, but it is only
-		 * done once. The next time the code is run, Appose will just reuse the
-		 * existing environment, so it will start much faster.
-		 */
-		final Environment env = Appose // the builder
-				.pixi() // we chose pixi as the environment manager
-				.content( cellposeEnv ) // specify the environment with the
-				// string defined above
-				.subscribeProgress( this::showProgress ) // report progress
-				// visually
-				.subscribeOutput( this::showProgress ) // report output visually
-				.subscribeError( IJ::log ) // log problems
-				.environment( "cp3" )
-				.build(); // create the environment
-		hideProgress();
+		// Python env. specifications.
+		final String cellposeEnv = pixiEnv();
 
-		/*
-		 * Using this environment, we create a service that will run the Python
-		 * script.
-		 */
+		// Logger
+		final ApposeLogger logger = new ApposeUtils.ApposeLogger();
+
+		// Create Python env.
+		final Environment env = Appose
+				.pixi()
+				.content( cellposeEnv )
+				.subscribeProgress( logger::showProgress )
+				.subscribeOutput( logger::showProgress )
+				.subscribeError( IJ::log )
+				.environment( "cp3" )
+				.build();
+		logger.close();
+
+		// Python scripts and service.
+		final String utilsScript = IOUtils.toString( Cellpose3.class.getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
+		final String cp3Script = IOUtils.toString( Cellpose3.class.getResource( "/cp3.py" ), StandardCharsets.UTF_8 );
 		try (Service python = env.python().init( utilsScript ))
 		{
+			// The Python task.
 			final Task task = python.task( cp3Script, inputs );
 
 			// Start the script, and return to Java immediately.
-			System.out.println( "Starting Cellpose-Appose task..." );
+			IJ.showMessage( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
 			// To catch update message from the python script
-			task.listen( e -> {
-				if ( e.message != null )
-				{
-					this.fijiTask.setStatusMessage( e.message );
-				}
-				if ( e.current >= 0 )
-				{
-					this.fijiTask.setProgressValue( e.current );
-				}
-				if ( e.maximum >= 0 )
-				{
-					this.fijiTask.setProgressMaximum( e.maximum );
-				}
-			} );
+			task.listen( ApposeUtils.apposeTaskListener( fijiTask ) );
 			task.start();
-
-			/*
-			 * Wait for the script to finish. This will block the Java thread
-			 * until the Python script is done, but it allows the Python code to
-			 * run in parallel without blocking the Java thread while it is
-			 * running.
-			 */
+			// Wait for task completion.
 			task.waitFor();
-			// close the fiji task when python is done
-			this.fijiTask.finish();
 
 			// Verify that it worked.
 			if ( task.status != TaskStatus.COMPLETE )
@@ -132,58 +116,76 @@ public class Cellpose3
 
 			// Benchmark.
 			final long end = System.currentTimeMillis();
-			System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
+			fijiTask.setStatusMessage( "Task finished in " + ( end - start ) / 1000. + " s" );
 
-			/*
-			 * Unwrap output.
-			 *
-			 * In the Python script (see below), we create a new NDArray called
-			 * 'rotated' that contains the result of the processing. Here we
-			 * retrieve this NDArray from the task outputs, and wrap it into a
-			 * ShmImg, which is an ImgLib2 image that is backed by shared
-			 * memory. We can then display this image with
-			 * ImageJFunctions.show(). Note that this does not involve any
-			 * copying of the data, as the NDArray and the ShmImg are both just
-			 * views on the same shared memory array.
-			 */
+			// Unwrap and process outputs.
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
-			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-			// Return is a TZCYX arrays, so no need of setDimensions anymore
-			// labels.setDimensions( 1, labels.getNChannels(),
-			// labels.getNFrames() );
-			// labels.getProcessor().resetMinAndMax();
-			final StackStatistics stats = new StackStatistics( labels );
-			labels.setDisplayRange( stats.min, stats.max );
-			useGlasbeyDarkLUT( labels );
-			transferCalibration( imp, labels );
-			labels.show();
-
-			if ( return_ROIs )
+			if ( params.computeFlows() )
 			{
-				ApposeUtils.addROIs( labels );
-			}
-
-			if ( compute_flows )
-			{
-				// RGB image returned
 				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 				final Img< T > flows = new ShmImg<>( flowsArr );
-				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
-				// Return is a TZCYX arrays, so no need of setDimensions anymore
-				// flowsImp.setDimensions( 3, flowsImp.getNChannels(),
-				// flowsImp.getNFrames() );
-				flowsImp.getProcessor().resetMinAndMax();
-				transferCalibration( imp, flowsImp );
-				flowsImp.show();
+				return Arrays.asList( output, flows );
 			}
-
+			return Collections.singletonList( output );
 		}
-		catch ( final Exception e )
+		finally
 		{
-			IJ.handleException( e );
+			fijiTask.finish();
 		}
-
 	}
 
+	/**
+	 * Run Cellpose 3 on the given image with the given parameters, and return
+	 * the resulting label image, and optionally the flows as ImagePlus.
+	 * 
+	 * @param imp
+	 *            the input image.
+	 * @param params
+	 *            the parameters to run Cellpose with.
+	 * @return an array containing the resulting label image, and optionally the
+	 *         flows image.
+	 * @throws TaskException
+	 *             if executing the Python script fails.
+	 * @throws InterruptedException
+	 *             if the thread is interrupted while waiting for the Python
+	 *             script to finish.
+	 * @throws IOException
+	 *             if reading the Python scripts or environment specifications
+	 *             fails.
+	 * @throws BuildException
+	 *             if installing and building the Python environment fails.
+	 */
+	@SuppressWarnings( { "unchecked", "rawtypes" } )
+	public static ImagePlus[] run( final ImagePlus imp, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
+	{
+		final ImgPlus img = rawWraps( imp );
+		final List< Img< ? > > outputs = run( img, params );
+
+		final Img output = outputs.get( 0 );
+		final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
+		final StackStatistics stats = new StackStatistics( labels );
+		labels.setDisplayRange( stats.min, stats.max );
+		useGlasbeyDarkLUT( labels );
+		transferCalibration( img, labels );
+
+		if ( params.computeFlows() )
+		{
+			final Img flows = outputs.get( 1 );
+			final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
+			flowsImp.getProcessor().resetMinAndMax();
+			transferCalibration( imp, flowsImp );
+			return new ImagePlus[] { labels, flowsImp };
+		}
+		return new ImagePlus[] { labels };
+	}
+
+	private static String pixiEnv() throws IOException
+	{
+		final URL pixiFile = Cellpose3.class.getResource( "/pixi.toml" );
+		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
+		// Check if should change some module version in the pixi string
+		final PrefService prefService = ApposeUtils.getContext().getService( PrefService.class );
+		return handleModuleVersion( prefService, env );
+	}
 }
