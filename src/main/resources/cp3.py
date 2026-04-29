@@ -18,9 +18,10 @@ def manage_channels_index(cell: int | None = None, nuclei: int | None = None) ->
     if cell is not None and nuclei is not None:
         return [cell, nuclei]
     if cell is not None:
-        return [cell, cell]
+        return [cell, 0]
     if nuclei is not None:
-        return [nuclei, nuclei]
+		## Cp doc: first channel as 0=grayscale, 1=red, 2=green, 3=blue; and set the second channel to zero, e.g. channels = [0,0] if you want to segment nuclei in grayscale or for single channel images, or channels = [3,0] if you want to segment blue nuclei.
+        return [nuclei, 0]
     raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified by the user.")
 
 
