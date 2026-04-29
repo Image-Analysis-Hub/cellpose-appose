@@ -1,86 +1,58 @@
-###
-# #%L
-# Running Cellpose with a Fiji plugin based on Appose.
-# %%
-# Copyright (C) 2026 My Company, Inc.
-# %%
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as
-# published by the Free Software Foundation, either version 2 of the
-# License, or (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public
-# License along with this program.  If not, see
-# <http://www.gnu.org/licenses/gpl-2.0.html>.
-# #L%
-###
-###############################################################################
-# Cellpose v3 script for Appose
-# Authors:
-# Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
-# Gaelle Letort <gaelle letort.pasteur.fr>
-# Julie Mabon <julie mabon@pasteur.fr>
-###############################################################################
-
 import numpy as np
 from cellpose import models, io
-import cellpose
 from typing import TYPE_CHECKING
 
 report = print
-
 
 def listen(callback):
     global report
     report = callback
 
+
 ###############################################################################
 # AUXILIARY FUNCTIONS
 ###############################################################################
 
-
-def manage_channels(cell: int | None = None, nuclei: int | None = None) -> list[int]:
-    """Returns the channels list [cell_channel, nuclei_channel] for Cellpose based on the 
-    provided integer values from Fiji.
-    """
+def manage_channels_index(cell: int | None = None, nuclei: int | None = None) -> list[int]:
+    """Manage input channels list [cell_channel, nuclei_channel] for Cellpose v3."""
     if cell is not None and nuclei is not None:
         return [cell, nuclei]
     if cell is not None:
-        return [cell, cell]
+        return [cell, 0]
     if nuclei is not None:
-        return [nuclei, nuclei]
-    raise ValueError(
-        "At least one of 'cell' or 'nuclei' channel must be specified")
+		## Cp doc: first channel as 0=grayscale, 1=red, 2=green, 3=blue; and set the second channel to zero, e.g. channels = [0,0] if you want to segment nuclei in grayscale or for single channel images, or channels = [3,0] if you want to segment blue nuclei.
+        return [nuclei, 0]
+    raise ValueError("At least one of 'cell' or 'nuclei' channel must be specified by the user.")
+
 
 ###############################################################################
 # PROCESSING FUNCTIONS
 ###############################################################################
 
-
 def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Runs Cellpose v3 on a single image with the given parameters."""
+    """Runs Cellpose v3 on a single image with the given parameters. Refer to Cellpose documentation for kwargs list."""
 
-    model = kwargs.get('model_name', 'cyto3')
+    # Manage pretrained model and model type selection based on user inputs
+    # - Prioritize custom model if provided
+    # - Otherwise use model_name with `cyto3` as default
+    custom_model = kwargs.get('custom_model', None)
+    selected_model = kwargs.get('model_name', 'cyto3') if custom_model is None else None
+
     task.update(
         current = 2,
         maximum= 5,
-        message=f"CP3: Deploy model {model}"
+        message=f"CP3: Deploy model {selected_model if selected_model else custom_model}"
     )
     model = models.CellposeModel(
-        model_type=model,
-        pretrained_model=kwargs.get('custom_model', None),
+        model_type=selected_model,
+        pretrained_model=custom_model,
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
     task.update(
         current = 3,
         maximum= 5,
-        message=f"CP3: Predict labels with (device={device})"
+        message=f"CP3: Predict labels (device={device})"
     )
     masks, flows, styles = model.eval(
         img,
@@ -101,10 +73,10 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     )
     return masks, flows, styles
 
+
 ###############################################################################
 # MAIN PROGRAM
 ###############################################################################
-
 
 appose_mode = 'task' in globals()
 if appose_mode:
@@ -116,30 +88,34 @@ if appose_mode:
     task = globals()['task']
     listen(task.update)
 else:
-    from cp_utils import get_device, share_as_ndarray, to_5d
+    from cp_utils import get_torch_device, share_as_ndarray, make_5d
     from appose.python_worker import Task
     task = Task()
 
-# load images
+# load arguments and input from Appose task
 if appose_mode:
-    # input_image = flip_img(image.ndarray())
-    input_image = globals()['image']
-    input_image = input_image.ndarray()
-    channels = manage_channels(cell=cell_channel, nuclei=nuclei_channel)
-    stitch_threshold = stitch_threshold
-    z_axis = z_axis
+    fiji_image = globals()['image']
+    cell_channel_index: int | None = globals()['cell_channel']
+    nuclei_channel_index: int | None = globals()['nuclei_channel']
+    stitch_threshold: float = globals()['stitch_threshold']
+    z_axis: int = globals()['z_axis']
+    anisotropy: float = globals()['anisotropy']
+    niter: int | None = globals()['niter']
+
+    input_image = fiji_image.ndarray()
+    channels = manage_channels_index(cell_channel_index, nuclei_channel_index)
     anisotropy = anisotropy if anisotropy > 0 else None
-    # use_3D
+
     task.update(
         current = 0,
         maximum = 5,
-        message = f"CP3: Fetch image from Fiji ({input_image.shape})"
+        message = f"CP3: Fetch input from Fiji ({input_image.shape})"
         )
 else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
     custom_model = None
-    model = 'cyto3'
+    model_name = 'cyto3'
     diameter = 30
     channels = [0, 1]
     use_3D = False
@@ -156,17 +132,17 @@ else:
     flow3D_smooth = 0
     niter = None
 
-use_gpu, device = get_device()
+use_gpu, device = get_torch_device()
 task.update(
     current = 1,
     maximum= 5,
-    message=f"CP3: Start Cellpose script (device={device})"
+    message=f"CP3: Start Cellpose (device={device})"
 )
 
 masks, flows, styles = run_cellpose_v3(
     input_image,
     kwargs={
-        "model_name": model,
+        "model_name": model_name,
         "custom_model": custom_model,
         "channels": channels,
         "diameter": diameter,
@@ -193,23 +169,21 @@ task.update(
     message=f"CP3: Returning results"
 )
 
-# return output (TZCYX)
+# return output
 if appose_mode:
-    # transform mask ZYX -> TZCYX
-    masks_5d = np.rollaxis(to_5d(masks), -3, -4)
-    task.outputs["labels"] = share_as_ndarray(masks_5d)
+    masks_5d = np.rollaxis(make_5d(masks), -3, -4)         # ZYX -> TZCYX
+    task.outputs["labels"] = share_as_ndarray(masks_5d)    # share masks to Appose as `labels` output
     if compute_flows:
-        # transform flows ZYXC -> TZCYX
-        flows_5d = np.rollaxis(to_5d(flows[0]), -1, -3)
-        task.outputs["flows"] = share_as_ndarray(flows_5d)
+        flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)  # ZYXC -> TZCYX
+        task.outputs["flows"] = share_as_ndarray(flows_5d) # share flows to Appose as `flows` output
 else:
     io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
     if compute_flows:
         io.imsave(f'../../../sample_data/test_flows.tif',
-                  flows[0].astype(np.float32))
+                flows[0].astype(np.float32))
 
 task.update(
     current = 5,
     maximum = 5,
-    message=f"CP3: Finished Cellpose script"
+    message=f"CP3: Cellpose processing completed"
 )

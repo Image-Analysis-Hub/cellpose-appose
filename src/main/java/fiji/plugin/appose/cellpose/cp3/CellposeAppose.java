@@ -1,39 +1,9 @@
-/*-
- * #%L
- * Running Cellpose with a Fiji plugin based on Appose.
- * %%
- * Copyright (C) 2026 My Company, Inc.
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 2 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/gpl-2.0.html>.
- * #L%
- */
+
 package fiji.plugin.appose.cellpose.cp3;
-
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
-
-import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.ImageAxisInfo;
-import fiji.plugin.appose.cellpose.AdvancedOptions;
 
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -58,12 +28,18 @@ import org.scijava.Initializable;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
-import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
+import org.scijava.task.TaskService;
 
+import fiji.plugin.appose.ApposeUtils;
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import fiji.plugin.appose.ImageAxisInfo;
+import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -76,15 +52,12 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import org.scijava.task.TaskService;
 
 /*
- * This class implements an example of a classical Fiji plugin (not ImageJ2 plugin),
- * that calls native Python code with Appose.
+ * This class implements the cellpose v3 Fiji plugin that calls native Python code with Appose.
  *
- * We use a simple examples of rotating an input image by 90 degrees, using the scikit-image
- * library in Python, and returning the result back to Fiji. Everything is contained in a
- * single class, but you can imagine restructuring the code and the Python script as you see fit.
+ * The python script (cp3.py) receives an image as input, and parameters specified by the user in the GUI, 
+ * and run a cellpose segmentation with the native Cellpose code. The resulting mask is then sent back to Fiji and displayed as a new image.
  */
 
 @Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Cellpose..." )
@@ -96,14 +69,31 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter
     private PrefService prefService; 
 
+	@Parameter(label="", visibility=ItemVisibility.MESSAGE)
+    private final String messageTitle = "<html>" +
+            "<table><tr valign='top'><td>" +
+            "<h2>Cell Detection using Cellpose (v3) brought to you by Appose !</h2>" +
+            "<a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
+			" <font face='Courier New' size='5'>&#9829;</font> " +
+			"<a href='https://apposed.org/'>https://apposed.org/</a>" +
+            "<br/><br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2024.02.10.579780'>https://doi.org/10.1101/2024.02.10.579780</a></small>" +
+            "</td><td>&nbsp;&nbsp;<img src='"+this.getClass().getResource("/cp_logo.png")+"' width='100' height='100'></img><td>" +
+            "</tr></table>" +
+            "</html>";
+
+    // ---------
+			
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
+    private final String initMsg = "<html><hr width='100'></html>";
+
 	@Parameter( label = "Cellpose model", choices = { "cyto3", "nuclei", "tissunet", "livecell", "CP", "cyto2", "cyto2_cp3", "tissuenet_cp3",
 			"livecell_cp3", "yeast_PhC_cp3", "yeast_BF_cp3", "bact_phase_cp3", "bact_fluor_cp3", "deepbacs_cp3",
 			"neurips_grayscale_cyto2", "TN1", "TN2", "TN3", "LC1", "LC2", "LC3", "LC4", "neurips_cellpose_default",
 			"neurips_cellpose_transformer" }, description = "Choose CP model to run" )
-	private String cp_model = "cyto3"; // cellpose model
+	private String cp_model = "cyto3"; // cellpose model to use, ignored if custom model path is provided
 
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
-	private String custom_model = "";
+	private String custom_model = ""; // path to custom model, if empty use the selected Cellpose model
 
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
@@ -114,6 +104,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
 
+	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
+	private int min_size = 15; // minimum object size (in pixels)
+
 	@Parameter( label = "Normalize Channel Intensity", description = "Normalize intensity on each channels" )
 	private Boolean normalize = true; // intensity normalization
 
@@ -121,10 +114,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
-	private Boolean return_ROIs; // if true return ROIs only for 2D image
+	private Boolean return_ROIs; // if true return ROIs (Note: only for 2D image)
 
-	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
-	private int min_size = 15; // minimum object size
+    // ---------
+
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>")
+    private final String advMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
 	private double cellprob_threshold = 0.0;
@@ -151,6 +146,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	
 	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
 	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
+	// ---------
 	
 	private boolean use3d = false;
 
@@ -161,16 +158,20 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	// Fiji task
 	private org.scijava.task.Task fijiTask;
 
+	/*
+	 * Initialize the plugin.
+	 * This method is called when the plugin is loaded, and it is used to initialize the plugin parameters.
+	 * Check for Image correctness, manage parameters visibility and choices based on the image properties (2D vs 3D, number of channels, etc).
+	 */
 	@Override
 	public void initialize()
 	{
-		// Grab the current image.
+		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
 		{
 			// ToDo: Find a cleaner way to exit, the "return" still trigger the
-			// plugin interface
-			// I needed to throw an exception for the process to stop.
+			// plugin interface, I needed to throw an exception for the process to stop.
 			IJ.error( "No image available to process" );
 			throw new RuntimeException( "No image available to process" );
 		}
@@ -188,28 +189,26 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				getInfo().getMutableInput( "nuclei_channel", String.class );
 		nucItem.setChoices( channelChoices );
 
-		// Set the 3D mode selected by the user if the image is 3D
+		// Extend GUI with extra 3D options if the image is 3D
 		if ( is3D )
 		{
-					//mode_3d = new DefaultMutableModuleItem<>( getInfo(),
-					//		"Mode 3d", String.class );
-					List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
-					final MutableModuleItem< String > mode3dItem =
-							getInfo().getMutableInput( "mode_3d", String.class );
-					mode3dItem.setChoices( modeChoices );
-					mode3dItem.setVisibility(ItemVisibility.NORMAL);
+			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			mode3dItem.setChoices( modeChoices );
+			mode3dItem.setVisibility(ItemVisibility.NORMAL);
 
-					final MutableModuleItem< Integer > flowItem = 
-							getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-					flowItem.setMinimumValue( 0 );
-					flowItem.setVisibility(ItemVisibility.NORMAL);
-					
-					final MutableModuleItem< Double > stitchItem = 
-							getInfo().getMutableInput( "stitch_threshold", Double.class );
-					stitchItem.setMinimumValue( 0.0 );
-					stitchItem.setMaximumValue( 1.0 );
-					stitchItem.setStepSize( 0.05 );
-					stitchItem.setVisibility(ItemVisibility.NORMAL);					
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			flowItem.setMinimumValue( 0 );
+			flowItem.setVisibility(ItemVisibility.NORMAL);
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			stitchItem.setMinimumValue( 0.0 );
+			stitchItem.setMaximumValue( 1.0 );
+			stitchItem.setStepSize( 0.05 );
+			stitchItem.setVisibility(ItemVisibility.NORMAL);					
 		} 
 	}
 
@@ -232,10 +231,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		try
 		{
-			// Get the parameters based on the image properties
+			// Get extra parameters for 3D if needed
 			final boolean is3D = ApposeUtils.is3d( imp );
-			// final int nchanels = imp.getNChannels();
-			// getParameters( is3D, nchanels );
 
 			use3d = false;
 			if ( is3D )
@@ -250,15 +247,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				
 				if ( ( stitch_threshold <= 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
-					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
+					IJ.error( "stitch_threshold should be between 0 and 1 if 2D+stitch, " + stitch_threshold + " was provided" );
 					return;
 				}
 
 				if ( return_ROIs )
 				{
-					IJ.error( "Cannot return ROI in 3D, switching to 3D label output. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
+					IJ.error( "ROIs are not compatible for 3D images, switching to 3D label output." );
 					return_ROIs  = false;
-//					return;
 				}
 			}
 			else
@@ -280,75 +276,35 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	}
 
 	/*
-	 * Actually do something with the image.
+	 * Start the Appose processing on the Image
 	 */
 	public < T extends RealType< T > & NativeType< T > > void process( final ImagePlus imp ) throws IOException, BuildException
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
 
-		/*
-		 * For this example we use pixi to create a Python environment with the
-		 * necessary dependencies. It is specified with a string that contains a
-		 * YAML specification of the environment, similar to what you would put
-		 * in an environment.yaml file. You could load it from an existing file,
-		 * be here for simplicity it is directly returned as a string. See the
-		 * corresponding method.
-		 */
+		// Fetch the pixi environment specification
 		final String cellposeEnv = pixiEnv();
-		/*
-		 * The Python script that we want to run. It is specified as a string,
-		 * but it could be loaded from an existing .py file. In our case the
-		 * script is very simple and has no parameters. We give details on how
-		 * to pass input and receive outputs below.
-		 */
+		
+		// Load python scripts from resources
 		final String utilsScript = IOUtils.toString(
 				getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
 		final String cp3Script = IOUtils.toString(
 				getClass().getResource( "/cp3.py" ), StandardCharsets.UTF_8 );
 
-		/*
-		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
-		 * into an Appose NDArray, which is a shared memory array that can be
-		 * passed to Python without copying the data.
-		 *
-		 * As an ImagePlus is not mapped on a shared memory array, the ImgLib2
-		 * image wrapping the ImagePlus is actually copied to a shared memory
-		 * image (the ShmImg) when we wrap it into an NDArray. This is because
-		 * the NDArray needs to be backed by a shared memory array in order to
-		 * be passed to Python without copying the data. We could have avoided
-		 * this copy by directly loading the image into a ShmImg in the first
-		 * place, but for simplicity we start with an ImagePlus and show how to
-		 * wrap it into a shared memory array.
-		 */
-
 		// Wrap the ImagePlus into a ImgLib2 image.
 		final ImgPlus< T > img = rawWraps( imp );
 
-		/*
-		 * Copy the image into a shared memory image and wrap it into an
-		 * NDArray, then store it in an input map that we will pass to the
-		 * Python script.
-		 *
-		 * Note that we could have passed multiple inputs to the Python script
-		 * by putting more entries in the input map, and they would all be
-		 * available in the Python script as shared memory NDArrays.
-		 *
-		 * A ND array is a multi-dimensional array that is stored in shared
-		 * memory, that can be unwrapped as a NumPy array in Python, and wrapped
-		 * as a ImgLib2 image in Java.
-		 *
-		 */
+		// Add inputs and parameters to a map, that will be sent to the Python script. 
+		// - The keys of the map should match the argument names of the Python script (see cp3.py for this example).
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		// return null if custom model
-		inputs.put( "model", ( custom_model.equals("") ) ? cp_model : null );
+		inputs.put( "model_name", ( custom_model.equals("") ) ? cp_model : null );
 		inputs.put( "custom_model", ( custom_model.equals("") ) ? null : custom_model );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ) );
 		inputs.put( "nuclei_channel", ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ) );
-
 		inputs.put( "t_axis", axis_info.time_axis);
 		inputs.put( "stitch_threshold", stitch_threshold );
 		inputs.put( "z_axis", axis_info.z_axis );
@@ -363,19 +319,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		inputs.put( "flow3D_smooth", flow3d_smooth );
 		inputs.put( "niter", niter==0?null:niter );
 		
-		
-		// Print out the parameters
+		// Print out the parameters for debugging
 		ApposeUtils.displayParameters( inputs );
 
-		/*
-		 * Create or retrieve the environment.
-		 *
-		 * The first time this code is run, Appose will create the pixi
-		 * environment as specified by the cellposeEnv string, download and
-		 * install the dependencies. This can take a few minutes, but it is only
-		 * done once. The next time the code is run, Appose will just reuse the
-		 * existing environment, so it will start much faster.
-		 */
+		// Install the environment if needed
 		final Environment env = Appose // the builder
 				.pixi() // we chose pixi as the environment manager
 				.content( cellposeEnv ) // specify the environment with the
@@ -384,14 +331,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				// visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
-				.environment( "cp3" )
+				.environment( "cp3" ) 
 				.build(); // create the environment
 		hideProgress();
 
-		/*
-		 * Using this environment, we create a service that will run the Python
-		 * script.
-		 */
+		// Using this environment, we create a service that will run the Python
 		try (Service python = env.python().init( utilsScript ))
 		{
 			final Task task = python.task( cp3Script, inputs );
@@ -399,11 +343,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
+
 			// To catch update message from the python script
 			task.listen( e -> {
 				if ( e.message != null )
 				{
 					this.fijiTask.setStatusMessage( e.message );
+					//System.out.println(e.message);
 				}
 				if ( e.current >= 0 )
 				{
@@ -416,13 +362,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			} );
 			task.start();
 
-			/*
-			 * Wait for the script to finish. This will block the Java thread
-			 * until the Python script is done, but it allows the Python code to
-			 * run in parallel without blocking the Java thread while it is
-			 * running.
-			 */
+			// Block Java thread until the python script is done
 			task.waitFor();
+
 			// close the fiji task when python is done
 			this.fijiTask.finish();
 
@@ -434,45 +376,30 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final long end = System.currentTimeMillis();
 			System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
 
-			/*
-			 * Unwrap output.
-			 *
-			 * In the Python script (see below), we create a new NDArray called
-			 * 'rotated' that contains the result of the processing. Here we
-			 * retrieve this NDArray from the task outputs, and wrap it into a
-			 * ShmImg, which is an ImgLib2 image that is backed by shared
-			 * memory. We can then display this image with
-			 * ImageJFunctions.show(). Note that this does not involve any
-			 * copying of the data, as the NDArray and the ShmImg are both just
-			 * views on the same shared memory array.
-			 */
+			// Unwrap the output back into an ImagePlus and display it. 
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-			// Return is a TZCYX arrays, so no need of setDimensions anymore
-			// labels.setDimensions( 1, labels.getNChannels(),
-			// labels.getNFrames() );
-			//labels.getProcessor().resetMinAndMax();
+			
 			StackStatistics stats = new StackStatistics(labels);
 			labels.setDisplayRange(stats.min, stats.max);
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
 
+			// Optionally add ROIs to the ROI manager if the user selected this option (only for 2D images)
 			if ( return_ROIs )
 			{
 				ApposeUtils.addROIs( labels );
 			}
 
+			// Optionally display flows if the user selected this option (only for 2D images)
 			if ( compute_flows )
 			{
 				// RGB image returned
 				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 				final Img< T > flows = new ShmImg<>( flowsArr );
 				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
-				// Return is a TZCYX arrays, so no need of setDimensions anymore
-				// flowsImp.setDimensions( 3, flowsImp.getNChannels(),
-				// flowsImp.getNFrames() );
 				flowsImp.getProcessor().resetMinAndMax();
 				transferCalibration( imp, flowsImp );
 				flowsImp.show();
@@ -486,16 +413,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	}
 
 	/*
-	 * The environment specification.
+	 * Fetch the pixi environment specification.
 	 *
 	 * This is a YAML specification of a pixi environment, that specifies the
-	 * dependencies that we need in Python to run our script. In this case we
-	 * need scikit-image for the rotation, and appose to be able to receive the
-	 * input and send the output back to Fiji. Note that we specify appose as a
-	 * pip dependency, as it is not available on conda-forge.
-	 *
-	 * Most likely in your scripts the dependencies will be different, but you
-	 * will always need appose.
+	 * dependencies that we need in Python to run our script.
 	 */
 	private String pixiEnv()
 	{
@@ -504,7 +425,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		{
 			final URL pixiFile = this.getClass().getResource( "/pixi.toml" );
 			env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
-
 		}
 		catch ( final IOException e )
 		{
@@ -512,7 +432,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 		
 		// Check if should change some module version in the pixi string
-		env = handleModuleVersion( prefService, env );		
+		env = handleTorchBackend( prefService, env );		
 		return env;
 	}
 
@@ -569,17 +489,4 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			progressDialog = null;
 		} );
 	}
-
-	/**public void validateCustomModel()
-	{
-		if ( custom_model != null )
-		{
-			if ( !custom_model.exists() )
-			{
-				IJ.error( "The path " + custom_model.toString() + " does not exist !" );
-				throw new RuntimeException( "The path " + custom_model.toString() + " does not exist !" );
-			}
-		}
-	}
-*/
 }

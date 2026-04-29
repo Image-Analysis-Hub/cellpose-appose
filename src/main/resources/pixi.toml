@@ -9,35 +9,30 @@ name = "cellpose-appose"
 platforms = ["osx-arm64", "win-64", "linux-64", "osx-64"]
 version = "0.1.0"
 
-[tasks]
-test = { cmd = "python cp3.py" }
-
 [dependencies]
 python = ">=3.10.3,<3.13"
 
 [pypi-dependencies]
 appose = ">=0.10.1, <0.12"
 
-# --- Platform-specific PyTorch ---
-# CUDA 12.6 for Linux
+# --- Platform-specific PyTorch installation ---
+# Rely on the oldest torch version compatible with both 126 and 130 CUDA versions
+# Default is GPU with CUDA 12.6, but user can select CPU or others CUDA version in the "Advanced options" of the plugin.
+# See for more details on torch versions and CUDA support: https://pytorch.org/get-started/previous-versions/
+
 [target.linux.pypi-dependencies]
-torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/cu126" }
+torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
 
-# CUDA 12.6 for Windows
 [target.win.pypi-dependencies]
-#torch = { version = ">=2.5.1", index = "https://download.pytorch.org/whl/cu126" }
-#torchvision = { version = ">=0.20.1", index = "https://download.pytorch.org/whl/cu126" }
-torch = { version = ">=2.7.0, <2.8", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.22, <0.23", index = "https://download.pytorch.org/whl/cu126" }
+torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
 
-
-# CPU-only for macOS (no CUDA support)
 [target.osx-arm64.pypi-dependencies]
-torch = { version = ">=2.10.0, <3", index = "https://download.pytorch.org/whl/cpu" }
-torchvision = { version = ">=0.25.0, <0.26", index = "https://download.pytorch.org/whl/cpu" }
+torch = { version = ">=2.9.1, <3", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24.1, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
-# osx-64 (should be drop in favor of osx-arm64, but we keep it for now for users on older macs)
+# Deprecated: osx-64 support should be drop in favor of osx-arm64
 [target.osx-64.pypi-dependencies]
 torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
 torchvision = { version = ">=0.17.2, <0.18", index = "https://download.pytorch.org/whl/cpu" }
