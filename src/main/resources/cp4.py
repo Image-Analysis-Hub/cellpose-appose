@@ -1,39 +1,8 @@
-###
-# #%L
-# Running Cellpose with a Fiji plugin based on Appose.
-# %%
-# Copyright (C) 2026 My Company, Inc.
-# %%
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as
-# published by the Free Software Foundation, either version 2 of the
-# License, or (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public
-# License along with this program.  If not, see
-# <http://www.gnu.org/licenses/gpl-2.0.html>.
-# #L%
-###
-###############################################################################
-# Cellpose v3 script for Appose
-# Authors:
-# Stephane Rigaud <stephane.rigaud@imba.oeaw.ac.at>
-# Gaelle Letort <gaelle letort.pasteur.fr>
-# Julie Mabon <julie mabon@pasteur.fr>
-###############################################################################
-
 import numpy as np
 from cellpose import models, io
-import cellpose
 from typing import TYPE_CHECKING
 
 report = print
-
 
 def listen(callback):
     global report
@@ -41,39 +10,44 @@ def listen(callback):
 
 
 ###############################################################################
+# AUXILIARY FUNCTIONS
+###############################################################################
+
+def filter_channels(selected_channels: list[int | None]) -> list[int]:
+    """Filter out None values from a list of channel indices."""
+    merged = [c for c in selected_channels if c is not None]
+    if not merged:
+        raise ValueError("At least one channel must be provided, only `None` were given.")
+    return merged
+
+
+###############################################################################
 # PROCESSING FUNCTIONS
 ###############################################################################
 
-def merge_channels(selected_channels: list[int | None]):
-    chan_merged = []
-    for c in selected_channels:
-        if c is not None:
-            chan_merged.append(c)
-    assert len(chan_merged) > 0, "at least one channel should be not None"
-    return chan_merged
-
-
 def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Runs Cellpose v4 on a single image with the given parameters."""
+    """Runs Cellpose v4 on a single image with the given parameters. Refer to Cellpose documentation for kwargs list."""
 
+    # Use cpsam pretrained model by default if no custom model is provided
     custom_model = kwargs.get('custom_model', None)
-    model = "cpsam" if custom_model is None else custom_model
+    selected_model = "cpsam" if custom_model is None else custom_model
+
     task.update(
         current = 2,
         maximum= 5,
-        message=f"CP4: Deploy model {model}"
+        message=f"CP4: Deploy model {selected_model if selected_model else custom_model}"
     )
     model = models.CellposeModel(
-        pretrained_model=model,
+        pretrained_model=selected_model,
         gpu=kwargs.get('use_gpu', False),
         device=kwargs.get('device', None)
     )
     task.update(
         current = 3,
         maximum= 5,
-        message=f"CP4: Predict labels with (device={device})"
+        message=f"CP4: Predict labels (device={device})"
     )
-
+    
     masks, flows, styles = model.eval(
         img,
         diameter=kwargs.get('diameter', 30),
@@ -93,9 +67,11 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     )
     return masks, flows, styles
 
+
 ###############################################################################
 # MAIN PROGRAM
 ###############################################################################
+
 
 
 appose_mode = 'task' in globals()
@@ -108,14 +84,13 @@ if appose_mode:
     task = globals()['task']
     listen(task.update)
 else:
-    from cp_utils import get_device, share_as_ndarray, to_5d
+    from cp_utils import get_torch_device, share_as_ndarray, make_5d
     from appose.python_worker import Task
     task = Task()
 
 # load images
 if appose_mode:
-
-    image = globals()['image']
+    fiji_image = globals()['image']
     stitch_threshold = globals()['stitch_threshold']
     z_axis: int | None = globals()['z_axis']
     channel_axis: int | None = globals()['channel_axis']
@@ -135,21 +110,25 @@ if appose_mode:
     channel_axis: int | None = globals().get(
         'channel_axis', None)
     
-    input_image = image.ndarray()  # pylint: disable=E1120
+    input_image = fiji_image.ndarray()  # pylint: disable=E1120
     anisotropy = anisotropy if anisotropy > 0 else None
-    # use_3D
     
     if channel_axis is not None:
-    	chan0: int | None = globals()['chan0']
-    	chan1: int | None = globals()['chan1']
-    	chan2: int | None = globals()['chan2']
-    	channels = merge_channels([chan0, chan1, chan2])
-    	if len(input_image.shape) > 2 :
-        	input_image = input_image[..., channels, :, :]
-    if time_axis is not None:
+        chan0: int | None = globals()['chan0']
+        chan1: int | None = globals()['chan1']
+        chan2: int | None = globals()['chan2']
+        channels = filter_channels([chan0, chan1, chan2])
+        if len(input_image.shape) > 2 :
+            input_image = input_image[..., channels, :, :]
+
+    if time_axis is not None:	
         if (z_axis is None) and (channel_axis is None):
             input_image = input_image[..., np.newaxis]
             channel_axis = None
+        ## to use CPSAM with T+channels images, makes it as if it's 2D+stitch mode with no stitching
+        elif (z_axis is None):
+            z_axis = time_axis
+            stitch_threshold = 1
 
     task.update(
         current = 0,
@@ -177,12 +156,11 @@ else:
     tile_overlap = 0.1
     flow3D_smooth = 0
 
-use_gpu, device = get_device()
-
+use_gpu, device = get_torch_device()
 task.update(
     current = 1,
     maximum= 5,
-    message=f"CP4: Start Cellpose script (device={device})"
+    message=f"CP4: Start Cellpose (device={device})"
 )
 
 masks, flows, styles = run_cellpose_v4(
@@ -213,23 +191,21 @@ task.update(
     message=f"CP4: Returning results"
 )
 
-# return output (TZCYX)
+# return output
 if appose_mode:
-    # transform mask ZYX -> TZCYX
-    masks_5d = np.rollaxis(to_5d(masks), -3, -4)
-    task.outputs["labels"] = share_as_ndarray(masks_5d)
+    masks_5d = np.rollaxis(make_5d(masks), -3, -4)           # ZYX -> TZCYX
+    task.outputs["labels"] = share_as_ndarray(masks_5d)      # share masks to Appose as `labels` output
     if compute_flows:
-        # transform flows ZYXC -> TZCYX
-        flows_5d = np.rollaxis(to_5d(flows[0]), -1, -3)
-        task.outputs["flows"] = share_as_ndarray(flows_5d)
+        flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)       # ZYXC -> TZCYX
+        task.outputs["flows"] = share_as_ndarray(flows_5d)    # share flows to Appose as `flows` output
 else:
     io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
     if compute_flows:
         io.imsave(f'../../../sample_data/test_flows.tif',
-                  flows[0].astype(np.float32))
+                flows[0].astype(np.float32))
 
 task.update(
     current = 5,
     maximum = 5,
-    message=f"CP4: Finished Cellpose script"
+    message=f"CP4: Cellpose processing completed"
 )

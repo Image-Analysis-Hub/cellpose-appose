@@ -1,38 +1,9 @@
-/*-
- * #%L
- * Running Cellpose with a Fiji plugin based on Appose.
- * %%
- * Copyright (C) 2026 My Company, Inc.
- * %%
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 2 of the
- * License, or (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public
- * License along with this program.  If not, see
- * <http://www.gnu.org/licenses/gpl-2.0.html>.
- * #L%
- */
+
 package fiji.plugin.appose.cellpose.cp4;
-
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.cellpose.AdvancedOptions.handleModuleVersion;
-
-import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.ImageAxisInfo;
 
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -57,12 +28,18 @@ import org.scijava.Initializable;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.DynamicCommand;
-import org.scijava.module.DefaultMutableModuleItem;
 import org.scijava.module.MutableModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
+import org.scijava.task.TaskService;
 
+import fiji.plugin.appose.ApposeUtils;
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import fiji.plugin.appose.ImageAxisInfo;
+import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -75,9 +52,8 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
-import org.scijava.task.TaskService;
 
-@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>CellposeSAM..." )
+@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Cellpose-SAM..." )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
@@ -86,20 +62,41 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter
 	private PrefService prefService;
 
+
+	@Parameter(label="", visibility=ItemVisibility.MESSAGE)
+    private final String messageTitle = "<html>" +
+            "<table><tr valign='top'><td>" +
+            "<h2>Cell Detection using Cellpose-SAM (v4) brought to you by Appose !</h2>" +
+            "<a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
+			" <font face='Courier New' size='5'>&#9829;</font> " +
+			"<a href='https://apposed.org/'>https://apposed.org/</a>" +
+            "<br/><br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2025.04.28.651001'>https://doi.org/10.1101/2025.04.28.651001</a></small>" +
+            "</td><td>&nbsp;&nbsp;<img src='"+this.getClass().getResource("/cp_logo.png")+"' width='100' height='100'></img><td>" +
+            "</tr></table>" +
+            "</html>";
+
+    // ---------
+
+    @Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
+    private final String initMsg = "<html><hr width='100'></html>";
+
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
-	private String custom_model = "";
+	private String custom_model = ""; // path to custom model, if empty use the selected Cellpose model
 
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
-	private int cell_diameter = 30; // cell diameter
+	private int cell_diameter = 30; // cell diameter (in pixels) @StRigaud: is this still used in CP4 ? 
 
 	@Parameter( label = "First channel", choices = { "None" }, description = "First channel index. N/A for none" )
-	private String chan0 = "None"; // cytoplasmic channel to segment
+	private String chan0 = "None"; // channel 1, to be merged as RGB for by CP
 
 	@Parameter( label = "Second channel", choices = { "None" }, description = "Second channel index. N/A for none" )
-	private String chan1 = "None"; // nuclei channel to segment
+	private String chan1 = "None"; // channel 2, to be merged as RGB for by CP
 
 	@Parameter( label = "Third channel", choices = { "None" }, description = "Third channel index. N/A for none" )
-	private String chan2 = "None"; // nuclei channel to segment
+	private String chan2 = "None"; // channel 3, to be merged as RGB for by CP
+
+	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
+	private int min_size = 15; // minimum object size (in pixels)
 
 	@Parameter( label = "Normalize Channel Intensity", description = "Normalize intensity on each channels" )
 	private Boolean normalize = true; // intensity normalization
@@ -108,10 +105,12 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
-	private Boolean return_ROIs; // if true return ROIs only for 2D image
-
-	@Parameter( label = "Minimum Object Size", min = "0", description = "Minimum object size (in pixels) to keep" )
-	private int min_size = 15; // minimum object size
+	private Boolean return_ROIs; // if true return ROIs (Note: only for 2D image)
+    
+	// ---------
+	
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>")
+    private final String advMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
 	private double cellprob_threshold = 0.0;
@@ -138,6 +137,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	
 	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
 	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
+	// ---------
 	
 	private boolean use3d = false;
 
@@ -148,18 +149,22 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	// Fiji task
 	private org.scijava.task.Task fijiTask;
 
+	/*
+	 * Initialize the plugin.
+	 * This method is called when the plugin is loaded, and it is used to initialize the plugin parameters.
+	 * Check for Image correctness, manage parameters visibility and choices based on the image properties (2D vs 3D, number of channels, etc).
+	 */
 	@Override
 	public void initialize()
 	{
-		// Grab the current image.
+		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
 		{
 			// ToDo: Find a cleaner way to exit, the "return" still trigger the
-			// plugin interface
-			// I needed to throw an exception for the process to stop.
+			// plugin interface, I needed to throw an exception for the process to stop.
 			IJ.error( "No image available to process" );
-			return;
+			throw new RuntimeException( "No image available to process" );
 		}
 
 		is3D = ApposeUtils.is3d( imp );
@@ -182,8 +187,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Set the 3D mode selected by the user if the image is 3D
 		if ( is3D )
 		{
-			//mode_3d = new DefaultMutableModuleItem<>( getInfo(),
-			//		"Mode 3d", String.class );
 			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
@@ -225,8 +228,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		{
 			// Get the parameters based on the image properties
 			final boolean is3D = ApposeUtils.is3d( imp );
-			// final int nchanels = imp.getNChannels();
-			// getParameters( is3D, nchanels );
 
 			use3d = false;
 			if ( is3D )
@@ -238,18 +239,17 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				{
 					use3d = true;
 				}
-			
 
 				if ( ( stitch_threshold <= 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
-					IJ.error( "stitch_threshold should be above zero if 2D+stitch " );
+					IJ.error( "stitch_threshold should be between 0 and 1 if 2D+stitch, " + stitch_threshold + " was provided" );
 					return;
 				}
 
 				if ( return_ROIs )
 				{
-					IJ.error( "Cannot return ROI in 3D, switching to 3D label output. We suggest you use MorphoLibJ for 3D ROISs: https://imagej.net/plugins/morpholibj" );
-					return_ROIs =  false;
+					IJ.error( "ROIs are not compatible for 3D images, switching to 3D label output." );
+					return_ROIs  = false;
 				}
 			}
 			else
@@ -267,32 +267,20 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			IJ.error( "An error occurred: " + e.getMessage() );
 			e.printStackTrace();
 		}
-
 	}
 
 	/*
-	 * Actually do something with the image.
+	 * Start the Appose processing on the Image
 	 */
 	public < T extends RealType< T > & NativeType< T > > void process( final ImagePlus imp ) throws IOException, BuildException
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
 
-		/*
-		 * For this example we use pixi to create a Python environment with the
-		 * necessary dependencies. It is specified with a string that contains a
-		 * YAML specification of the environment, similar to what you would put
-		 * in an environment.yaml file. You could load it from an existing file,
-		 * be here for simplicity it is directly returned as a string. See the
-		 * corresponding method.
-		 */
+		// Fetch the pixi environment specification
 		final String cellposeEnv = pixiEnv();
-		/*
-		 * The Python script that we want to run. It is specified as a string,
-		 * but it could be loaded from an existing .py file. In our case the
-		 * script is very simple and has no parameters. We give details on how
-		 * to pass input and receive outputs below.
-		 */
+		
+		// Load python scripts from resources
 		final String utilsScript = IOUtils.toString(
 				getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
 		final String cp3Script = IOUtils.toString(
@@ -316,20 +304,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Wrap the ImagePlus into a ImgLib2 image.
 		final ImgPlus< T > img = rawWraps( imp );
 
-		/*
-		 * Copy the image into a shared memory image and wrap it into an
-		 * NDArray, then store it in an input map that we will pass to the
-		 * Python script.
-		 *
-		 * Note that we could have passed multiple inputs to the Python script
-		 * by putting more entries in the input map, and they would all be
-		 * available in the Python script as shared memory NDArrays.
-		 *
-		 * A ND array is a multi-dimensional array that is stored in shared
-		 * memory, that can be unwrapped as a NumPy array in Python, and wrapped
-		 * as a ImgLib2 image in Java.
-		 *
-		 */
+		// Add inputs and parameters to a map, that will be sent to the Python script. 
+		// - The keys of the map should match the argument names of the Python script (see cp3.py for this example).
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
@@ -353,18 +329,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
 		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );
 		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2, false ) );
-		// Print out the parameters
+
+		// Print out the parameters for debugging
 		ApposeUtils.displayParameters( inputs );
 
-		/*
-		 * Create or retrieve the environment.
-		 *
-		 * The first time this code is run, Appose will create the pixi
-		 * environment as specified by the cellposeEnv string, download and
-		 * install the dependencies. This can take a few minutes, but it is only
-		 * done once. The next time the code is run, Appose will just reuse the
-		 * existing environment, so it will start much faster.
-		 */
+		// Install the environment if needed
 		final Environment env = Appose // the builder
 				.pixi() // we chose pixi as the environment manager
 				.content( cellposeEnv ) // specify the environment with the
@@ -377,10 +346,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				.build(); // create the environment
 		hideProgress();
 
-		/*
-		 * Using this environment, we create a service that will run the Python
-		 * script.
-		 */
+		// Using this environment, we create a service that will run the Python
 		try (Service python = env.python().init( utilsScript ))
 		{
 			final Task task = python.task( cp3Script, inputs );
@@ -388,11 +354,13 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			// Start the script, and return to Java immediately.
 			System.out.println( "Starting Cellpose-Appose task..." );
 			final long start = System.currentTimeMillis();
+
 			// To catch update message from the python script
 			task.listen( e -> {
 				if ( e.message != null )
 				{
 					this.fijiTask.setStatusMessage( e.message );
+					//System.out.println(e.message);
 				}
 				if ( e.current >= 0 )
 				{
@@ -405,13 +373,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			} );
 			task.start();
 
-			/*
-			 * Wait for the script to finish. This will block the Java thread
-			 * until the Python script is done, but it allows the Python code to
-			 * run in parallel without blocking the Java thread while it is
-			 * running.
-			 */
+			// Block Java thread until the python script is done
 			task.waitFor();
+
 			// close the fiji task when python is done
 			this.fijiTask.finish();
 
@@ -423,45 +387,30 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final long end = System.currentTimeMillis();
 			System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
 
-			/*
-			 * Unwrap output.
-			 *
-			 * In the Python script (see below), we create a new NDArray called
-			 * 'rotated' that contains the result of the processing. Here we
-			 * retrieve this NDArray from the task outputs, and wrap it into a
-			 * ShmImg, which is an ImgLib2 image that is backed by shared
-			 * memory. We can then display this image with
-			 * ImageJFunctions.show(). Note that this does not involve any
-			 * copying of the data, as the NDArray and the ShmImg are both just
-			 * views on the same shared memory array.
-			 */
+			// Unwrap the output back into an ImagePlus and display it. 
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-			// Return is a TZCYX arrays, so no need of setDimensions anymore
-			// labels.setDimensions( 1, labels.getNChannels(),
-			// labels.getNFrames() );
-			//labels.getProcessor().resetMinAndMax();
+
 			StackStatistics stats = new StackStatistics(labels);
 			labels.setDisplayRange(stats.min, stats.max);
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );
 			labels.show();
 
+			// Optionally add ROIs to the ROI manager if the user selected this option (only for 2D images)
 			if ( return_ROIs )
 			{
 				ApposeUtils.addROIs( labels );
 			}
 
+			// Optionally display flows if the user selected this option (only for 2D images)
 			if ( compute_flows )
 			{
 				// RGB image returned
 				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 				final Img< T > flows = new ShmImg<>( flowsArr );
 				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
-				// Return is a TZCYX arrays, so no need of setDimensions anymore
-				// flowsImp.setDimensions( 3, flowsImp.getNChannels(),
-				// flowsImp.getNFrames() );
 				flowsImp.getProcessor().resetMinAndMax();
 				transferCalibration( imp, flowsImp );
 				flowsImp.show();
@@ -474,6 +423,12 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		}
 	}
 
+	/*
+	 * Fetch the pixi environment specification.
+	 *
+	 * This is a YAML specification of a pixi environment, that specifies the
+	 * dependencies that we need in Python to run our script.
+	 */
 	private String pixiEnv()
 	{
 		String env = "";
@@ -489,9 +444,13 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		}
 		
 		// Check if should change some module version in the pixi string
-		env = handleModuleVersion( prefService, env );	
+		env = handleTorchBackend( prefService, env );	
 		return env;
 	}
+
+	// Helper functions to display progress while building the Appose
+	// environment.
+	// Temporary solution until Appose has a nicer built-in way to do this.
 
 	private volatile JDialog progressDialog;
 
@@ -542,16 +501,4 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			progressDialog = null;
 		} );
 	}
-
-	/**public void validateCustomModel()
-	{
-		if ( custom_model != null )
-		{
-			if ( !custom_model.exists() )
-			{
-				IJ.error( "The path " + custom_model.toString() + " does not exist !" );
-				throw new RuntimeException( "The path " + custom_model.toString() + " does not exist !" );
-			}
-		}
-	}*/
 }
