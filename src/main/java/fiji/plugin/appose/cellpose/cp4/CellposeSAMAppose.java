@@ -360,6 +360,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				if ( e.message != null )
 				{
 					this.fijiTask.setStatusMessage( e.message );
+					//System.out.println(e.message);
 				}
 				if ( e.current >= 0 )
 				{

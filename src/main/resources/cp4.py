@@ -47,7 +47,7 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         maximum= 5,
         message=f"CP4: Predict labels (device={device})"
     )
-
+    
     masks, flows, styles = model.eval(
         img,
         diameter=kwargs.get('diameter', 30),
@@ -121,10 +121,14 @@ if appose_mode:
         if len(input_image.shape) > 2 :
             input_image = input_image[..., channels, :, :]
 
-    if time_axis is not None:
+    if time_axis is not None:	
         if (z_axis is None) and (channel_axis is None):
             input_image = input_image[..., np.newaxis]
             channel_axis = None
+        ## to use CPSAM with T+channels images, makes it as if it's 2D+stitch mode with no stitching
+        elif (z_axis is None):
+            z_axis = time_axis
+            stitch_threshold = 1
 
     task.update(
         current = 0,
