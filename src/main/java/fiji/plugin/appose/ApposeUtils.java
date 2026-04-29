@@ -61,28 +61,32 @@ public class ApposeUtils
 	}
 
 	/**
-	 * Forwards Appose task events to a {@link org.scijava.task.Task}, so that
-	 * the progress is properly displayed in the UI.
+	 * Forwards Appose task events to an ImageJ status bar.
 	 * 
-	 * @param fijiTask
-	 *            the Fiji task to update with Appose task events.
 	 * @return a consumer of Appose task events that updates the given task
 	 *         accordingly.
 	 */
-	public static Consumer< TaskEvent > apposeTaskListener( final org.scijava.task.Task fijiTask )
+	public static Consumer< TaskEvent > ijTaskListener()
 	{
 		return e -> {
-			if ( e.message != null )
-				fijiTask.setStatusMessage( e.message );
 
-			if ( e.current >= 0 )
-				fijiTask.setProgressValue( e.current );
+			long maximum = 100;
+
+			if ( e.message != null )
+				IJ.showStatus( e.message );
 
 			if ( e.maximum >= 0 )
-				fijiTask.setProgressMaximum( e.maximum );
+				maximum = e.maximum;
+
+			if ( e.current >= 0 )
+				IJ.showProgress( ( double ) e.current / maximum );
 		};
 	}
 
+	/**
+	 * A simple logger to use for reporting messages when creating an Appose
+	 * environment.
+	 */
 	public static class ApposeLogger
 	{
 
@@ -109,6 +113,10 @@ public class ApposeUtils
 			EventQueue.invokeLater( () -> {
 				if ( progressDialog == null )
 				{
+					// Delay start. Show this only after 1 second, to avoid
+					// flashing a dialog for very fast operations.
+
+
 					final Window owner = IJ.getInstance();
 					progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
 					progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
@@ -354,6 +362,20 @@ public class ApposeUtils
 
 	public static void addROIs( final ImagePlus labels )
 	{
+		addROIs( labels, "r" );
+	}
+
+	/**
+	 * Creates IMageJ ROIs from a label image, and adds them to the RoiManager.
+	 * The ROIs are {@link PolygonRoi}s
+	 * 
+	 * @param labels
+	 *            the label image to create ROIs from.
+	 * @param prefix
+	 *            the prefix to use for naming the ROIs.
+	 */
+	public static void addROIs( final ImagePlus labels, final String prefix )
+	{
 		// from
 		// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
 
@@ -361,11 +383,13 @@ public class ApposeUtils
 
 		final int conn = 4;
 		final LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
-		final String pattern = "r%03d";
 
 		// compute boundaries
 		final LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
 		final Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+		final int nRois = boundaries.values().stream().mapToInt( List::size ).sum();
+		final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
+		final String pattern = prefix + "_%0" + nDigits + "d";
 
 		RoiManager rm = RoiManager.getInstance();
 		if ( rm == null )
@@ -373,24 +397,24 @@ public class ApposeUtils
 			rm = new RoiManager();
 		}
 		// populate RoiManager with PolygonRoi
+		int index = 1; // Start at 1 to match ImageJ ROI display
 		for ( final int label : boundaries.keySet() )
 		{
 			final ArrayList< Polygon2D > polygons = boundaries.get( label );
-			final String name = String.format( pattern, label );
 
-			if ( polygons.size() == 1 )
+			if ( polygons.size() <= 1 && nRois <= 1 )
 			{
 				final PolygonRoi roi = polygons.get( 0 ).createRoi();
-				roi.setName( name );
+				roi.setName( prefix );
 				rm.addRoi( roi );
 			}
 			else
 			{
-				int index = 0;
 				for ( final Polygon2D poly : polygons )
 				{
 					final PolygonRoi roi = poly.createRoi();
-					roi.setName( name + "-" + ( index++ ) );
+					final String name = String.format( pattern, index++ );
+					roi.setName( name );
 					rm.addRoi( roi );
 				}
 			}
