@@ -114,7 +114,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
-	private Boolean return_ROIs; // if true return ROIs (Note: only for 2D image)
+	private Boolean return_ROIs = false; // if true return ROIs (Note: only for 2D image)
 
     // ---------
 
@@ -411,6 +411,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			IJ.handleException( e );
 		}
 	}
+	
 
 	/*
 	 * Fetch the pixi environment specification.
@@ -418,7 +419,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * This is a YAML specification of a pixi environment, that specifies the
 	 * dependencies that we need in Python to run our script.
 	 */
-	private String pixiEnv()
+	public String pixiEnv()
 	{
 		String env = "";
 		try
