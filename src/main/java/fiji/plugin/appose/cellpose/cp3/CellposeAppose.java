@@ -35,11 +35,11 @@ import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ImageAxisInfo;
-import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -114,7 +114,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
-	private Boolean return_ROIs; // if true return ROIs (Note: only for 2D image)
+	private Boolean return_ROIs = false; // if true return ROIs (Note: only for 2D image)
 
     // ---------
 
@@ -322,6 +322,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Print out the parameters for debugging
 		ApposeUtils.displayParameters( inputs );
 
+		String envSuffix = getBestTorchConfig();
+		//System.err.println("Selected environment suffix used: " + envSuffix);
+
 		// Install the environment if needed
 		final Environment env = Appose // the builder
 				.pixi() // we chose pixi as the environment manager
@@ -331,7 +334,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				// visually
 				.subscribeOutput( this::showProgress ) // report output visually
 				.subscribeError( IJ::log ) // log problems
-				.environment( "cp3" ) 
+				.environment( "cp3" + envSuffix )
 				.build(); // create the environment
 		hideProgress();
 
@@ -431,8 +434,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			e.printStackTrace();
 		}
 		
-		// Check if should change some module version in the pixi string
-		env = handleTorchBackend( prefService, env );		
 		return env;
 	}
 
