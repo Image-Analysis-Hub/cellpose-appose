@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.scijava.Context;
+
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
 import ij.IJ;
@@ -45,6 +47,27 @@ import net.imglib2.type.numeric.real.DoubleType;
 
 public class ApposeUtils
 {
+
+	private static Context context;
+
+	/**
+	 * Obtains and cache the SciJava {@link Context} in use by ImageJ.
+	 *
+	 * @return the SciJava context
+	 */
+	public static Context getContext()
+	{
+		final Context localContext = context;
+		if ( localContext != null )
+			return localContext;
+
+		synchronized ( ApposeUtils.class )
+		{
+			if ( context == null )
+				context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
+			return context;
+		}
+	}
 
 	/**
 	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
@@ -204,9 +227,9 @@ public class ApposeUtils
 		System.out.println( "─".repeat( 50 ) );
 	}
 
-	public static List< String > getChannelChoices( ImagePlus imp, boolean cp3_mode )
+	public static List< String > getChannelChoices( final ImagePlus imp, final boolean cp3_mode )
 	{
-		List< String > channelChoices = new ArrayList<>();
+		final List< String > channelChoices = new ArrayList<>();
 		for ( int i = 1; i <= imp.getNChannels(); i++ )
 		{
 			channelChoices.add( String.valueOf( i ) );
@@ -217,27 +240,27 @@ public class ApposeUtils
 		return channelChoices;
 	}
 
-	public static Integer convertChannelChoiceToInt( String input, boolean cp3_mode )
+	public static Integer convertChannelChoiceToInt( final String input, final boolean cp3_mode )
 	{
 		if ( cp3_mode )
 			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) -1 );
 	}
 
-	public static void addROIs( ImagePlus labels )
+	public static void addROIs( final ImagePlus labels )
 	{
 		// from
 		// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
 
-		ImageProcessor image = labels.getProcessor();
+		final ImageProcessor image = labels.getProcessor();
 
-		int conn = 4;
-		LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
-		String pattern = "r%03d";
+		final int conn = 4;
+		final LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
+		final String pattern = "r%03d";
 
 		// compute boundaries
-		LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
-		Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+		final LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
+		final Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
 
 		RoiManager rm = RoiManager.getInstance();
 		if ( rm == null )
@@ -245,23 +268,23 @@ public class ApposeUtils
 			rm = new RoiManager();
 		}
 		// populate RoiManager with PolygonRoi
-		for ( int label : boundaries.keySet() )
+		for ( final int label : boundaries.keySet() )
 		{
-			ArrayList< Polygon2D > polygons = boundaries.get( label );
-			String name = String.format( pattern, label );
+			final ArrayList< Polygon2D > polygons = boundaries.get( label );
+			final String name = String.format( pattern, label );
 
 			if ( polygons.size() == 1 )
 			{
-				PolygonRoi roi = polygons.get( 0 ).createRoi();
+				final PolygonRoi roi = polygons.get( 0 ).createRoi();
 				roi.setName( name );
 				rm.addRoi( roi );
 			}
 			else
 			{
 				int index = 0;
-				for ( Polygon2D poly : polygons )
+				for ( final Polygon2D poly : polygons )
 				{
-					PolygonRoi roi = poly.createRoi();
+					final PolygonRoi roi = poly.createRoi();
 					roi.setName( name + "-" + ( index++ ) );
 					rm.addRoi( roi );
 				}
