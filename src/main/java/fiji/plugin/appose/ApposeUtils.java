@@ -274,9 +274,13 @@ public class ApposeUtils
 
 	/**
 	 * Returns the CUDA version available on the system by querying
-	 * {@code nvcc --version}, or {@code null} if CUDA is not available or the
-	 * OS is macOS. The returned value is already mapped to the pixi environment
+	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS
+	 * is macOS. The returned value is already mapped to the pixi environment
 	 * suffix (e.g. {@code "126"}, {@code "130"}).
+	 * <p>
+	 * {@code nvidia-smi} is preferred over {@code nvcc} because it reflects
+	 * the driver-supported CUDA version and is present on any system with a
+	 * GPU driver installed, even without the full CUDA toolkit.
 	 *
 	 * @return a pixi suffix string such as {@code "126"}, or {@code null}.
 	 */
@@ -286,7 +290,7 @@ public class ApposeUtils
 			return null;
 		try
 		{
-			final ProcessBuilder pb = new ProcessBuilder( "nvcc", "--version" );
+			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
 			pb.redirectErrorStream( true );
 			final Process process = pb.start();
 			final StringBuilder output = new StringBuilder();
@@ -298,16 +302,16 @@ public class ApposeUtils
 					output.append( line ).append( "\n" );
 			}
 			process.waitFor();
-			// nvcc --version contains e.g. "Cuda compilation tools, release 12.6, V12.6.20"
+			// nvidia-smi header contains e.g. "CUDA Version: 12.6"
 			final Matcher m = Pattern
-					.compile( "release\\s+(\\d+\\.\\d+)" )
+					.compile( "CUDA Version:\\s*(\\d+\\.\\d+)" )
 					.matcher( output );
 			if ( m.find() )
 				return mapCudaVersion( m.group( 1 ) );
 		}
 		catch ( final IOException | InterruptedException e )
 		{
-			// nvcc not found or failed — CUDA not available
+			// nvidia-smi not found or failed — CUDA not available
 		}
 		return null;
 	}
