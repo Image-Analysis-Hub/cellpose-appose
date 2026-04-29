@@ -40,7 +40,6 @@ import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ImageAxisInfo;
-import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -435,8 +434,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			e.printStackTrace();
 		}
 		
-		// Check if should change some module version in the pixi string
-		env = handleTorchBackend( prefService, env );		
 		return env;
 	}
 
