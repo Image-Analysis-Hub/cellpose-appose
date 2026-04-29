@@ -6,9 +6,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
@@ -247,6 +250,106 @@ public class ApposeUtils
 				}
 			}
 		}
+	}
+
+	public enum OperatingSystem
+	{
+		WINDOWS, LINUX, MACOS, UNKNOWN
+	}
+
+	/**
+	 * Returns the current operating system.
+	 */
+	public static OperatingSystem getOperatingSystem()
+	{
+		final String os = System.getProperty( "os.name" ).toLowerCase();
+		if ( os.contains( "mac" ) || os.contains( "darwin" ) )
+			return OperatingSystem.MACOS;
+		if ( os.contains( "win" ) )
+			return OperatingSystem.WINDOWS;
+		if ( os.contains( "nux" ) || os.contains( "nix" ) || os.contains( "aix" ) )
+			return OperatingSystem.LINUX;
+		return OperatingSystem.UNKNOWN;
+	}
+
+	/**
+	 * Returns the CUDA version available on the system by querying
+	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS
+	 * is macOS.
+	 *
+	 * @return a version string such as {@code "12.6"}, or {@code null}.
+	 */
+	public static String getCudaVersion()
+	{
+		if ( getOperatingSystem() == OperatingSystem.MACOS )
+			return null;
+		try
+		{
+			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
+			pb.redirectErrorStream( true );
+			final Process process = pb.start();
+			final StringBuilder output = new StringBuilder();
+			try ( BufferedReader reader = new BufferedReader(
+					new InputStreamReader( process.getInputStream() ) ) )
+			{
+				String line;
+				while ( ( line = reader.readLine() ) != null )
+					output.append( line ).append( "\n" );
+			}
+			process.waitFor();
+			// nvidia-smi header contains e.g. "CUDA Version: 12.6"
+			final Matcher m = Pattern
+					.compile( "CUDA Version:\\s*(\\d+\\.\\d+)" )
+					.matcher( output );
+			if ( m.find() )
+				return mapCudaVersion( m.group( 1 ) );
+		}
+		catch ( final IOException | InterruptedException e )
+		{
+			// nvidia-smi not found or failed — CUDA not available
+		}
+		return null;
+	}
+
+	/**
+	 * Maps raw CUDA version strings (as reported by {@code nvidia-smi}) to the
+	 * pixi environment suffix. Only versions listed here are supported; any other
+	 * version returns {@code null}.
+	 */
+	static final Map< String, String > CUDA_VERSION_MAP;
+	static
+	{
+		CUDA_VERSION_MAP = new HashMap<>();
+		CUDA_VERSION_MAP.put( "12.6", "126" );
+		CUDA_VERSION_MAP.put( "12.8", "126" );
+		// CUDA_VERSION_MAP.put( "13.0", "130" );  --- IGNORE --- feature not yet supported in the pixi.toml
+	}
+
+	/**
+	 * Maps a raw CUDA version string to the pixi environment suffix using
+	 * {@link #CUDA_VERSION_MAP}.
+	 *
+	 * @return the mapped suffix, or {@code null} if the version is not recognized.
+	 */
+	static String mapCudaVersion( final String rawVersion )
+	{
+		return CUDA_VERSION_MAP.get( rawVersion );
+	}
+
+	public static String getBestTorchConfig()
+	{
+		// if MacOS, return "-cpu"
+		if ( getOperatingSystem() == OperatingSystem.MACOS )
+			return "-cpu";
+		// if CUDA available ``and recognized, return "-cu" + mapped version
+		String cudaVersionFull = getCudaVersion();
+		if ( cudaVersionFull != null )
+		{
+			String cudaVersion = mapCudaVersion(cudaVersionFull);
+			return "-cu" + cudaVersion;
+		}
+		// else, return "-cpu"
+		return "-cpu";
 	}
 
 	public static ImageAxisInfo getImageAxisInfo( final ImagePlus imp )
