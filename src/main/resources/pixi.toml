@@ -11,6 +11,7 @@ version = "0.1.0"
 
 [dependencies]
 python = ">=3.10.3,<3.13"
+packaging = ">=26.2,<27"
 
 [pypi-dependencies]
 appose = ">=0.10.1, <0.12"
@@ -21,21 +22,21 @@ appose = ">=0.10.1, <0.12"
 # See for more details on torch versions and CUDA support: https://pytorch.org/get-started/previous-versions/
 
 [target.linux.pypi-dependencies]
-torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cu126" }
 
 [target.win.pypi-dependencies]
-torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cu126" }
 
 [target.osx-arm64.pypi-dependencies]
-torch = { version = ">=2.9.1, <3", index = "https://download.pytorch.org/whl/cpu" }
-torchvision = { version = ">=0.24.1, <0.26", index = "https://download.pytorch.org/whl/cpu" }
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
 # Deprecated: osx-64 support should be drop in favor of osx-arm64
 [target.osx-64.pypi-dependencies]
-torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
-torchvision = { version = ">=0.17.2, <0.18", index = "https://download.pytorch.org/whl/cpu" }
+torch = { version = ">=2.2.2, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
 # --- CellPose version features ---
 [feature.cp3.pypi-dependencies]
