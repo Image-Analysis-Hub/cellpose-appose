@@ -273,41 +273,51 @@ public class ApposeUtils
 	}
 
 	/**
-	 * Returns the CUDA version available on the system by querying
-	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS
-	 * is macOS.
+	 * Returns the CUDA version available on the system by inspecting
+	 * environment variables, or {@code null} if CUDA is not available or the
+	 * OS is macOS. The returned value is already mapped to the pixi environment
+	 * suffix (e.g. {@code "126"}, {@code "130"}).
+	 * <p>
+	 * Detection strategy (in order):
+	 * <ol>
+	 * <li>Versioned env vars set by the Windows CUDA installer, e.g.
+	 * {@code CUDA_PATH_V12_6}.</li>
+	 * <li>The {@code CUDA_PATH} or {@code CUDA_HOME} path, which typically
+	 * contains the version, e.g. {@code /usr/local/cuda-12.6} or
+	 * {@code ...\v12.6}.</li>
+	 * </ol>
 	 *
-	 * @return a version string such as {@code "12.6"}, or {@code null}.
+	 * @return a pixi suffix string such as {@code "126"}, or {@code null}.
 	 */
 	public static String getCudaVersion()
 	{
 		if ( getOperatingSystem() == OperatingSystem.MACOS )
 			return null;
-		try
+
+		// 1. Check versioned env vars set by the CUDA installer on Windows,
+		//    e.g. CUDA_PATH_V12_6 or CUDA_PATH_V12_8 → "126"
+		for ( final Map.Entry< String, String > entry : CUDA_VERSION_MAP.entrySet() )
 		{
-			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
-			pb.redirectErrorStream( true );
-			final Process process = pb.start();
-			final StringBuilder output = new StringBuilder();
-			try ( BufferedReader reader = new BufferedReader(
-					new InputStreamReader( process.getInputStream() ) ) )
+			final String envVar = "CUDA_PATH_V" + entry.getKey().replace( ".", "_" );
+			if ( System.getenv( envVar ) != null )
+				return entry.getValue();
+		}
+
+		// 2. Parse CUDA_PATH or CUDA_HOME for a version substring,
+		//    e.g. /usr/local/cuda-12.6 or C:\...\CUDA\v12.6
+		for ( final String envName : new String[] { "CUDA_PATH", "CUDA_HOME" } )
+		{
+			final String path = System.getenv( envName );
+			if ( path != null )
 			{
-				String line;
-				while ( ( line = reader.readLine() ) != null )
-					output.append( line ).append( "\n" );
+				final Matcher m = Pattern
+						.compile( "(?:cuda[_-]|\\bv)(\\d+\\.\\d+)", Pattern.CASE_INSENSITIVE )
+						.matcher( path );
+				if ( m.find() )
+					return mapCudaVersion( m.group( 1 ) );
 			}
-			process.waitFor();
-			// nvidia-smi header contains e.g. "CUDA Version: 12.6"
-			final Matcher m = Pattern
-					.compile( "CUDA Version:\\s*(\\d+\\.\\d+)" )
-					.matcher( output );
-			if ( m.find() )
-				return mapCudaVersion( m.group( 1 ) );
 		}
-		catch ( final IOException | InterruptedException e )
-		{
-			// nvidia-smi not found or failed — CUDA not available
-		}
+
 		return null;
 	}
 
@@ -341,13 +351,10 @@ public class ApposeUtils
 		// if MacOS, return "-cpu"
 		if ( getOperatingSystem() == OperatingSystem.MACOS )
 			return "-cpu";
-		// if CUDA available ``and recognized, return "-cu" + mapped version
-		String cudaVersionFull = getCudaVersion();
-		if ( cudaVersionFull != null )
-		{
-			String cudaVersion = mapCudaVersion(cudaVersionFull);
+		// getCudaVersion() already returns the mapped suffix (e.g. "126")
+		final String cudaVersion = getCudaVersion();
+		if ( cudaVersion != null )
 			return "-cu" + cudaVersion;
-		}
 		// else, return "-cpu"
 		return "-cpu";
 	}
