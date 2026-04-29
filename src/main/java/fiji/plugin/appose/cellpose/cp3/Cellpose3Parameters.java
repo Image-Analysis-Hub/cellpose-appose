@@ -75,7 +75,7 @@ public record Cellpose3Parameters(
 		// return null if custom model
 		final String customModel = customModel();
 		final boolean isBuiltInModel = customModel == null || customModel.equals( "" );
-		inputs.put( "model", isBuiltInModel ? buitInModel().modelName() : null );
+		inputs.put( "model_name", isBuiltInModel ? buitInModel().modelName() : null );
 		inputs.put( "custom_model", isBuiltInModel ? null : customModel );
 		inputs.put( "diameter", diameter() );
 		inputs.put( "cell_channel", channels().get( 0 ) );
