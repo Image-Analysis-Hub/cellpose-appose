@@ -31,15 +31,6 @@ From Fiji
 - Configure your Cellpose run through the Graphic Interface
 - Press "Ok" and Enjoy!   
 
-### Additional Options
-
-Cellpose rely on GPU acceleration through `CUDA` for windows and linux system. By default the plugin will target `CUDA 12.6`.
-The use of the `CPU` or a different `CUDA` version can be set in the configuration panel:
-- `Plugins>Segmentation>Cellpose-Appose>Cellpose configuration...`
-
-> [!NOTE]
-> MacOS user will automatically rely on `MPS` acceleration backend.
-
 > [!NOTE]
 > The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
 

@@ -40,6 +40,15 @@
 			</roles>
 		</developer>
 		<developer>
+			<id>gletort</id>
+			<name>Gaelle Letort</name>
+			<url>https://github.com/gletort</url>
+			<roles>
+				<role>developer</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+		<developer>
 			<id>your-id-here</id>
 			<name>Your Name Here</name>
 			<url>http://imagej.net/User:YourWikiUsername</url>
