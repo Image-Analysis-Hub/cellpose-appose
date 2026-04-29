@@ -1,6 +1,11 @@
 
 package fiji.plugin.appose.cellpose.cp3;
 
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
+
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
@@ -35,11 +40,7 @@ import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ImageAxisInfo;
-import static fiji.plugin.appose.cellpose.CellposeOptions.handleTorchBackend;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
@@ -178,7 +179,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		is3D = ApposeUtils.is3d( imp );
 
-		List< String > channelChoices = ApposeUtils.getChannelChoices( imp, true );
+		final List< String > channelChoices = ApposeUtils.getChannelChoices( imp, true );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > cytoItem =
@@ -192,7 +193,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Extend GUI with extra 3D options if the image is 3D
 		if ( is3D )
 		{
-			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
+			final List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
@@ -381,7 +382,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final Img< T > output = new ShmImg<>( maskArr );
 			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
 			
-			StackStatistics stats = new StackStatistics(labels);
+			final StackStatistics stats = new StackStatistics(labels);
 			labels.setDisplayRange(stats.min, stats.max);
 			useGlasbeyDarkLUT( labels );
 			transferCalibration( imp, labels );

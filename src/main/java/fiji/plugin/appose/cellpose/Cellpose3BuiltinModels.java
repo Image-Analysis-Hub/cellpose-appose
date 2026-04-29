@@ -1,6 +1,6 @@
-package fiji.plugin.appose.cellpose.cp3;
+package fiji.plugin.appose.cellpose;
 
-public enum Cellpose3Model
+public enum Cellpose3BuiltinModels
 {
 	// General cytoplasm models
 	CYTO3( "cyto3", "General cytoplasm model trained on 9 datasets (Cellpose3). Works well for most cell types." ),
@@ -44,7 +44,7 @@ public enum Cellpose3Model
 
 	private final String description;
 
-	Cellpose3Model( final String name, final String description )
+	Cellpose3BuiltinModels( final String name, final String description )
 	{
 		this.name = name;
 		this.description = description;
