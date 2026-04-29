@@ -1,6 +1,7 @@
 
 package fiji.plugin.appose;
 
+import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
@@ -398,7 +399,7 @@ public class ApposeUtils
 	}
 
 	/**
-	 * Creates IMageJ ROIs from a label image, and adds them to the RoiManager.
+	 * Creates ImageJ ROIs from a label image, and adds them to the RoiManager.
 	 * The ROIs are {@link PolygonRoi}s
 	 * 
 	 * @param labels
@@ -407,6 +408,30 @@ public class ApposeUtils
 	 *            the prefix to use for naming the ROIs.
 	 */
 	public static void addROIs( final ImagePlus labels, final String prefix )
+	{
+		addROIs( labels, prefix, null );
+	}
+
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
+	{
+		final RoiManager rm = RoiManager.getRoiManager();
+		toROIs( labels, prefix, color ).forEach( rm::addRoi );
+	}
+
+	/**
+	 * Converts a label image into a list of ImageJ ROIs. The ROIs are
+	 * {@link PolygonRoi}s.
+	 * 
+	 * @param labels
+	 *            the label image to create ROIs from.
+	 * @param prefix
+	 *            the prefix to use for naming the ROIs.
+	 * @param color
+	 *            the color to use for the ROIs. If null, the default color will
+	 *            be used.
+	 * @return a list of ROIs corresponding to the labels in the input image.
+	 */
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
 	{
 		// from
 		// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
@@ -423,12 +448,7 @@ public class ApposeUtils
 		final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
 		final String pattern = prefix + "_%0" + nDigits + "d";
 
-		RoiManager rm = RoiManager.getInstance();
-		if ( rm == null )
-		{
-			rm = new RoiManager();
-		}
-		// populate RoiManager with PolygonRoi
+		final List< PolygonRoi > rois = new ArrayList<>( nRois );
 		int index = 1; // Start at 1 to match ImageJ ROI display
 		for ( final int label : boundaries.keySet() )
 		{
@@ -438,7 +458,8 @@ public class ApposeUtils
 			{
 				final PolygonRoi roi = polygons.get( 0 ).createRoi();
 				roi.setName( prefix );
-				rm.addRoi( roi );
+				roi.setStrokeColor( color );
+				rois.add( roi );
 			}
 			else
 			{
@@ -447,10 +468,12 @@ public class ApposeUtils
 					final PolygonRoi roi = poly.createRoi();
 					final String name = String.format( pattern, index++ );
 					roi.setName( name );
-					rm.addRoi( roi );
+					roi.setStrokeColor( color );
+					rois.add( roi );
 				}
 			}
 		}
+		return rois;
 	}
 
 	public static ImageAxisInfo getImageAxisInfo( final ImagePlus imp )
