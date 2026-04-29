@@ -99,6 +99,7 @@ if appose_mode:
     stitch_threshold: float = globals()['stitch_threshold']
     z_axis: int = globals()['z_axis']
     anisotropy: float = globals()['anisotropy']
+    niter: int | None = globals()['niter']
 
     input_image = fiji_image.ndarray()
     channels = manage_channels_index(cell_channel_index, nuclei_channel_index)
@@ -113,7 +114,7 @@ else:
     file = '../../../sample_data/test.tif'
     input_image = io.imread(file)
     custom_model = None
-    model = 'cyto3'
+    model_name = 'cyto3'
     diameter = 30
     channels = [0, 1]
     use_3D = False
@@ -140,7 +141,7 @@ task.update(
 masks, flows, styles = run_cellpose_v3(
     input_image,
     kwargs={
-        "model_name": model,
+        "model_name": model_name,
         "custom_model": custom_model,
         "channels": channels,
         "diameter": diameter,

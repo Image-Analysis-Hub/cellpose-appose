@@ -200,7 +200,7 @@ public class ApposeUtils
 	public static Integer convertChannelChoiceToInt( String input, boolean cp3_mode )
 	{
 		if ( cp3_mode )
-			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
+			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) -1 ) );
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) -1 );
 	}
 

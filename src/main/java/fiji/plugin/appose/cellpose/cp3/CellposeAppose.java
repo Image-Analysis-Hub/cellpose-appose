@@ -300,7 +300,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final Map< String, Object > inputs = new HashMap<>();
 		inputs.put( "image", NDArrays.asNDArray( img ) );
 		inputs.put( "use_3D", use3d );
-		inputs.put( "model", ( custom_model.equals("") ) ? cp_model : null );
+		inputs.put( "model_name", ( custom_model.equals("") ) ? cp_model : null );
 		inputs.put( "custom_model", ( custom_model.equals("") ) ? null : custom_model );
 		inputs.put( "diameter", cell_diameter );
 		inputs.put( "cell_channel", ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ) );
@@ -349,6 +349,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				if ( e.message != null )
 				{
 					this.fijiTask.setStatusMessage( e.message );
+					//System.out.println(e.message);
 				}
 				if ( e.current >= 0 )
 				{
