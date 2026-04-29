@@ -114,7 +114,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean resample = true; // resample mask (slower but nicer)
 
 	@Parameter( label = "return ROIs", description = "Return the ROIs (only in 2D)" )
-	private Boolean return_ROIs; // if true return ROIs (Note: only for 2D image)
+	private Boolean return_ROIs = false; // if true return ROIs (Note: only for 2D image)
 
     // ---------
 
