@@ -11,31 +11,50 @@ version = "0.1.0"
 
 [dependencies]
 python = ">=3.10.3,<3.13"
+packaging = ">=26.2,<27"
 
 [pypi-dependencies]
 appose = ">=0.10.1, <0.12"
 
-# --- Platform-specific PyTorch installation ---
-# Rely on the oldest torch version compatible with both 126 and 130 CUDA versions
-# Default is GPU with CUDA 12.6, but user can select CPU or others CUDA version in the "Advanced options" of the plugin.
+# --- PyTorch features ---
 # See for more details on torch versions and CUDA support: https://pytorch.org/get-started/previous-versions/
+# macOS does not support CUDA and will always fall back to CPU.
 
-[target.linux.pypi-dependencies]
-torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
+# CPU: all platforms use the CPU index
+[feature.cpu.target.linux.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
-[target.win.pypi-dependencies]
-torch = { version = ">=2.9.1, <2.10", index = "https://download.pytorch.org/whl/cu126" }
-torchvision = { version = ">=0.24.1, <0.25", index = "https://download.pytorch.org/whl/cu126" }
+[feature.cpu.target.win.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
-[target.osx-arm64.pypi-dependencies]
-torch = { version = ">=2.9.1, <3", index = "https://download.pytorch.org/whl/cpu" }
-torchvision = { version = ">=0.24.1, <0.26", index = "https://download.pytorch.org/whl/cpu" }
+[feature.cpu.target.osx-arm64.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
 # Deprecated: osx-64 support should be drop in favor of osx-arm64
-[target.osx-64.pypi-dependencies]
-torch = { version = ">=2.2.2, <3", index = "https://download.pytorch.org/whl/cpu" }
-torchvision = { version = ">=0.17.2, <0.18", index = "https://download.pytorch.org/whl/cpu" }
+[feature.cpu.target.osx-64.pypi-dependencies]
+torch = { version = ">=2.2.2, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
+
+# CUDA 12.6: Linux/Windows use cu126 index, macOS falls back to CPU
+[feature.cu126.target.linux.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cu126" }
+
+[feature.cu126.target.win.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cu126" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cu126" }
+
+[feature.cu126.target.osx-arm64.pypi-dependencies]
+torch = { version = ">=2.9, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.24, <0.26", index = "https://download.pytorch.org/whl/cpu" }
+
+# Deprecated: osx-64 support should be drop in favor of osx-arm64
+[feature.cu126.target.osx-64.pypi-dependencies]
+torch = { version = ">=2.2.2, <2.11", index = "https://download.pytorch.org/whl/cpu" }
+torchvision = { version = ">=0.17.2, <0.26", index = "https://download.pytorch.org/whl/cpu" }
 
 # --- CellPose version features ---
 [feature.cp3.pypi-dependencies]
@@ -46,6 +65,8 @@ cellpose = ">=4, <5"
 
 # --- Environments ---
 [environments]
-default = { features = ["cp3"] }
-cp3 = { features = ["cp3"] }
-cp4 = { features = ["cp4"] }
+default = { features = ["cp3", "cu126"] }
+cp3-cpu = { features = ["cp3", "cpu"] }
+cp4-cpu = { features = ["cp4", "cpu"] }
+cp3-cu126 = { features = ["cp3", "cu126"] }
+cp4-cu126 = { features = ["cp4", "cu126"] }
