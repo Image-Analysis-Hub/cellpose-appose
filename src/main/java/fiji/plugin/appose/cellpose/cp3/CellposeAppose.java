@@ -414,6 +414,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			IJ.handleException( e );
 		}
 	}
+	
 
 	/*
 	 * Fetch the pixi environment specification.
@@ -421,7 +422,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	 * This is a YAML specification of a pixi environment, that specifies the
 	 * dependencies that we need in Python to run our script.
 	 */
-	private String pixiEnv()
+	public String pixiEnv()
 	{
 		String env = "";
 		try
