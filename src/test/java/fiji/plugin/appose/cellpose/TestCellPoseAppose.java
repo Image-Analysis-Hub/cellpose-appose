@@ -47,40 +47,8 @@ public class TestCellPoseAppose
 		}
 	}
 	
-	@Test
-	public void testDefaultParameterValues() throws Exception 
-	{
-		try
-		{
-			final int nSlices = 20;		
-			final ImagePlus imp = NewImage.createByteImage( "TestImage", 100, 50, nSlices, NewImage.FILL_RAMP );
-			imp.setDimensions( 1, nSlices, 1 );
-			WindowManager.setTempCurrentImage( imp ); 
 	
-			Context ctx = new Context();
-			CommandInfo info = ctx.service(CommandService.class).getCommand(CellposeAppose.class);
-			Module module = info.createModule();
-		    
-			// Inject services into the module's command instance
-			ctx.inject(module.getDelegateObject());
-		
-			// Manually call initialize()
-			if (module.getDelegateObject() instanceof Initializable) 
-			{
-				((Initializable) module.getDelegateObject()).initialize();
-			}
 			
-			// Test default parameters value
-			assertEquals( "cyto3", module.getInput("cp_model") );
-			assertEquals( 30, module.getInput("cell_diameter") );
-			assertEquals( "None", module.getInput("mode_3d") );
-
-			ctx.dispose();
-		}
-		finally {
-	        WindowManager.setTempCurrentImage(null);  // clean up
-	    }
-	}
 	
 	@Test
 	public void testDefaultRun() throws Exception 
@@ -104,7 +72,12 @@ public class TestCellPoseAppose
 			{
 				((Initializable) module.getDelegateObject()).initialize();
 			}
+			// Test default parameters value
+			assertEquals( "cyto3", module.getInput("cp_model") );
+			assertEquals( 30, module.getInput("cell_diameter") );
+			assertEquals( "None", module.getInput("mode_3d") );
 	
+			// Test running cellpose, installing env if necessary
 			CellposeAppose cp3 = (CellposeAppose) module.getDelegateObject();
 			cp3.setInput( "cyto_channel", 1);
 			cp3.run();
