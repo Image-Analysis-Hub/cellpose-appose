@@ -21,6 +21,9 @@
  */
 package fiji.plugin.appose;
 
+import java.awt.EventQueue;
+import java.awt.Font;
+import java.awt.Window;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import javax.swing.JDialog;
+import javax.swing.JProgressBar;
+import javax.swing.WindowConstants;
 
 import org.scijava.Context;
 
@@ -66,6 +73,60 @@ public class ApposeUtils
 			if ( context == null )
 				context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
 			return context;
+		}
+	}
+
+	public static class ApposeLogger
+	{
+
+		private volatile JDialog progressDialog;
+
+		private volatile JProgressBar progressBar;
+
+		public void close()
+		{
+			EventQueue.invokeLater( () -> {
+				if ( progressDialog != null )
+					progressDialog.dispose();
+				progressDialog = null;
+			} );
+		}
+
+		public void showProgress( final String msg )
+		{
+			showProgress( msg, null, null );
+		}
+
+		public void showProgress( final String msg, final Long cur, final Long max )
+		{
+			EventQueue.invokeLater( () -> {
+				if ( progressDialog == null )
+				{
+					final Window owner = IJ.getInstance();
+					progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
+					progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+					progressBar = new JProgressBar();
+					progressDialog.getContentPane().add( progressBar );
+					progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
+					progressBar.setString(
+							"--------------------==================== " +
+									"Building Python environment " +
+									"====================--------------------" );
+					progressBar.setStringPainted( true );
+					progressBar.setIndeterminate( true );
+					progressDialog.pack();
+					progressDialog.setLocationRelativeTo( owner );
+					progressDialog.setVisible( true );
+				}
+				if ( msg != null && !msg.trim().isEmpty() )
+					progressBar.setString( "Building Python environment: " + msg.trim() );
+				if ( cur != null || max != null )
+					progressBar.setIndeterminate( false );
+				if ( max != null )
+					progressBar.setMaximum( max.intValue() );
+				if ( cur != null )
+					progressBar.setValue( cur.intValue() );
+			} );
 		}
 	}
 
@@ -222,7 +283,7 @@ public class ApposeUtils
 		System.out.println( "─".repeat( 50 ) );
 
 		inputs.forEach( ( key, value ) -> {
-				System.out.printf( "  %-20s: %s%n", key, value );
+			System.out.printf( "  %-20s: %s%n", key, value );
 		} );
 		System.out.println( "─".repeat( 50 ) );
 	}
@@ -244,7 +305,7 @@ public class ApposeUtils
 	{
 		if ( cp3_mode )
 			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
-		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) -1 );
+		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
 	}
 
 	public static void addROIs( final ImagePlus labels )
@@ -305,23 +366,23 @@ public class ApposeUtils
 		// no Z
 		if ( imp.getNSlices() == 1 )
 		{
-			if (imp.getNChannels() > 1 )
+			if ( imp.getNChannels() > 1 )
 			{
-				if (imp.getNFrames() > 1 )
+				if ( imp.getNFrames() > 1 )
 				{
-					//XYCT -> TCYX
+					// XYCT -> TCYX
 					return new ImageAxisInfo( null, 1, 0 );
 				}
-				//XYC -> CYX
+				// XYC -> CYX
 				return new ImageAxisInfo( null, 0, null );
 			}
-			
-			if (imp.getNFrames() > 1 )
+
+			if ( imp.getNFrames() > 1 )
 			{
-				//XYT -> TYX
+				// XYT -> TYX
 				return new ImageAxisInfo( null, null, 0 );
 			}
-			//XY
+			// XY
 			return new ImageAxisInfo( null, null, null );
 		}
 
