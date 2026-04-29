@@ -325,10 +325,8 @@ public class ApposeUtils
 	static
 	{
 		CUDA_VERSION_MAP = new HashMap<>();
-		CUDA_VERSION_MAP.put( "12.4", "126" );
-		CUDA_VERSION_MAP.put( "12.6", "126" );
-		CUDA_VERSION_MAP.put( "12.8", "126" );
-		// CUDA_VERSION_MAP.put( "13.0", "130" );  --- IGNORE --- feature not yet supported in the pixi.toml
+		CUDA_VERSION_MAP.put( "12", "126" );\
+		// CUDA_VERSION_MAP.put( "13", "130" );  --- IGNORE --- feature not yet supported in the pixi.toml
 	}
 
 	/**
@@ -339,7 +337,9 @@ public class ApposeUtils
 	 */
 	static String mapCudaVersion( final String rawVersion )
 	{
-		return CUDA_VERSION_MAP.get( rawVersion );
+		// Only pass the major version (e.g. "12" from "12.6") to the map, as minor versions are not distinguished in the pixi environments.
+		final String majorVersion = rawVersion.split( "\\." )[ 0 ];
+		return CUDA_VERSION_MAP.get( majorVersion );
 	}
 
 	public static String getBestTorchConfig()
