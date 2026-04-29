@@ -1,9 +1,17 @@
 package fiji.plugin.appose.cellpose.cp3;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import fiji.plugin.appose.ImageAxisInfo;
+import net.imagej.ImgPlus;
+import net.imglib2.appose.NDArrays;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.RealType;
 
 /**
- * Data class to hold parameters for Cellpose segmentation.
+ * Data class to hold parameters for Cellpose 3 segmentation.
  */
 public record Cellpose3Parameters(
 		// Core parameters
@@ -33,7 +41,7 @@ public record Cellpose3Parameters(
 		int flow3dSmooth,
 		int nIter )
 {
-	// Default constructor with validation
+	// Default constructor with minimal validation
 	public Cellpose3Parameters
 	{
 		// Validate channels
@@ -45,6 +53,47 @@ public record Cellpose3Parameters(
 		{ // 0 is allowed for auto-diameter
 			throw new IllegalArgumentException( "Diameter must be positive or 0 for auto-detection" );
 		}
+	}
+
+	/**
+	 * Creates a parameters map suitable for passing to Appose, using the
+	 * specified image as input, and the parameter values stored in this object.
+	 * 
+	 * @param <T>
+	 *            the pixel type of the input image.
+	 * @param img
+	 *            the input image.
+	 * @return a new map.
+	 */
+	public < T extends RealType< T > & NativeType< T > > Map< String, Object > toApposeMap( final ImgPlus< T > img )
+	{
+		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
+
+		final Map< String, Object > inputs = new HashMap<>();
+		inputs.put( "image", NDArrays.asNDArray( img ) );
+		inputs.put( "use_3D", do3D() );
+		// return null if custom model
+		final String customModel = customModel();
+		final boolean isBuiltInModel = customModel == null || customModel.equals( "" );
+		inputs.put( "model", isBuiltInModel ? buitInModel().modelName() : null );
+		inputs.put( "custom_model", isBuiltInModel ? null : customModel );
+		inputs.put( "diameter", diameter() );
+		inputs.put( "cell_channel", channels().get( 0 ) );
+		inputs.put( "nuclei_channel", channels().get( 1 ) );
+		inputs.put( "t_axis", axisInfo.time_axis );
+		inputs.put( "stitch_threshold", stitchThreshold() );
+		inputs.put( "z_axis", axisInfo.z_axis );
+		inputs.put( "anisotropy", anisotropy() );
+		inputs.put( "compute_flows", computeFlows() );
+		inputs.put( "resample", resample() );
+		inputs.put( "normalize", normalize() );
+		inputs.put( "flow_threshold", flowThreshold() );
+		inputs.put( "cellprob_threshold", cellProbThreshold() );
+		inputs.put( "min_size", minSize() );
+		inputs.put( "tile_overlap", tileOverlap() );
+		inputs.put( "flow3D_smooth", flow3dSmooth() );
+		inputs.put( "niter", nIter() <= 0 ? null : nIter() );
+		return inputs;
 	}
 
 	// Static builder method for convenience
