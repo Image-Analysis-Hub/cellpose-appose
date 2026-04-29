@@ -131,42 +131,7 @@ public class ApposeUtils
 		return imp.getNSlices() > 1;
 	}
 
-	/**
-	 * Returns the position at which the Z axis should be in python
-	 * 
-	 * @param imp
-	 * @return
-	 */
-	public static Object getZAxis( final ImagePlus imp )
-	{
-		// print info about the image in the log
-		System.out.println( "─".repeat( 50 ) );
-		System.out.println( "Image dimension: " );
-		System.out.println( "\t" + imp.getNSlices() + " Z slices" );
-		System.out.println( "\t" + imp.getNChannels() + " C channels" );
-		System.out.println( "\t" + imp.getNFrames() + " T frames" );
-		System.out.println( "─".repeat( 50 ) );
-
-		// 2D, easy peasy
-		if ( imp.getNSlices() == 1 )
-			return null;
-
-		// 5D -> TZCYX
-		if ( imp.getNDimensions() == 5 )
-			return 1;
-		// Now, 3D or 4D
-		if ( imp.getNDimensions() == 3 )
-		{
-			// ZYX
-			return 0;
-		}
-		// if Z and T, TZYX
-		if ( imp.getNFrames() > 1 )
-			return 1;
-		// XYZC is left -> Z,C,Y,X
-		return 0;
-	}
-
+	
 	/**
 	 * Displays the parameters used in a formatted manner
 	 * 
