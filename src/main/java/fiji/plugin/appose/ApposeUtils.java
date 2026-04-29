@@ -32,11 +32,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
 import javax.swing.WindowConstants;
 
+import org.apposed.appose.TaskEvent;
 import org.scijava.Context;
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
@@ -49,6 +51,8 @@ import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
+import net.imagej.ImgPlusMetadata;
+import net.imagej.axis.Axes;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.real.DoubleType;
 
@@ -74,6 +78,29 @@ public class ApposeUtils
 				context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
 			return context;
 		}
+	}
+
+	/**
+	 * Forwards Appose task events to a {@link org.scijava.task.Task}, so that
+	 * the progress is properly displayed in the UI.
+	 * 
+	 * @param fijiTask
+	 *            the Fiji task to update with Appose task events.
+	 * @return a consumer of Appose task events that updates the given task
+	 *         accordingly.
+	 */
+	public static Consumer< TaskEvent > apposeTaskListener( final org.scijava.task.Task fijiTask )
+	{
+		return e -> {
+			if ( e.message != null )
+				fijiTask.setStatusMessage( e.message );
+
+			if ( e.current >= 0 )
+				fijiTask.setProgressValue( e.current );
+
+			if ( e.maximum >= 0 )
+				fijiTask.setProgressMaximum( e.maximum );
+		};
 	}
 
 	public static class ApposeLogger
@@ -225,6 +252,43 @@ public class ApposeUtils
 		tc.pixelWidth = fc.pixelWidth;
 		tc.pixelHeight = fc.pixelHeight;
 		tc.pixelDepth = fc.pixelDepth;
+	}
+
+	/**
+	 * Transfers the calibration of an {@link ImgPlus} to an {@link ImagePlus}.
+	 * This include units, pixel sizes and frame interval. Y is supposed to be
+	 * the same as X, and Z is supposed to have the same unit as X.
+	 * 
+	 * @param from
+	 *            the ImgPlus to copy calibration info from.
+	 * @param to
+	 *            the ImagePlus to copy to.
+	 */
+	public static final void transferCalibration( final ImgPlusMetadata from, final ImagePlus to )
+	{
+		final Calibration tc = to.getCalibration();
+		for ( int d = 0; d < from.numDimensions(); d++ )
+		{
+			if ( from.axis( d ).type().equals( Axes.X ) )
+			{
+				tc.setXUnit( from.axis( d ).unit() );
+				tc.pixelWidth = from.averageScale( d );
+				tc.pixelHeight = from.averageScale( d );
+				// We suppose X = Y and same units for Z.
+				break;
+			}
+			else if ( from.axis( d ).type().equals( Axes.Z ) )
+			{
+				tc.pixelDepth = from.averageScale( d );
+				break;
+			}
+			else if ( from.axis( d ).type().equals( Axes.TIME ) )
+			{
+				tc.setTimeUnit( from.axis( d ).unit() );
+				tc.frameInterval = from.averageScale( d );
+				break;
+			}
+		}
 	}
 
 	/*
