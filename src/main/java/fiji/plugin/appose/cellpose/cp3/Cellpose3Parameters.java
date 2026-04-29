@@ -24,7 +24,14 @@ public record Cellpose3Parameters(
 
 		// Optional parameters for 3D stitching
 		double anisotropy,
-		double stitchThreshold )
+		double stitchThreshold,
+
+		// More advanced parameters
+		boolean resample,
+		double tileOverlap,
+		boolean computeFlows,
+		int flow3dSmooth,
+		int nIter )
 {
 	// Default constructor with validation
 	public Cellpose3Parameters
@@ -154,7 +161,8 @@ public record Cellpose3Parameters(
 			return new Cellpose3Parameters(
 					model, customModel, diameter, do3D, channels, normalize,
 					flowThreshold, cellProbThreshold, useGpu, minSize,
-					anisotropy, stitchThreshold );
+					anisotropy, stitchThreshold, resample, tileOverlap,
+					computeFlows, flow3dSmooth, nIter );
 		}
 
 		public Builder anisotropy( final double anisotropy )
@@ -166,6 +174,30 @@ public record Cellpose3Parameters(
 		public Builder stitchThreshold( final double stitchThreshold )
 		{
 			this.stitchThreshold = stitchThreshold;
+			return this;
+		}
+
+		public Builder resample( final boolean resample )
+		{
+			this.resample = resample;
+			return this;
+		}
+
+		public Builder computeFlows( final boolean computeFlows )
+		{
+			this.computeFlows = computeFlows;
+			return this;
+		}
+
+		public Builder flow3dSmooth( final int flow3dSmooth )
+		{
+			this.flow3dSmooth = flow3dSmooth;
+			return this;
+		}
+
+		public Builder nIter( final int nIter )
+		{
+			this.nIter = nIter;
 			return this;
 		}
 	}
