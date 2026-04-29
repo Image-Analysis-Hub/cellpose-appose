@@ -12,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.swing.JDialog;
@@ -83,10 +87,6 @@ public class ApposeUtils
 		};
 	}
 
-	/**
-	 * A simple logger to use for reporting messages when creating an Appose
-	 * environment.
-	 */
 	public static class ApposeLogger
 	{
 
@@ -94,9 +94,20 @@ public class ApposeUtils
 
 		private volatile JProgressBar progressBar;
 
+		private volatile ScheduledFuture< ? > delayedShowTask;
+
+		private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
+
 		public void close()
 		{
 			EventQueue.invokeLater( () -> {
+				// Cancel the delayed show if it hasn't run yet
+				if ( delayedShowTask != null )
+				{
+					delayedShowTask.cancel( false );
+					delayedShowTask = null;
+				}
+
 				if ( progressDialog != null )
 					progressDialog.dispose();
 				progressDialog = null;
@@ -113,35 +124,56 @@ public class ApposeUtils
 			EventQueue.invokeLater( () -> {
 				if ( progressDialog == null )
 				{
-					// Delay start. Show this only after 1 second, to avoid
-					// flashing a dialog for very fast operations.
-
-
-					final Window owner = IJ.getInstance();
-					progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
-					progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
-					progressBar = new JProgressBar();
-					progressDialog.getContentPane().add( progressBar );
-					progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
-					progressBar.setString(
-							"--------------------==================== " +
-									"Building Python environment " +
-									"====================--------------------" );
-					progressBar.setStringPainted( true );
-					progressBar.setIndeterminate( true );
-					progressDialog.pack();
-					progressDialog.setLocationRelativeTo( owner );
-					progressDialog.setVisible( true );
+					// Schedule the dialog to appear after 1 second
+					if ( delayedShowTask == null )
+					{
+						delayedShowTask = scheduler.schedule( () -> {
+							EventQueue.invokeLater( () -> {
+								if ( progressDialog == null )
+								{
+									createAndShowDialog();
+								}
+							} );
+						}, 1, TimeUnit.SECONDS );
+					}
+					return; // Don't update yet, dialog not visible
 				}
-				if ( msg != null && !msg.trim().isEmpty() )
-					progressBar.setString( "Building Python environment: " + msg.trim() );
-				if ( cur != null || max != null )
-					progressBar.setIndeterminate( false );
-				if ( max != null )
-					progressBar.setMaximum( max.intValue() );
-				if ( cur != null )
-					progressBar.setValue( cur.intValue() );
+
+				// Update existing dialog
+				updateProgressBar( msg, cur, max );
 			} );
+		}
+
+		private void createAndShowDialog()
+		{
+			final Window owner = IJ.getInstance();
+			progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
+			progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+			progressBar = new JProgressBar();
+			progressDialog.getContentPane().add( progressBar );
+			progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
+			progressBar.setString(
+					"--------------------==================== " +
+							"Building Python environment " +
+							"====================--------------------" );
+			progressBar.setStringPainted( true );
+			progressBar.setIndeterminate( true );
+			progressDialog.pack();
+			progressDialog.setLocationRelativeTo( owner );
+			progressDialog.setVisible( true );
+			delayedShowTask = null;
+		}
+
+		private void updateProgressBar( final String msg, final Long cur, final Long max )
+		{
+			if ( msg != null && !msg.trim().isEmpty() )
+				progressBar.setString( "Building Python environment: " + msg.trim() );
+			if ( cur != null || max != null )
+				progressBar.setIndeterminate( false );
+			if ( max != null )
+				progressBar.setMaximum( max.intValue() );
+			if ( cur != null )
+				progressBar.setValue( cur.intValue() );
 		}
 	}
 
