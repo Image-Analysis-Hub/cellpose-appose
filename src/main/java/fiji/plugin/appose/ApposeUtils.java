@@ -273,19 +273,10 @@ public class ApposeUtils
 	}
 
 	/**
-	 * Returns the CUDA version available on the system by inspecting
-	 * environment variables, or {@code null} if CUDA is not available or the
+	 * Returns the CUDA version available on the system by querying
+	 * {@code nvcc --version}, or {@code null} if CUDA is not available or the
 	 * OS is macOS. The returned value is already mapped to the pixi environment
 	 * suffix (e.g. {@code "126"}, {@code "130"}).
-	 * <p>
-	 * Detection strategy (in order):
-	 * <ol>
-	 * <li>Versioned env vars set by the Windows CUDA installer, e.g.
-	 * {@code CUDA_PATH_V12_6}.</li>
-	 * <li>The {@code CUDA_PATH} or {@code CUDA_HOME} path, which typically
-	 * contains the version, e.g. {@code /usr/local/cuda-12.6} or
-	 * {@code ...\v12.6}.</li>
-	 * </ol>
 	 *
 	 * @return a pixi suffix string such as {@code "126"}, or {@code null}.
 	 */
@@ -293,31 +284,31 @@ public class ApposeUtils
 	{
 		if ( getOperatingSystem() == OperatingSystem.MACOS )
 			return null;
-
-		// 1. Check versioned env vars set by the CUDA installer on Windows,
-		//    e.g. CUDA_PATH_V12_6 or CUDA_PATH_V12_8 → "126"
-		for ( final Map.Entry< String, String > entry : CUDA_VERSION_MAP.entrySet() )
+		try
 		{
-			final String envVar = "CUDA_PATH_V" + entry.getKey().replace( ".", "_" );
-			if ( System.getenv( envVar ) != null )
-				return entry.getValue();
-		}
-
-		// 2. Parse CUDA_PATH or CUDA_HOME for a version substring,
-		//    e.g. /usr/local/cuda-12.6 or C:\...\CUDA\v12.6
-		for ( final String envName : new String[] { "CUDA_PATH", "CUDA_HOME" } )
-		{
-			final String path = System.getenv( envName );
-			if ( path != null )
+			final ProcessBuilder pb = new ProcessBuilder( "nvcc", "--version" );
+			pb.redirectErrorStream( true );
+			final Process process = pb.start();
+			final StringBuilder output = new StringBuilder();
+			try ( BufferedReader reader = new BufferedReader(
+					new InputStreamReader( process.getInputStream() ) ) )
 			{
-				final Matcher m = Pattern
-						.compile( "(?:cuda[_-]|\\bv)(\\d+\\.\\d+)", Pattern.CASE_INSENSITIVE )
-						.matcher( path );
-				if ( m.find() )
-					return mapCudaVersion( m.group( 1 ) );
+				String line;
+				while ( ( line = reader.readLine() ) != null )
+					output.append( line ).append( "\n" );
 			}
+			process.waitFor();
+			// nvcc --version contains e.g. "Cuda compilation tools, release 12.6, V12.6.20"
+			final Matcher m = Pattern
+					.compile( "release\\s+(\\d+\\.\\d+)" )
+					.matcher( output );
+			if ( m.find() )
+				return mapCudaVersion( m.group( 1 ) );
 		}
-
+		catch ( final IOException | InterruptedException e )
+		{
+			// nvcc not found or failed — CUDA not available
+		}
 		return null;
 	}
 
