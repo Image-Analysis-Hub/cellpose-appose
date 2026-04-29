@@ -74,11 +74,14 @@ public class CellposeOptions implements Command
 		String cversion = prefService.get(CellposeOptions.class, "backend_version");
 		String code = versions_map.get(cversion);
 
-		// Replace the index URL in the pixi environment specification according to the selected CUDA version. 
-		// - Default pixi env configuration is for CUDA 12.6 for windows and linux
-		// - If the user does not have CUDA device, then he should select "CPU" 
-		env = env.replace( "\"https://download.pytorch.org/whl/cu126\"", "\"https://download.pytorch.org/whl/"+code+"\""); 
-	
+		if (code != null) {
+			System.err.println("Using " + cversion + " (" + code + ")");
+			// Replace the index URL in the pixi environment specification according to the selected CUDA version. 
+			// - Default pixi env configuration is for CUDA 12.6 for windows and linux
+			// - If the user does not have CUDA device, then he should select "CPU" 
+			env = env.replace( "\"https://download.pytorch.org/whl/cu126\"", "\"https://download.pytorch.org/whl/"+code+"\""); 
+		}
+
 		return env;
 	}
 	
