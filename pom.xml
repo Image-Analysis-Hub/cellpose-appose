@@ -101,7 +101,7 @@
 		<package-name>fiji.plugin.appose.cellpose</package-name>
 		<main-class>fiji.plugin.appose.cellpose.CellposeAppose</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
-		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
+		<license.copyrightOwners>Appose developpers</license.copyrightOwners>
 
 		<!-- Use Java 21. -->
 		<scijava.jvm.version>21</scijava.jvm.version>
