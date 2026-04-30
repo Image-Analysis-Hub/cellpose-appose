@@ -359,8 +359,8 @@ public class ApposeUtils
 	public static Integer convertChannelChoiceToInt( final String input, final boolean cp3_mode )
 	{
 		if ( cp3_mode )
-			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
-		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
+			return Objects.equals( input, "None" ) ? -1 : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? -1 : Integer.parseInt( input ) ) );
+		return Objects.equals( input, "None" ) ? -1 : ( input == null ? -1 : Integer.parseInt( input ) - 1 );
 	}
 
 	public static void addROIs( final ImagePlus labels )
@@ -520,7 +520,7 @@ public class ApposeUtils
 	{
 		CUDA_VERSION_MAP = new HashMap<>();
 		CUDA_VERSION_MAP.put( "12", "126" );
-		// CUDA_VERSION_MAP.put( "13", "130" );  --- IGNORE --- feature not yet supported in the pixi.toml
+		CUDA_VERSION_MAP.put( "13", "130" ); 
 	}
 
 	/**
