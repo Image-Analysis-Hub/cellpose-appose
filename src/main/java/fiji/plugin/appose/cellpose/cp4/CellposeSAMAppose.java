@@ -1,6 +1,14 @@
 
 package fiji.plugin.appose.cellpose.cp4;
 
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
+import static fiji.plugin.appose.ApposeUtils.rawWraps;
+import static fiji.plugin.appose.ApposeUtils.transferCalibration;
+import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
+import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
+
+import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Window;
@@ -35,15 +43,14 @@ import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 import fiji.plugin.appose.ImageAxisInfo;
+import fiji.plugin.appose.cellpose.Cellpose;
+import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
+import ij.plugin.frame.RoiManager;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.NDArrays;
@@ -137,6 +144,17 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	
 	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
 	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
+	// ---------
+	
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>System Information</b></html>")
+    private final String sysMsg = "<html><hr width='100'></html>";
+
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="")
+    private final String osInfo = System.getProperty( "os.name" ) + " " + System.getProperty( "os.arch" );
+
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="Device Information")
+	private final String deviceInfo = getCudaVersion() != null ? "CUDA " + getCudaVersion() : "CPU";
 
 	// ---------
 	
@@ -277,229 +295,271 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Print os and arch info
 		System.out.println( "Starting process..." );
 
-		// Fetch the pixi environment specification
-		final String cellposeEnv = pixiEnv();
-		
-		// Load python scripts from resources
-		final String utilsScript = IOUtils.toString(
-				getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
-		final String cp3Script = IOUtils.toString(
-				getClass().getResource( "/cp4.py" ), StandardCharsets.UTF_8 );
-
-		/*
-		 * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
-		 * into an Appose NDArray, which is a shared memory array that can be
-		 * passed to Python without copying the data.
-		 *
-		 * As an ImagePlus is not mapped on a shared memory array, the ImgLib2
-		 * image wrapping the ImagePlus is actually copied to a shared memory
-		 * image (the ShmImg) when we wrap it into an NDArray. This is because
-		 * the NDArray needs to be backed by a shared memory array in order to
-		 * be passed to Python without copying the data. We could have avoided
-		 * this copy by directly loading the image into a ShmImg in the first
-		 * place, but for simplicity we start with an ImagePlus and show how to
-		 * wrap it into a shared memory array.
-		 */
-
-		// Wrap the ImagePlus into a ImgLib2 image.
-		final ImgPlus< T > img = rawWraps( imp );
-
-		// Add inputs and parameters to a map, that will be sent to the Python script. 
-		// - The keys of the map should match the argument names of the Python script (see cp3.py for this example).
-		final Map< String, Object > inputs = new HashMap<>();
-		inputs.put( "image", NDArrays.asNDArray( img ) );
-		inputs.put( "use_3D", use3d );
-		inputs.put( "custom_model", ( custom_model.equals("") ) ? null : custom_model );
-		inputs.put( "diameter", cell_diameter );
-		inputs.put( "stitch_threshold", stitch_threshold );
-		inputs.put( "z_axis", axis_info.z_axis );
-		inputs.put( "channel_axis", axis_info.channel_axis );
-		inputs.put( "time_axis", axis_info.time_axis );
-		inputs.put( "anisotropy", anisotropy );
-		inputs.put( "compute_flows", compute_flows );
-		inputs.put( "resample", resample );
-		inputs.put( "normalize", normalize );
-		inputs.put( "flow_threshold", flow_threshold );
-		inputs.put( "cellprob_threshold", cellprob_threshold );
-		inputs.put( "min_size", min_size );
-		inputs.put( "tile_overlap", tile_overlap );
-		inputs.put( "flow3D_smooth", flow3d_smooth );
-		inputs.put( "niter", niter==0?null:niter );
-		inputs.put( "n_channels", imp.getNChannels() );
-		inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
-		inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );
-		inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2, false ) );
-
-		// Print out the parameters for debugging
-		ApposeUtils.displayParameters( inputs );
-
-		String envSuffix = getBestTorchConfig();
-		// System.err.println("Selected environment suffix used: " + envSuffix);
-
-		// Install the environment if needed
-		final Environment env = Appose // the builder
-				.pixi() // we chose pixi as the environment manager
-				.content( cellposeEnv ) // specify the environment with the
-				// string defined above
-				.subscribeProgress( this::showProgress ) // report progress
-				// visually
-				.subscribeOutput( this::showProgress ) // report output visually
-				.subscribeError( IJ::log ) // log problems
-				.environment( "cp4"+envSuffix )
-				.build(); // create the environment
-		hideProgress();
-
-		// Using this environment, we create a service that will run the Python
-		try (Service python = env.python().init( utilsScript ))
+		try
 		{
-			final Task task = python.task( cp3Script, inputs );
+			final Cellpose4Parameters params = Cellpose4Parameters.builder()
+					.customModel(custom_model)
+					.diameter(cell_diameter)
+					.chan0( ApposeUtils.convertChannelChoiceToInt( chan0, false).intValue() )
+					.chan1( ApposeUtils.convertChannelChoiceToInt( chan1, false).intValue() )
+					.chan2( ApposeUtils.convertChannelChoiceToInt( chan2, false).intValue() )
+					.minSize( min_size )
+					.normalize( normalize )
+					.resample( resample )
+					.cellProbThreshold( cellprob_threshold )
+					.flowThreshold( flow_threshold )
+					.tileOverlap( tile_overlap )
+					.computeFlows( compute_flows )
+					.do3D( use3d )
+					.stitchThreshold( stitch_threshold )
+					.flow3dSmooth( flow3d_smooth )
+					.nIter( niter )
+					.build();
 
-			// Start the script, and return to Java immediately.
-			System.out.println( "Starting Cellpose-Appose task..." );
-			final long start = System.currentTimeMillis();
-
-			// To catch update message from the python script
-			task.listen( e -> {
-				if ( e.message != null )
-				{
-					this.fijiTask.setStatusMessage( e.message );
-					//System.out.println(e.message);
-				}
-				if ( e.current >= 0 )
-				{
-					this.fijiTask.setProgressValue( e.current );
-				}
-				if ( e.maximum >= 0 )
-				{
-					this.fijiTask.setProgressMaximum( e.maximum );
-				}
-			} );
-			task.start();
-
-			// Block Java thread until the python script is done
-			task.waitFor();
-
-			// close the fiji task when python is done
-			this.fijiTask.finish();
-
-			// Verify that it worked.
-			if ( task.status != TaskStatus.COMPLETE )
-				throw new RuntimeException( "Python script failed with error: " + task.error );
-
-			// Benchmark.
-			final long end = System.currentTimeMillis();
-			System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
-
-			// Unwrap the output back into an ImagePlus and display it. 
-			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
-			final Img< T > output = new ShmImg<>( maskArr );
-			final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-
-			StackStatistics stats = new StackStatistics(labels);
-			labels.setDisplayRange(stats.min, stats.max);
-			useGlasbeyDarkLUT( labels );
-			transferCalibration( imp, labels );
-			labels.show();
-
-			// Optionally add ROIs to the ROI manager if the user selected this option (only for 2D images)
+			final ImagePlus[] outputs = Cellpose.cellpose4( imp, params );
+			
+			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				ApposeUtils.addROIs( labels );
+				ApposeUtils.addROIs( labels, "Cellpose-4", Color.YELLOW );
+				RoiManager.getInstance2().runCommand( "Show All" );
 			}
+			labels.show();
 
-			// Optionally display flows if the user selected this option (only for 2D images)
-			if ( compute_flows )
+			if ( compute_flows && outputs.length > 1 )
 			{
-				// RGB image returned
-				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
-				final Img< T > flows = new ShmImg<>( flowsArr );
-				final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
-				flowsImp.getProcessor().resetMinAndMax();
-				transferCalibration( imp, flowsImp );
-				flowsImp.show();
+				final ImagePlus flows = outputs[ 1 ];
+				flows.show();
 			}
-
 		}
 		catch ( final Exception e )
 		{
 			IJ.handleException( e );
-		}
-	}
+		}	
 
-	/*
-	 * Fetch the pixi environment specification.
-	 *
-	 * This is a YAML specification of a pixi environment, that specifies the
-	 * dependencies that we need in Python to run our script.
-	 */
-	private String pixiEnv()
-	{
-		String env = "";
-		try
-		{
-			final URL pixiFile = this.getClass().getResource( "/pixi.toml" );
-			env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
-
-		}
-		catch ( final IOException e )
-		{
-			e.printStackTrace();
-		}
+		// // Fetch the pixi environment specification
+		// final String cellposeEnv = pixiEnv();
 		
-		return env;
+		// // Load python scripts from resources
+		// final String utilsScript = IOUtils.toString(
+		// 		getClass().getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
+		// final String cp3Script = IOUtils.toString(
+		// 		getClass().getResource( "/cp4.py" ), StandardCharsets.UTF_8 );
+
+		// /*
+		//  * The following wraps an ImageJ ImagePlus into an ImgLib2 Img, and then
+		//  * into an Appose NDArray, which is a shared memory array that can be
+		//  * passed to Python without copying the data.
+		//  *
+		//  * As an ImagePlus is not mapped on a shared memory array, the ImgLib2
+		//  * image wrapping the ImagePlus is actually copied to a shared memory
+		//  * image (the ShmImg) when we wrap it into an NDArray. This is because
+		//  * the NDArray needs to be backed by a shared memory array in order to
+		//  * be passed to Python without copying the data. We could have avoided
+		//  * this copy by directly loading the image into a ShmImg in the first
+		//  * place, but for simplicity we start with an ImagePlus and show how to
+		//  * wrap it into a shared memory array.
+		//  */
+
+		// // Wrap the ImagePlus into a ImgLib2 image.
+		// final ImgPlus< T > img = rawWraps( imp );
+
+		// // Add inputs and parameters to a map, that will be sent to the Python script. 
+		// // - The keys of the map should match the argument names of the Python script (see cp3.py for this example).
+		// final Map< String, Object > inputs = new HashMap<>();
+		// inputs.put( "image", NDArrays.asNDArray( img ) );
+		// inputs.put( "use_3D", use3d );
+		// inputs.put( "custom_model", ( custom_model.equals("") ) ? null : custom_model );
+		// inputs.put( "diameter", cell_diameter );
+		// inputs.put( "stitch_threshold", stitch_threshold );
+		// inputs.put( "z_axis", axis_info.z_axis );
+		// inputs.put( "channel_axis", axis_info.channel_axis );
+		// inputs.put( "time_axis", axis_info.time_axis );
+		// inputs.put( "anisotropy", anisotropy );
+		// inputs.put( "compute_flows", compute_flows );
+		// inputs.put( "resample", resample );
+		// inputs.put( "normalize", normalize );
+		// inputs.put( "flow_threshold", flow_threshold );
+		// inputs.put( "cellprob_threshold", cellprob_threshold );
+		// inputs.put( "min_size", min_size );
+		// inputs.put( "tile_overlap", tile_overlap );
+		// inputs.put( "flow3D_smooth", flow3d_smooth );
+		// inputs.put( "niter", niter==0?null:niter );
+		// inputs.put( "n_channels", imp.getNChannels() );
+		// inputs.put( "chan0", ( chan0 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan0, false) );
+		// inputs.put( "chan1", ( chan1 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan1, false ) );
+		// inputs.put( "chan2", ( chan2 == null ) ? null : ApposeUtils.convertChannelChoiceToInt( chan2, false ) );
+
+		// // Print out the parameters for debugging
+		// ApposeUtils.displayParameters( inputs );
+
+		// String envSuffix = getBestTorchConfig();
+		// // System.err.println("Selected environment suffix used: " + envSuffix);
+
+		// // Install the environment if needed
+		// final Environment env = Appose // the builder
+		// 		.pixi() // we chose pixi as the environment manager
+		// 		.content( cellposeEnv ) // specify the environment with the
+		// 		// string defined above
+		// 		.subscribeProgress( this::showProgress ) // report progress
+		// 		// visually
+		// 		.subscribeOutput( this::showProgress ) // report output visually
+		// 		.subscribeError( IJ::log ) // log problems
+		// 		.environment( "cp4"+envSuffix )
+		// 		.build(); // create the environment
+		// hideProgress();
+
+		// // Using this environment, we create a service that will run the Python
+		// try (Service python = env.python().init( utilsScript ))
+		// {
+		// 	final Task task = python.task( cp3Script, inputs );
+
+		// 	// Start the script, and return to Java immediately.
+		// 	System.out.println( "Starting Cellpose-Appose task..." );
+		// 	final long start = System.currentTimeMillis();
+
+		// 	// To catch update message from the python script
+		// 	task.listen( e -> {
+		// 		if ( e.message != null )
+		// 		{
+		// 			this.fijiTask.setStatusMessage( e.message );
+		// 			//System.out.println(e.message);
+		// 		}
+		// 		if ( e.current >= 0 )
+		// 		{
+		// 			this.fijiTask.setProgressValue( e.current );
+		// 		}
+		// 		if ( e.maximum >= 0 )
+		// 		{
+		// 			this.fijiTask.setProgressMaximum( e.maximum );
+		// 		}
+		// 	} );
+		// 	task.start();
+
+		// 	// Block Java thread until the python script is done
+		// 	task.waitFor();
+
+		// 	// close the fiji task when python is done
+		// 	this.fijiTask.finish();
+
+		// 	// Verify that it worked.
+		// 	if ( task.status != TaskStatus.COMPLETE )
+		// 		throw new RuntimeException( "Python script failed with error: " + task.error );
+
+		// 	// Benchmark.
+		// 	final long end = System.currentTimeMillis();
+		// 	System.out.println( "Task finished in " + ( end - start ) / 1000. + " s" );
+
+		// 	// Unwrap the output back into an ImagePlus and display it. 
+		// 	final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
+		// 	final Img< T > output = new ShmImg<>( maskArr );
+		// 	final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
+
+		// 	StackStatistics stats = new StackStatistics(labels);
+		// 	labels.setDisplayRange(stats.min, stats.max);
+		// 	useGlasbeyDarkLUT( labels );
+		// 	transferCalibration( imp, labels );
+		// 	labels.show();
+
+		// 	// Optionally add ROIs to the ROI manager if the user selected this option (only for 2D images)
+		// 	if ( return_ROIs )
+		// 	{
+		// 		ApposeUtils.addROIs( labels );
+		// 	}
+
+		// 	// Optionally display flows if the user selected this option (only for 2D images)
+		// 	if ( compute_flows )
+		// 	{
+		// 		// RGB image returned
+		// 		final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
+		// 		final Img< T > flows = new ShmImg<>( flowsArr );
+		// 		final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
+		// 		flowsImp.getProcessor().resetMinAndMax();
+		// 		transferCalibration( imp, flowsImp );
+		// 		flowsImp.show();
+		// 	}
+
+		// }
+		// catch ( final Exception e )
+		// {
+		// 	IJ.handleException( e );
+		// }
 	}
+
+	// /*
+	//  * Fetch the pixi environment specification.
+	//  *
+	//  * This is a YAML specification of a pixi environment, that specifies the
+	//  * dependencies that we need in Python to run our script.
+	//  */
+	// private String pixiEnv()
+	// {
+	// 	String env = "";
+	// 	try
+	// 	{
+	// 		final URL pixiFile = this.getClass().getResource( "/pixi.toml" );
+	// 		env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
+
+	// 	}
+	// 	catch ( final IOException e )
+	// 	{
+	// 		e.printStackTrace();
+	// 	}
+		
+	// 	return env;
+	// }
 
 	// Helper functions to display progress while building the Appose
 	// environment.
 	// Temporary solution until Appose has a nicer built-in way to do this.
 
-	private volatile JDialog progressDialog;
+	// private volatile JDialog progressDialog;
 
-	private volatile JProgressBar progressBar;
+	// private volatile JProgressBar progressBar;
 
-	private void showProgress( final String msg )
-	{
-		showProgress( msg, null, null );
-	}
+	// private void showProgress( final String msg )
+	// {
+	// 	showProgress( msg, null, null );
+	// }
 
-	private void showProgress( final String msg, final Long cur, final Long max )
-	{
-		EventQueue.invokeLater( () -> {
-			if ( progressDialog == null )
-			{
-				final Window owner = IJ.getInstance();
-				progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
-				progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
-				progressBar = new JProgressBar();
-				progressDialog.getContentPane().add( progressBar );
-				progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
-				progressBar.setString(
-						"--------------------==================== " +
-								"Building Python environment " +
-								"====================--------------------" );
-				progressBar.setStringPainted( true );
-				progressBar.setIndeterminate( true );
-				progressDialog.pack();
-				progressDialog.setLocationRelativeTo( owner );
-				progressDialog.setVisible( true );
-			}
-			if ( msg != null && !msg.trim().isEmpty() )
-				progressBar.setString( "Building Python environment: " + msg.trim() );
-			if ( cur != null || max != null )
-				progressBar.setIndeterminate( false );
-			if ( max != null )
-				progressBar.setMaximum( max.intValue() );
-			if ( cur != null )
-				progressBar.setValue( cur.intValue() );
-		} );
-	}
+	// private void showProgress( final String msg, final Long cur, final Long max )
+	// {
+	// 	EventQueue.invokeLater( () -> {
+	// 		if ( progressDialog == null )
+	// 		{
+	// 			final Window owner = IJ.getInstance();
+	// 			progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
+	// 			progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
+	// 			progressBar = new JProgressBar();
+	// 			progressDialog.getContentPane().add( progressBar );
+	// 			progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
+	// 			progressBar.setString(
+	// 					"--------------------==================== " +
+	// 							"Building Python environment " +
+	// 							"====================--------------------" );
+	// 			progressBar.setStringPainted( true );
+	// 			progressBar.setIndeterminate( true );
+	// 			progressDialog.pack();
+	// 			progressDialog.setLocationRelativeTo( owner );
+	// 			progressDialog.setVisible( true );
+	// 		}
+	// 		if ( msg != null && !msg.trim().isEmpty() )
+	// 			progressBar.setString( "Building Python environment: " + msg.trim() );
+	// 		if ( cur != null || max != null )
+	// 			progressBar.setIndeterminate( false );
+	// 		if ( max != null )
+	// 			progressBar.setMaximum( max.intValue() );
+	// 		if ( cur != null )
+	// 			progressBar.setValue( cur.intValue() );
+	// 	} );
+	// }
 
-	private void hideProgress()
-	{
-		EventQueue.invokeLater( () -> {
-			if ( progressDialog != null )
-				progressDialog.dispose();
-			progressDialog = null;
-		} );
-	}
+	// private void hideProgress()
+	// {
+	// 	EventQueue.invokeLater( () -> {
+	// 		if ( progressDialog != null )
+	// 			progressDialog.dispose();
+	// 		progressDialog = null;
+	// 	} );
+	// }
 }
