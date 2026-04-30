@@ -304,8 +304,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			final List<Integer> channels = List.of( 
-				ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ).intValue(), 
-				ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ).intValue() );
+				ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ), 
+				ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ));
 
 			final Cellpose3Parameters params = Cellpose3Parameters.builder()
 					.model(cp_model)

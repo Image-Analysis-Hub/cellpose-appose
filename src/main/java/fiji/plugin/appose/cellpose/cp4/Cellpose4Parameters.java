@@ -12,16 +12,16 @@ import net.imglib2.type.numeric.RealType;
 public class Cellpose4Parameters extends CellposeParameters
 {
 
-	public final int chan0;
+	public final Integer chan0; // as Integer so that it can be null
 
-	public final int chan1;
+	public final Integer chan1;
 
-	public final int chan2;
+	public final Integer chan2;
 
 	private Cellpose4Parameters(
-			final int chan0,
-			final int chan1,
-			final int chan2,
+			final Integer chan0,
+			final Integer chan1,
+			final Integer chan2,
 			final String customModel,
 			final double diameter,
 			final boolean do3D,
@@ -66,9 +66,9 @@ public class Cellpose4Parameters extends CellposeParameters
 
 		final Map< String, Object > inputs = super.toApposeMap( img );
 		inputs.put( "n_channels", nChannels );
-		inputs.put( "chan0", ( chan0 < 0 ) ? null : chan0 );
-		inputs.put( "chan1", ( chan1 < 0 ) ? null : chan1 );
-		inputs.put( "chan2", ( chan2 < 0 ) ? null : chan2 );
+		inputs.put( "chan0", chan0 );
+		inputs.put( "chan1", chan1 );
+		inputs.put( "chan2", chan2 );
 
 		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
 		inputs.put( "z_axis", axisInfo.z_axis );
@@ -88,25 +88,25 @@ public class Cellpose4Parameters extends CellposeParameters
 	public static class Builder extends CellposeParameters.Builder< Builder >
 	{
 
-		private int chan0 = -1;
+		private Integer chan0 = 0;  // to have one selected by default
 
-		private int chan1 = -1;
+		private Integer chan1 = null;
 
-		private int chan2 = -1;
+		private Integer chan2 = null;
 
-		public Builder chan0( final int chan0 )
+		public Builder chan0( final Integer chan0 )
 		{
 			this.chan0 = chan0;
 			return this;
 		}
 
-		public Builder chan1( final int chan1 )
+		public Builder chan1( final Integer chan1 )
 		{
 			this.chan1 = chan1;
 			return this;
 		}
 
-		public Builder chan2( final int chan2 )
+		public Builder chan2( final Integer chan2 )
 		{
 			this.chan2 = chan2;
 			return this;

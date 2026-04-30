@@ -16,10 +16,10 @@ public class TestApposeUtils
 	void test_convertChannelChoice() 
 	{
 		// CP3 and CP4 when None is selected -> Null
-		//assertNull( ApposeUtils.convertChannelChoiceToInt( "None", true ) );
-		//assertNull( ApposeUtils.convertChannelChoiceToInt( "None", false ) );
-		assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", true ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp3" );
-		assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", false ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp4" );
+		assertNull( ApposeUtils.convertChannelChoiceToInt( "None", true ), "None channel selection should be converted to null in CP3" );
+		assertNull( ApposeUtils.convertChannelChoiceToInt( "None", false ), "None channel selection should be converted to null in CP4" );
+		//assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", true ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp3" );
+		//assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", false ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp4" );
 		// CP3 and CP4 when channel 1 is selected -> 1 for CP3, 0 for CP4
 		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", true ), 1 );
 		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", false ), 0 );

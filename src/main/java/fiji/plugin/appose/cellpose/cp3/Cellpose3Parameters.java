@@ -87,6 +87,12 @@ public class Cellpose3Parameters extends CellposeParameters
 			return this;
 		}
 
+		public Builder channels( final Integer channel1, final Integer channel2 )
+		{
+			this.channels = List.of( channel1, channel2 );
+			return this;
+		}
+		
 		public Builder channels( final int channel1, final int channel2 )
 		{
 			this.channels = List.of( channel1, channel2 );
