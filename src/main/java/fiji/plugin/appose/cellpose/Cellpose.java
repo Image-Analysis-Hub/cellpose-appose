@@ -1,5 +1,6 @@
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
@@ -153,7 +154,8 @@ public class Cellpose
 	 */
 	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		final String envName = "cp3";
+		String envSuffix = getBestTorchConfig();
+		final String envName = "cp3" + envSuffix;
 		final String pythonScriptPath = "/cp3.py";
 		return run( img, params, pythonScriptPath, envName );
 	}
@@ -214,7 +216,8 @@ public class Cellpose
 	 */
 	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose4( final ImgPlus< T > img, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		final String envName = "cp4";
+		String envSuffix = getBestTorchConfig();
+		final String envName = "cp4" + envSuffix;
 		final String pythonScriptPath = "/cp4.py";
 		return run( img, params, pythonScriptPath, envName );
 	}
