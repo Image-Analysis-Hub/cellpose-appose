@@ -140,6 +140,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Override
 	public void initialize()
 	{
+		// set the default value, otherwise it gets to -6
+		setInput( "cellprob_threshold", 0.0) ;
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
