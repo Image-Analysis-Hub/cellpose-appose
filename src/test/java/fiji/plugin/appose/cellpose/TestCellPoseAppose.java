@@ -107,6 +107,31 @@ public class TestCellPoseAppose
 	}
 	
 	@Test
+	public void runCP3ModelNuclei() throws Exception
+	{
+		try 
+		{
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.model( Cellpose3BuiltinModels.NUCLEI )
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the image statistics if it looks like a successfull run
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with nuclei model" );
+			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with nuclei model" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
+	
+	@Test
 	public void runCP3_Image3DMultiChannels() throws Exception
 	{
 		try 
@@ -156,7 +181,7 @@ public class TestCellPoseAppose
 						stack,
 						1, stack.getNChannels(),   
 						3, 3,      
-						1, stack.getNFrames()     
+						1, 6     
 			);
 			// Get all default parameters
 			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()

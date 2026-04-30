@@ -166,6 +166,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > cytoItem =
 				getInfo().getMutableInput( "cyto_channel", String.class );
 		cytoItem.setChoices( channelChoices );
+		cytoItem.setDefaultValue( "1" ); // Default, cyto channel selected only
+		 setInput( "cyto_channel", channelChoices.get(0)) ;
 
 		final MutableModuleItem< String > nucItem =
 				getInfo().getMutableInput( "nuclei_channel", String.class );

@@ -158,6 +158,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > c0Item =
 				getInfo().getMutableInput( "chan0", String.class );
 		c0Item.setChoices( channelChoices );
+		c0Item.setDefaultValue( "1" ); // By default, only first channel selected
+		setInput( "chan0", "1") ;
 
 		final MutableModuleItem< String > c1Item =
 				getInfo().getMutableInput( "chan1", String.class );
