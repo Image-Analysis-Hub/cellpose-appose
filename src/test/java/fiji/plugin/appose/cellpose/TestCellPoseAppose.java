@@ -9,10 +9,13 @@ import org.scijava.command.CommandService;
 import org.scijava.module.Module;
 import org.scijava.module.ModuleException;
 
+import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
+import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.NewImage;
+import ij.process.ImageStatistics;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -47,10 +50,7 @@ public class TestCellPoseAppose
 		}
 	}
 	
-	
-			
-	
-	@Test
+	/** Can now run it with the static version*/
 	public void testDefaultRun() throws Exception 
 	{
 		try
@@ -86,5 +86,29 @@ public class TestCellPoseAppose
 		finally {
 	        WindowManager.setTempCurrentImage(null);  // clean up
 	    }
+	}
+	
+	@Test
+	public void defaultRunCP3() throws Exception
+	{
+		try 
+		{
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the image statistics if it looks like a successfull run
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with default parameters" );
+			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with default parameters" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
 	}
 }

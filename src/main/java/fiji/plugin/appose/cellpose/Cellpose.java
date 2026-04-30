@@ -1,5 +1,6 @@
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
