@@ -100,7 +100,7 @@
 	<properties>
 		<package-name>fiji.plugin.appose.cellpose</package-name>
 		<main-class>fiji.plugin.appose.cellpose.CellposeAppose</main-class>
-		<license.licenseName>bsd_3_clause</license.licenseName>
+		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
 
 		<!-- Use Java 21. -->
