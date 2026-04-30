@@ -1,37 +1,14 @@
 
 package fiji.plugin.appose.cellpose.cp4;
 
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
-import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
-import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
 
 import java.awt.Color;
-import java.awt.EventQueue;
-import java.awt.Font;
-import java.awt.Window;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
-
-import org.apache.commons.io.IOUtils;
-import org.apposed.appose.Appose;
 import org.apposed.appose.BuildException;
-import org.apposed.appose.Environment;
-import org.apposed.appose.NDArray;
-import org.apposed.appose.Service;
-import org.apposed.appose.Service.Task;
-import org.apposed.appose.Service.TaskStatus;
 import org.scijava.Initializable;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
@@ -43,20 +20,13 @@ import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
 import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.ImageAxisInfo;
 import fiji.plugin.appose.cellpose.Cellpose;
-import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
-import ij.process.StackStatistics;
-import net.imagej.ImgPlus;
-import net.imglib2.appose.NDArrays;
-import net.imglib2.appose.ShmImg;
-import net.imglib2.img.Img;
-import net.imglib2.img.display.imagej.ImageJFunctions;
+
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
