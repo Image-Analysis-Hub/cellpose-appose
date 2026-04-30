@@ -9,7 +9,9 @@ import org.scijava.command.CommandService;
 import org.scijava.module.Module;
 import org.scijava.module.ModuleException;
 
+import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
+import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.NewImage;
@@ -47,10 +49,7 @@ public class TestCellPoseAppose
 		}
 	}
 	
-	
-			
-	
-	@Test
+	/** Can now run it with the static version*/
 	public void testDefaultRun() throws Exception 
 	{
 		try
@@ -86,5 +85,25 @@ public class TestCellPoseAppose
 		finally {
 	        WindowManager.setTempCurrentImage(null);  // clean up
 	    }
+	}
+	
+	@Test
+	public void defaultRunCP3() throws Exception
+	{
+		try 
+		{
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
 	}
 }
