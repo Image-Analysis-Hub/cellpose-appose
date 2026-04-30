@@ -1,5 +1,6 @@
 package fiji.plugin.appose.cellpose.cp3;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +55,7 @@ public class Cellpose3Parameters extends CellposeParameters
 		inputs.put( "cell_channel", channels.get( 0 ) );
 		inputs.put( "nuclei_channel", channels.get( 1 ) );
 
-		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
+		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlusToPython( img );
 		inputs.put( "t_axis", axisInfo.time_axis );
 		inputs.put( "z_axis", axisInfo.z_axis );
 		inputs.put( "channel_axis", axisInfo.channel_axis );
@@ -87,9 +88,15 @@ public class Cellpose3Parameters extends CellposeParameters
 			return this;
 		}
 
+		public Builder channels( final Integer channel1, final Integer channel2 )
+		{
+			this.channels = Arrays.asList( channel1, channel2 );
+			return this;
+		}
+		
 		public Builder channels( final int channel1, final int channel2 )
 		{
-			this.channels = List.of( channel1, channel2 );
+			this.channels = Arrays.asList( channel1, channel2 );
 			return this;
 		}
 

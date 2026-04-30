@@ -15,6 +15,7 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.gui.NewImage;
+import ij.plugin.Duplicator;
 import ij.process.ImageStatistics;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,24 +28,17 @@ public class TestCellPoseAppose
 	/** Check that the pixi file is found and read 
 	 * throws ModuleException */
 	@Test
-	public void readPixi() throws ModuleException
+	public void readPixi() throws Exception
 	{
-		Context ctx = new Context();
-		CommandInfo info = ctx.service(CommandService.class).getCommand(CellposeAppose.class);
-		Module module;
-		try {
-			module = info.createModule();
-		
-	    
-		// Inject services into the module's command instance
-		ctx.inject(module.getDelegateObject());
-		CellposeAppose cp3 = (CellposeAppose) module.getDelegateObject();
-		String pixi_content = cp3.pixiEnv();
-		assertNotEquals( "", pixi_content, "Pixi content read is empty" );
-		assertTrue( pixi_content.contains("cellpose"), "Something is wrong in pixi content read: "+pixi_content );
-		assertTrue( pixi_content.contains("dependencies"), "Something is wrong in pixi content read: "+pixi_content );
+		try
+		{
+			final String pixi_content = Cellpose.pixiEnv();
+			assertNotEquals( "", pixi_content, "Pixi content read is empty" );
+			assertTrue( pixi_content.contains("cellpose"), "Something is wrong in pixi content read: "+pixi_content );
+			assertTrue( pixi_content.contains("dependencies"), "Something is wrong in pixi content read: "+pixi_content );
 		} 
-		catch (ModuleException e) {
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 			throw e;
 		}
@@ -105,6 +99,107 @@ public class TestCellPoseAppose
 			ImageStatistics stats = labelsCP3.getStatistics();
 			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with default parameters" );
 			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with default parameters" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
+	
+	@Test
+	public void runCP3ModelNuclei() throws Exception
+	{
+		try 
+		{
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.model( Cellpose3BuiltinModels.NUCLEI )
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the image statistics if it looks like a successfull run
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with nuclei model" );
+			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with nuclei model" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
+	
+	@Test
+	public void runCP3_Image3DMultiChannels() throws Exception
+	{
+		try 
+		{
+			final ImagePlus stack = IJ.openImage( "https://imagej.net/images/mitosis.tif" );
+			// Keep only one time point
+			ImagePlus imp = new Duplicator().run(
+						stack,
+						1, stack.getNChannels(),   
+						1, stack.getNSlices(),      
+						3, 3     
+			);
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.do3D(false)
+					.stitchThreshold(0.1)
+					.channels(1, null)
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the label image dimensions
+			assertEquals( imp.getWidth(), labelsCP3.getWidth(), "CP3, 3D+chan image: labels image dimension (width) is uncorrect" );
+			assertEquals( imp.getHeight(), labelsCP3.getHeight(), "CP3, 3D+chan image: labels image dimension (height) is uncorrect" );
+			
+			// Check the image statistics if it looks like a successfull run
+			labelsCP3.setSlice(2);
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in test image, with default parameters" );
+			assertTrue( stats.max > 1, "CP3: Not enough labels were found in test image, with default parameters" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
+	
+	@Test
+	public void runCP3_ImageTimeMultiChannels() throws Exception
+	{
+		try 
+		{
+			final ImagePlus stack = IJ.openImage( "https://imagej.net/images/mitosis.tif" );
+			// Keep only one slice
+			ImagePlus imp = new Duplicator().run(
+						stack,
+						1, stack.getNChannels(),   
+						3, 3,      
+						1, 6     
+			);
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.channels(1, null)
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the label image dimensions
+			assertEquals( imp.getWidth(), labelsCP3.getWidth(), "CP3, time+chan image: labels image dimension (width) is uncorrect" );
+			assertEquals( imp.getHeight(), labelsCP3.getHeight(), "CP3, time+chan image: labels image dimension (height) is uncorrect" );
+			
+			// Check the image statistics if it looks like a successfull run
+			labelsCP3.setSlice(2);
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in test image, with default parameters" );
+			assertTrue( stats.max > 2, "CP3: Not enough labels were found in test image, with default parameters" );
 		}
 		catch (Exception e)
 		{

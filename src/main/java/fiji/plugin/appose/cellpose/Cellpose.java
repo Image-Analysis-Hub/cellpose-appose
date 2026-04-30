@@ -4,6 +4,7 @@ import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
+import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 
 import java.io.IOException;
 import java.net.URL;
@@ -152,10 +153,9 @@ public class Cellpose
 	 * @throws TaskException
 	 *             if executing the Python script fails.
 	 */
-	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
+	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		String envSuffix = getBestTorchConfig();
-		final String envName = "cp3" + envSuffix;
+		final String envName = "cp3" + getBestTorchConfig();
 		final String pythonScriptPath = "/cp3.py";
 		return run( img, params, pythonScriptPath, envName );
 	}
@@ -216,8 +216,7 @@ public class Cellpose
 	 */
 	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose4( final ImgPlus< T > img, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		String envSuffix = getBestTorchConfig();
-		final String envName = "cp4" + envSuffix;
+		final String envName = "cp4" + getBestTorchConfig();
 		final String pythonScriptPath = "/cp4.py";
 		return run( img, params, pythonScriptPath, envName );
 	}
@@ -278,7 +277,12 @@ public class Cellpose
 		return new ImagePlus[] { labels };
 	}
 
-	private static String pixiEnv() throws IOException
+	/**
+	 * Returns the content of the pixi.toml file to build the environment
+	 * return
+	 * throws IOException
+	 */
+	public static String pixiEnv() throws IOException
 	{
 		final URL pixiFile = Cellpose.class.getResource( "/pixi.toml" );
 		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );

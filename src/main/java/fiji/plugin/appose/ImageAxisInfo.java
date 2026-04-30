@@ -45,4 +45,31 @@ public class ImageAxisInfo
 
 		return new ImageAxisInfo( zAxis, channelAxis, timeAxis );
 	}
+	
+	public static ImageAxisInfo fromImgPlusToPython( final ImgPlus< ? > img )
+	{
+		int nzAxis = 1;
+		int nchannelAxis = 1;
+		int ntimeAxis = 1;
+
+		for ( int i = 0; i < img.numDimensions(); i++ )
+		{
+			final String axisType = img.axis( i ).type().toString().trim();
+			switch ( axisType )
+			{
+			case "Z":
+				nzAxis = (int) img.dimension( i );
+				break;
+			case "Channel":
+				nchannelAxis = (int) img.dimension( i );
+				break;
+			case "Time":
+				ntimeAxis = (int) img.dimension( i );
+				break;
+			default:
+				// Ignore other axes
+			}
+		}
+		return ApposeUtils.convertImageAxis( nzAxis, nchannelAxis, ntimeAxis );
+	}
 }

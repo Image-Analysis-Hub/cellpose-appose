@@ -120,7 +120,7 @@ if appose_mode:
         channels = filter_channels([chan0, chan1, chan2])
         if len(input_image.shape) > 2 :
             input_image = input_image[..., channels, :, :]
-
+    
     if time_axis is not None:	
         if (z_axis is None) and (channel_axis is None):
             input_image = input_image[..., np.newaxis]
