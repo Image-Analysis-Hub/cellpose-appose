@@ -170,8 +170,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-	private ImageAxisInfo axis_info; // position of the different axes
-
 	// Fiji task
 	private org.scijava.task.Task fijiTask;
 
@@ -278,8 +276,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			{
 				stitch_threshold = 0.0; // ensure it's 0
 			}
-			// get the z_axis number in what python should receive
-			axis_info = ApposeUtils.getImageAxisInfo( imp );
 
 			// Runs the processing code.
 			process( imp );
