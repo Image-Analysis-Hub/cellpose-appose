@@ -54,7 +54,7 @@ public class Cellpose3Parameters extends CellposeParameters
 		inputs.put( "cell_channel", channels.get( 0 ) );
 		inputs.put( "nuclei_channel", channels.get( 1 ) );
 
-		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
+		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlusToPython( img );
 		inputs.put( "t_axis", axisInfo.time_axis );
 		inputs.put( "z_axis", axisInfo.z_axis );
 		inputs.put( "channel_axis", axisInfo.channel_axis );

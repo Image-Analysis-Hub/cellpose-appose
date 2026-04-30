@@ -83,7 +83,10 @@ public class ApposeUtils
 			long maximum = 100;
 
 			if ( e.message != null )
+			{
 				IJ.showStatus( e.message );
+				//System.out.println( e.message );
+			}
 
 			if ( e.maximum >= 0 )
 				maximum = e.maximum;
@@ -551,20 +554,26 @@ public class ApposeUtils
 
 	public static ImageAxisInfo getImageAxisInfo( final ImagePlus imp )
 	{
+		return convertImageAxis( imp.getNSlices(), imp.getNChannels(), imp.getNFrames() );
+	}
+	
+	public static ImageAxisInfo convertImageAxis( final int nslices, final int nchannels, final int nframes )
+	{
 		// print info about the image in the log
 		System.out.println( "─".repeat( 50 ) );
 		System.out.println( "Image dimension: " );
-		System.out.println( "\t" + imp.getNSlices() + " Z slices" );
-		System.out.println( "\t" + imp.getNChannels() + " C channels" );
-		System.out.println( "\t" + imp.getNFrames() + " T frames" );
+		System.out.println( "\t" + nslices + " Z slices" );
+		System.out.println( "\t" + nchannels + " C channels" );
+		System.out.println( "\t" + nframes + " T frames" );
 		System.out.println( "─".repeat( 50 ) );
 
+		int ndimensions = ((nchannels>1)?1:0)+ ((nslices>1)?1:0) + ((nframes>1)?1:0) + 2;
 		// no Z
-		if ( imp.getNSlices() == 1 )
+		if ( nslices == 1 )
 		{
-			if ( imp.getNChannels() > 1 )
+			if ( nchannels > 1 )
 			{
-				if ( imp.getNFrames() > 1 )
+				if ( nframes > 1 )
 				{
 					// XYCT -> TCYX
 					return new ImageAxisInfo( null, 1, 0 );
@@ -573,7 +582,7 @@ public class ApposeUtils
 				return new ImageAxisInfo( null, 0, null );
 			}
 
-			if ( imp.getNFrames() > 1 )
+			if ( nframes > 1 )
 			{
 				// XYT -> TYX
 				return new ImageAxisInfo( null, null, 0 );
@@ -583,16 +592,16 @@ public class ApposeUtils
 		}
 
 		// 5D -> TZCYX
-		if ( imp.getNDimensions() == 5 )
+		if ( ndimensions == 5 )
 			return new ImageAxisInfo( 1, 2, 0 );
 		// Now, 3D or 4D
-		if ( imp.getNDimensions() == 3 )
+		if ( ndimensions == 3 )
 		{
 			// ZYX
 			return new ImageAxisInfo( 0, null, null );
 		}
 		// if Z and T, TZYX
-		if ( imp.getNFrames() > 1 )
+		if ( nframes > 1 )
 			return new ImageAxisInfo( 1, null, 0 );
 		// XYZC is left -> Z,C,Y,X
 		return new ImageAxisInfo( 0, 1, null );

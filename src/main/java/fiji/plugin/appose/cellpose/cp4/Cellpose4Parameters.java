@@ -70,10 +70,11 @@ public class Cellpose4Parameters extends CellposeParameters
 		inputs.put( "chan1", chan1 );
 		inputs.put( "chan2", chan2 );
 
-		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlus( img );
+		final ImageAxisInfo axisInfo = ImageAxisInfo.fromImgPlusToPython( img );
 		inputs.put( "z_axis", axisInfo.z_axis );
 		inputs.put( "channel_axis", axisInfo.channel_axis );
 		inputs.put( "time_axis", axisInfo.time_axis );
+		//System.out.println(axisInfo.z_axis+" "+axisInfo.channel_axis+" "+axisInfo.time_axis);
 
 		return inputs;
 	}
