@@ -27,7 +27,7 @@ From Fiji
 - Open the image that you want to process.  
 - Launch one of the cellpose version available in the plugin:
   - `Plugins>Segmentation>Cellpose-Appose>Cellpose...`
-  - `Plugins>Segmentation>Cellpose-Appose>CellposeSAM...`
+  - `Plugins>Segmentation>Cellpose-Appose>Cellpose-SAM...`
 - Configure your Cellpose run through the Graphic Interface
 - Press "Ok" and Enjoy!   
 
