@@ -11,7 +11,7 @@
 
 	<groupId>fiji.plugin</groupId>
 	<artifactId>Cellpose_Appose</artifactId>
-    <version>0.1.8-SNAPSHOT</version>
+    <version>0.1.8</version>
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
@@ -85,7 +85,7 @@
 		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
-		<tag>Cellpose_Appose-0.1.6</tag>
+		<tag>Cellpose_Appose-0.1.8</tag>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
 	</scm>
 
