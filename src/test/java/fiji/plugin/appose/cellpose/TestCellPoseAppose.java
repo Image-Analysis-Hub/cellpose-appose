@@ -144,4 +144,41 @@ public class TestCellPoseAppose
 			throw e;
 		}
 	}
+	
+	@Test
+	public void runCP3_ImageTimeMultiChannels() throws Exception
+	{
+		try 
+		{
+			final ImagePlus stack = IJ.openImage( "https://imagej.net/images/mitosis.tif" );
+			// Keep only one slice
+			ImagePlus imp = new Duplicator().run(
+						stack,
+						1, stack.getNChannels(),   
+						3, 3,      
+						1, stack.getNFrames()     
+			);
+			// Get all default parameters
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.channels(1, null)
+			.build();
+			// Run it
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			// Get the label image results
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			// Check the label image dimensions
+			assertEquals( imp.getWidth(), labelsCP3.getWidth(), "CP3, time+chan image: labels image dimension (width) is uncorrect" );
+			assertEquals( imp.getHeight(), labelsCP3.getHeight(), "CP3, time+chan image: labels image dimension (height) is uncorrect" );
+			
+			// Check the image statistics if it looks like a successfull run
+			labelsCP3.setSlice(2);
+			ImageStatistics stats = labelsCP3.getStatistics();
+			assertFalse( stats.max <= 0, "CP3: No labels were found in test image, with default parameters" );
+			assertTrue( stats.max > 2, "CP3: Not enough labels were found in test image, with default parameters" );
+		}
+		catch (Exception e)
+		{
+			throw e;
+		}
+	}
 }
