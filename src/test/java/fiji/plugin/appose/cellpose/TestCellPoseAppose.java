@@ -27,24 +27,17 @@ public class TestCellPoseAppose
 	/** Check that the pixi file is found and read 
 	 * throws ModuleException */
 	@Test
-	public void readPixi() throws ModuleException
+	public void readPixi() throws Exception
 	{
-		Context ctx = new Context();
-		CommandInfo info = ctx.service(CommandService.class).getCommand(CellposeAppose.class);
-		Module module;
-		try {
-			module = info.createModule();
-		
-	    
-		// Inject services into the module's command instance
-		ctx.inject(module.getDelegateObject());
-		CellposeAppose cp3 = (CellposeAppose) module.getDelegateObject();
-		String pixi_content = cp3.pixiEnv();
-		assertNotEquals( "", pixi_content, "Pixi content read is empty" );
-		assertTrue( pixi_content.contains("cellpose"), "Something is wrong in pixi content read: "+pixi_content );
-		assertTrue( pixi_content.contains("dependencies"), "Something is wrong in pixi content read: "+pixi_content );
+		try
+		{
+			final String pixi_content = Cellpose.pixiEnv();
+			assertNotEquals( "", pixi_content, "Pixi content read is empty" );
+			assertTrue( pixi_content.contains("cellpose"), "Something is wrong in pixi content read: "+pixi_content );
+			assertTrue( pixi_content.contains("dependencies"), "Something is wrong in pixi content read: "+pixi_content );
 		} 
-		catch (ModuleException e) {
+		catch (Exception e) 
+		{
 			e.printStackTrace();
 			throw e;
 		}

@@ -277,7 +277,12 @@ public class Cellpose
 		return new ImagePlus[] { labels };
 	}
 
-	private static String pixiEnv() throws IOException
+	/**
+	 * Returns the content of the pixi.toml file to build the environment
+	 * return
+	 * throws IOException
+	 */
+	public static String pixiEnv() throws IOException
 	{
 		final URL pixiFile = Cellpose.class.getResource( "/pixi.toml" );
 		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
