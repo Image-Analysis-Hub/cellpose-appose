@@ -39,3 +39,6 @@ sample_data/test_flows.tif
 sample_data/test-1.tif
 sample_data/Results
 tmp/
+
+# Sample folder
+samples/
