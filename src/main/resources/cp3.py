@@ -122,6 +122,9 @@ if appose_mode:
 else:
     from cp_utils import get_torch_device, share_as_ndarray, make_5d
     from appose.python_worker import Task
+    import os
+    sample_folder = '../../../samples/' # When you run this script from its location.
+    test_file = 'test.tif'
     task = Task()
 
 # load arguments and input from Appose task
@@ -144,7 +147,7 @@ if appose_mode:
         message = f"CP3: Fetch input from Fiji ({input_image.shape})"
         )
 else:
-    file = '../../../sample_data/test.tif'
+    file = os.path.join(sample_folder, test_file) 
     input_image = io.imread(file)
     custom_model = None
     model_name = 'cyto3'
@@ -209,10 +212,11 @@ if appose_mode:
         flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)  # ZYXC -> TZCYX
         task.outputs["flows"] = share_as_ndarray(flows_5d) # share flows to Appose as `flows` output
 else:
-    io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
+    save_path = os.path.join(sample_folder, test_file.replace('.tif', '_masks.tif'))
+    io.imsave(save_path, masks.astype(np.uint16))
     if compute_flows:
-        io.imsave(f'../../../sample_data/test_flows.tif',
-                flows[0].astype(np.float32))
+        save_path = os.path.join(sample_folder, test_file.replace('.tif', '_flows.tif'))
+        io.imsave(save_path, flows[0].astype(np.float32))
 
 task.update(
     current = 5,
