@@ -46,12 +46,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
@@ -59,9 +60,6 @@ import javax.swing.WindowConstants;
 
 import org.apposed.appose.TaskEvent;
 import org.scijava.Context;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
@@ -73,7 +71,6 @@ import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
-import net.imagej.ImgPlusMetadata;
 import net.imagej.axis.Axes;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -117,7 +114,7 @@ public class ApposeUtils
 			if ( e.message != null )
 			{
 				IJ.showStatus( e.message );
-				//System.out.println( e.message );
+				System.out.println( e.message );
 			}
 
 			if ( e.maximum >= 0 )
@@ -325,8 +322,18 @@ public class ApposeUtils
 	 * @param to
 	 *            the ImagePlus to copy to.
 	 */
-	public static final void transferCalibration( final ImgPlusMetadata from, final ImagePlus to )
+	public static final void transferCalibration( final ImgPlus<?> from, final ImagePlus to )
 	{
+		final int zaxis = from.dimensionIndex( Axes.Z );
+		final int nz = zaxis < 0 ? 1 : ( int ) from.dimension( zaxis );
+
+		final int caxis = from.dimensionIndex( Axes.CHANNEL );
+		final int nc = caxis < 0 ? 1 : ( int ) from.dimension( caxis );
+
+		final int taxis = from.dimensionIndex( Axes.TIME );
+		final int nt = taxis < 0 ? 1 : ( int ) from.dimension( taxis );
+
+		to.setDimensions( nc, nz, nt );
 		final Calibration tc = to.getCalibration();
 		for ( int d = 0; d < from.numDimensions(); d++ )
 		{
@@ -599,7 +606,7 @@ public class ApposeUtils
 		System.out.println( "\t" + nframes + " T frames" );
 		System.out.println( "─".repeat( 50 ) );
 
-		int ndimensions = ((nchannels>1)?1:0)+ ((nslices>1)?1:0) + ((nframes>1)?1:0) + 2;
+		final int ndimensions = ((nchannels>1)?1:0)+ ((nslices>1)?1:0) + ((nframes>1)?1:0) + 2;
 		// no Z
 		if ( nslices == 1 )
 		{
