@@ -227,10 +227,10 @@ task.update(
 
 # return output
 if appose_mode:
-    masks_5d = np.rollaxis(make_5d(masks), -3, -4)         # ZYX -> TZCYX
+    masks_5d = make_5d(masks, z_axis=z_axis, time_axis=time_axis)
     task.outputs["labels"] = share_as_ndarray(masks_5d)    # share masks to Appose as `labels` output
     if compute_flows:
-        flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)  # ZYXC -> TZCYX
+        flows_5d = make_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
         task.outputs["flows"] = share_as_ndarray(flows_5d) # share flows to Appose as `flows` output
 else:
     save_path = os.path.join(sample_folder, test_file.replace('.tif', '_masks.tif'))
