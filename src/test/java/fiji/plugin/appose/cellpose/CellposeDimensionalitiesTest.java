@@ -3,12 +3,14 @@ package fiji.plugin.appose.cellpose;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.util.function.Function;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
 import org.junit.jupiter.api.Test;
 
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
+import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
@@ -34,22 +36,57 @@ public class CellposeDimensionalitiesTest
 {
 
 	@Test
-	void test() throws BuildException, IOException, InterruptedException, TaskException
+	void testCellpose3()
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
 				.channels( 1, 0 )
 				.build();
 
+		final Function< ImagePlus, ImagePlus[] > runner = ( imp ) -> {
+			try
+			{
+				return Cellpose.cellpose3( imp, params );
+			}
+			catch ( BuildException | IOException | InterruptedException | TaskException e )
+			{
+				e.printStackTrace();
+			}
+			return null;
+		};
+		test( runner );
+	}
+
+	@Test
+	void testCellpose4()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.build();
+
+		final Function< ImagePlus, ImagePlus[] > runner = ( imp ) -> {
+			try
+			{
+				return Cellpose.cellpose4( imp, params );
+			}
+			catch ( BuildException | IOException | InterruptedException | TaskException e )
+			{
+				e.printStackTrace();
+			}
+			return null;
+		};
+		test( runner );
+	}
+
+	private void test( final Function< ImagePlus, ImagePlus[] > runner )
+	{
+
 		final CellposeTestDims[] toTest = CellposeTestDims.values();
 //		final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYZT };
 		for ( final CellposeTestDims dims : toTest )
 		{
-			System.out.println( "Testing case " + dims.name() );
-
 			final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
 			final ImagePlus imp = toImp( img );
-			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params );
+			final ImagePlus[] outputs = runner.apply( imp );
 			final ImagePlus label = outputs[ 0 ];
 
 			// Test output dimensions
