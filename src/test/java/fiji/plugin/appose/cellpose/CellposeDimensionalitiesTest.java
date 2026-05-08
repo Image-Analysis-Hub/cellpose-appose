@@ -1,4 +1,4 @@
-package fiji.plugin.appose.cellpose.prog;
+package fiji.plugin.appose.cellpose;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -30,9 +30,10 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 
 /**
- * Programmatically generates input image to test with cellpose.
+ * JUnit tests that check that the Cellpose functions can properly harness all 
+ * dimensionality cases.
  */
-public class CellposeTestUtils
+public class CellposeDimensionalitiesTest
 {
 
 	@Test
@@ -43,7 +44,9 @@ public class CellposeTestUtils
 				.channels( 1, 0 )
 				.build();
 
-		for ( final CellposeTestDims dims : CellposeTestDims.values() )
+		final CellposeTestDims[] toTest = CellposeTestDims.values();
+//		final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYCT };
+		for ( final CellposeTestDims dims : toTest )
 		{
 			System.out.println( "Testing case " + dims.name() );
 
@@ -51,9 +54,6 @@ public class CellposeTestUtils
 			final ImagePlus imp = toImp( img );
 			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params );
 			final ImagePlus label = outputs[ 0 ];
-
-			// To debug:
-			// IJ.save( label, "samples/" + img.getName() + "_labels.tif" );
 
 			// Test output dimensions
 			final String dimNames = "XYCZT";
@@ -89,8 +89,10 @@ public class CellposeTestUtils
 		XYZ( new long[] { XY_SIZE, XY_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z } ),
 		XYZC( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL } ),
 
-		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
-		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } );
+		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } );
+
+		// We don't test the 5D case yet. TODO
+//		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } );
 
 		private final long[] dims;
 
@@ -196,17 +198,31 @@ public class CellposeTestUtils
 	// Used for debugging only.
 	public static void main( final String[] args )
 	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.build();
+
 		ImageJ.main( args );
 		try
 		{
-
-			for ( final CellposeTestDims dims : CellposeTestDims.values() )
+			final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYT };
+			for ( final CellposeTestDims dims : toTest )
 			{
 				final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
 				System.out.println( '\n' + img.getName() );
 				final ImagePlus imp = toImp( img );
 				imp.show();
 				IJ.save( imp, "samples/" + img.getName() + ".tif" );
+
+				System.out.println( "Testing case " + dims.name() );
+
+				final ImagePlus[] outputs = Cellpose.cellpose3( imp, params );
+				final ImagePlus label = outputs[ 0 ];
+				label.show();
+				label.getWindow().setLocationRelativeTo( imp.getWindow() );
+				IJ.save( label, "samples/" + img.getName() + "_labels.tif" );
+
 				System.out.println( "Done." );
 			}
 		}
