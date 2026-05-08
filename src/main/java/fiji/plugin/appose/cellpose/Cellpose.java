@@ -36,11 +36,11 @@ import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
 
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -64,12 +64,18 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
-import net.imagej.ImgPlusMetadata;
+import net.imagej.axis.Axes;
+import net.imagej.axis.CalibratedAxis;
+import net.imagej.axis.DefaultLinearAxis;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.appose.ShmImg;
 import net.imglib2.img.Img;
+import net.imglib2.img.ImgView;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.view.Views;
 
 /**
  * Static calls to Cellpose-3 or Cellpose-SAM.
@@ -102,7 +108,7 @@ public class Cellpose
 	 * @throws TaskException
 	 *             if executing the Python script fails.
 	 */
-	private static < T extends RealType< T > & NativeType< T > > List< Img< T > > run(
+	private static < T extends RealType< T > & NativeType< T > > List< ImgPlus< T > > run(
 			final ImgPlus< T > img,
 			final CellposeParameters params,
 			final String pythonScriptPath,
@@ -154,14 +160,85 @@ public class Cellpose
 			// Unwrap and process outputs.
 			final NDArray maskArr = ( NDArray ) task.outputs.get( "labels" );
 			final Img< T > output = new ShmImg<>( maskArr );
+			final ImgPlus< T > outputImgPlus = outputToImgPlus( output, img );
+
 			if ( params.computeFlows )
 			{
 				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 				final Img< T > flows = new ShmImg<>( flowsArr );
-				return Arrays.asList( output, flows );
+				final ImgPlus< T > flowsImgPlus = outputToImgPlus( flows, img );
+				return Arrays.asList( outputImgPlus, flowsImgPlus );
 			}
-			return Collections.singletonList( output );
+			return Collections.singletonList( outputImgPlus );
 		}
+	}
+
+	/**
+	 * Convert (wrap) the Img output of Cellpose-Appose to an ImgPlus with
+	 * metadata. We simply copy the input metadata, skipping the channel axis,
+	 * and suppose all the output axes are in the same order that of the input.
+	 * <p>
+	 * The contract is that the output <code>img</code> returned by the cp3.py
+	 * script is always a XYCZT image. The input might not be have all these
+	 * dimensions and we want to return an output {@link ImgPlus} with
+	 * dimensions that match the input.
+	 * 
+	 * @param <T>
+	 *            the type of pixel.
+	 * @param img
+	 *            the output image to convert.
+	 * @param metadata
+	 *            the input image to read metadata from.
+	 * @return
+	 */
+	private static < T extends Type< T > > ImgPlus< T > outputToImgPlus( final Img< T > img, final ImgPlus< T > metadata )
+	{
+		assert img.numDimensions() == 5;
+
+		// Drop only the singleton dimensions
+		final List< Integer > keptDims = new ArrayList<>( 5 );
+		for ( int d = 0; d < 5; d++ )
+		{
+			if ( img.dimension( d ) > 1 )
+				keptDims.add( d );
+		}
+
+		final RandomAccessibleInterval< T > view = Views.dropSingletonDimensions( img );
+		final Img< T > wrapped = ImgView.wrap( view, img.factory() );
+
+		// We expect the Python code to always return the image in this order.
+		final CalibratedAxis[] allAxes = new CalibratedAxis[] {
+				new DefaultLinearAxis( Axes.X ),
+				new DefaultLinearAxis( Axes.Y ),
+				new DefaultLinearAxis( Axes.CHANNEL ),
+				new DefaultLinearAxis( Axes.Z ),
+				new DefaultLinearAxis( Axes.TIME )
+		};
+
+		final List< CalibratedAxis > newAxes = new ArrayList<>();
+		for ( final int d : keptDims )
+			newAxes.add( allAxes[ d ] );
+
+		// Copy name and calibration from original metadata if available
+		final String name = metadata.getName();
+		final ImgPlus< T > result = new ImgPlus<>( wrapped, name,
+				newAxes.toArray( new CalibratedAxis[ 0 ] ) );
+
+		// Copy scales/units from metadata for matching axes
+		for ( int d = 0; d < newAxes.size(); d++ )
+		{
+			final CalibratedAxis axis = newAxes.get( d );
+			for ( int md = 0; md < metadata.numDimensions(); md++ )
+			{
+				if ( axis.type().equals( metadata.axis( md ).type() ) )
+				{
+					result.setAxis( metadata.axis( md ), d );
+					break;
+				}
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -185,7 +262,7 @@ public class Cellpose
 	 * @throws TaskException
 	 *             if executing the Python script fails.
 	 */
-	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params) throws BuildException, IOException, InterruptedException, TaskException
+	public static < T extends RealType< T > & NativeType< T > > List< ImgPlus< T > > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		final String envName = "cp3" + getBestTorchConfig();
 		final String pythonScriptPath = "/cp3.py";
@@ -217,8 +294,8 @@ public class Cellpose
 	public static ImagePlus[] cellpose3( final ImagePlus imp, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		final ImgPlus img = rawWraps( imp );
-		final List< Img< ? > > outputs = cellpose3( img, params );
-		final ImagePlus[] imps = toImp( outputs, img, params.computeFlows );
+		final List< ImgPlus< ? > > outputs = cellpose3( img, params );
+		final ImagePlus[] imps = toImp( outputs, params.computeFlows );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-3" );
@@ -246,7 +323,7 @@ public class Cellpose
 	 * @throws TaskException
 	 *             if executing the Python script fails.
 	 */
-	public static < T extends RealType< T > & NativeType< T > > List< Img< T > > cellpose4( final ImgPlus< T > img, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
+	public static < T extends RealType< T > & NativeType< T > > List< ImgPlus< T > > cellpose4( final ImgPlus< T > img, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		final String envName = "cp4" + getBestTorchConfig();
 		final String pythonScriptPath = "/cp4.py";
@@ -278,40 +355,39 @@ public class Cellpose
 	public static ImagePlus[] cellpose4( final ImagePlus imp, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		final ImgPlus img = rawWraps( imp );
-		final List< Img< ? > > outputs = cellpose4( img, params );
-		final ImagePlus[] imps = toImp( outputs, img, params.computeFlows );
+		final List< ImgPlus< ? > > outputs = cellpose4( img, params );
+		final ImagePlus[] imps = toImp( outputs, params.computeFlows );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-SAM" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-SAM" );
 		return imps;
 	}
 
-	private static ImagePlus[] toImp( final List< Img< ? > > outputs, final ImgPlusMetadata metadata, final boolean computeFlows )
+	private static ImagePlus[] toImp( final List< ImgPlus< ? > > outputs, final boolean computeFlows )
 	{
 		@SuppressWarnings( "rawtypes" )
-		final Img output = outputs.get( 0 );
+		final ImgPlus output = outputs.get( 0 );
 		@SuppressWarnings( "unchecked" )
 		final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
 		final StackStatistics stats = new StackStatistics( labels );
 		labels.setDisplayRange( stats.min, stats.max );
 		useGlasbeyDarkLUT( labels );
-		transferCalibration( metadata, labels );
+		transferCalibration( output, labels );
 		if ( computeFlows )
 		{
 			@SuppressWarnings( "rawtypes" )
-			final Img flows = outputs.get( 1 );
+			final ImgPlus flows = outputs.get( 1 );
 			@SuppressWarnings( "unchecked" )
 			final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
 			flowsImp.getProcessor().resetMinAndMax();
-			transferCalibration( metadata, flowsImp );
+			transferCalibration( flows, flowsImp );
 			return new ImagePlus[] { labels, flowsImp };
 		}
 		return new ImagePlus[] { labels };
 	}
 
 	/**
-	 * Returns the content of the pixi.toml file to build the environment
-	 * return
+	 * Returns the content of the pixi.toml file to build the environment return
 	 * throws IOException
 	 */
 	public static String pixiEnv() throws IOException
