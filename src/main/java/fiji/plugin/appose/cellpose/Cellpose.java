@@ -296,6 +296,8 @@ public class Cellpose
 		final ImgPlus img = rawWraps( imp );
 		final List< ImgPlus< ? > > outputs = cellpose3( img, params );
 		final ImagePlus[] imps = toImp( outputs, params.computeFlows );
+		for ( final ImagePlus out : imps )
+			ApposeUtils.transferCalibration( imp, out );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-3" );
