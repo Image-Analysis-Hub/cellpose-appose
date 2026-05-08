@@ -8,8 +8,6 @@ import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
 import org.junit.jupiter.api.Test;
 
-import fiji.plugin.appose.cellpose.Cellpose;
-import fiji.plugin.appose.cellpose.Cellpose3BuiltinModels;
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import ij.IJ;
 import ij.ImageJ;
@@ -20,7 +18,6 @@ import net.imagej.axis.AxisType;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
-import net.imglib2.img.display.imagej.CalibrationUtils;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.display.imagej.ImgPlusViews;
 import net.imglib2.roi.Regions;
@@ -30,7 +27,7 @@ import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 
 /**
- * JUnit tests that check that the Cellpose functions can properly harness all 
+ * JUnit tests that check that the Cellpose functions can properly harness all
  * dimensionality cases.
  */
 public class CellposeDimensionalitiesTest
@@ -45,7 +42,7 @@ public class CellposeDimensionalitiesTest
 				.build();
 
 		final CellposeTestDims[] toTest = CellposeTestDims.values();
-//		final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYCT };
+//		final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYZT };
 		for ( final CellposeTestDims dims : toTest )
 		{
 			System.out.println( "Testing case " + dims.name() );
@@ -67,6 +64,14 @@ public class CellposeDimensionalitiesTest
 				else
 					assertEquals( inDims[ d ], outDims[ d ], "For case " + dims.name() + ": Output and input must have the same " + dimName + " size." );
 			}
+
+			// Test calibration
+			assertEquals( pixelSizeXY, label.getCalibration().pixelWidth );
+			assertEquals( pixelSizeXY, label.getCalibration().pixelHeight );
+			assertEquals( pixelSizeZ, label.getCalibration().pixelDepth );
+			assertEquals( frameInterval, label.getCalibration().frameInterval );
+			assertEquals( xyUnits, label.getCalibration().getUnit() );
+			assertEquals( tUnits, label.getCalibration().getTimeUnit() );
 		}
 	}
 
@@ -77,6 +82,16 @@ public class CellposeDimensionalitiesTest
 	private static final long C_SIZE = 2;
 
 	private static final long T_SIZE = 5;
+
+	private static final double pixelSizeXY = 0.2;
+
+	private static final double pixelSizeZ = 2.;
+
+	private static final double frameInterval = 5.6;
+
+	private static final String xyUnits = "nm";
+
+	private static final String tUnits = "min";
 
 	private static enum CellposeTestDims
 	{
@@ -89,10 +104,10 @@ public class CellposeDimensionalitiesTest
 		XYZ( new long[] { XY_SIZE, XY_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z } ),
 		XYZC( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL } ),
 
-		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } );
-
 		// We don't test the 5D case yet. TODO
-//		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } );
+//		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
+//		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } ),
+		;
 
 		private final long[] dims;
 
@@ -112,7 +127,12 @@ public class CellposeDimensionalitiesTest
 		final int nZ = ( int ) ( img.dimensionIndex( Axes.Z ) < 0 ? 1 : img.dimension( img.dimensionIndex( Axes.Z ) ) );
 		final int nT = ( int ) ( img.dimensionIndex( Axes.TIME ) < 0 ? 1 : img.dimension( img.dimensionIndex( Axes.TIME ) ) );
 		imp.setDimensions( nC, nZ, nT );
-		CalibrationUtils.copyCalibrationToImagePlus( img, imp );
+		imp.getCalibration().pixelWidth = pixelSizeXY;
+		imp.getCalibration().pixelHeight = pixelSizeXY;
+		imp.getCalibration().pixelDepth = pixelSizeZ;
+		imp.getCalibration().frameInterval = frameInterval;
+		imp.getCalibration().setUnit( xyUnits );
+		imp.getCalibration().setTimeUnit( tUnits );
 		return imp;
 	}
 
