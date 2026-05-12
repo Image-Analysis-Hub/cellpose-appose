@@ -36,14 +36,159 @@ public class CellposeDimensionalitiesTest
 {
 
 	@Test
-	void testCellpose3()
+	void testCellpose3_XY()
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
 				.channels( 1, 0 )
 				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XY );
+	}
 
-		final Function< ImagePlus, ImagePlus[] > runner = ( imp ) -> {
+	@Test
+	void testCellpose3_XYC()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYC );
+	}
+
+	@Test
+	void testCellpose3_XYT()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYT );
+	}
+
+	@Test
+	void testCellpose3_XYCT()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCT );
+	}
+
+	@Test
+	void testCellpose3_XYZ()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYZ );
+	}
+
+	void testCellpose3_XYCZ()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose3_XYZ_NoStich()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYZ );
+	}
+
+	@Test
+	void testCellpose3_XYCZ_NoStich()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.channels( 1, 0 )
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose4_XY()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XY );
+	}
+
+	@Test
+	void testCellpose4_XYC()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYC );
+	}
+
+	@Test
+	void testCellpose4_XYT()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYT );
+	}
+
+	@Test
+	void testCellpose4_XYCT()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCT );
+	}
+
+	@Test
+	void testCellpose4_XYZ()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYZ );
+	}
+
+	@Test
+	void testCellpose4_XYCZ()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose4_XYZ_NoStich()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYZ );
+	}
+
+	@Test
+	void testCellpose4_XYCZ_NoStich()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	private static final Function< ImagePlus, ImagePlus[] > cellpose3Runner( final Cellpose3Parameters params )
+	{
+		return ( imp ) -> {
 			try
 			{
 				return Cellpose.cellpose3( imp, params );
@@ -54,16 +199,11 @@ public class CellposeDimensionalitiesTest
 			}
 			return null;
 		};
-		test( runner );
 	}
 
-	@Test
-	void testCellpose4()
+	private static final Function< ImagePlus, ImagePlus[] > cellpose4Runner( final Cellpose4Parameters params )
 	{
-		final Cellpose4Parameters params = Cellpose4Parameters.builder()
-				.build();
-
-		final Function< ImagePlus, ImagePlus[] > runner = ( imp ) -> {
+		return ( imp ) -> {
 			try
 			{
 				return Cellpose.cellpose4( imp, params );
@@ -74,42 +214,35 @@ public class CellposeDimensionalitiesTest
 			}
 			return null;
 		};
-		test( runner );
 	}
 
-	private void test( final Function< ImagePlus, ImagePlus[] > runner )
+	private void test( final Function< ImagePlus, ImagePlus[] > runner, final CellposeTestDims dims )
 	{
+		final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
+		final ImagePlus imp = toImp( img );
+		final ImagePlus[] outputs = runner.apply( imp );
+		final ImagePlus label = outputs[ 0 ];
 
-		final CellposeTestDims[] toTest = CellposeTestDims.values();
-//		final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYZT };
-		for ( final CellposeTestDims dims : toTest )
+		// Test output dimensions
+		final String dimNames = "XYCZT";
+		final int[] inDims = imp.getDimensions();
+		final int[] outDims = label.getDimensions();
+		for ( int d = 0; d < dimNames.length(); d++ )
 		{
-			final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
-			final ImagePlus imp = toImp( img );
-			final ImagePlus[] outputs = runner.apply( imp );
-			final ImagePlus label = outputs[ 0 ];
-
-			// Test output dimensions
-			final String dimNames = "XYCZT";
-			final int[] inDims = imp.getDimensions();
-			final int[] outDims = label.getDimensions();
-			for ( int d = 0; d < dimNames.length(); d++ )
-			{
-				final char dimName = dimNames.charAt( d );
-				if ( dimName == 'C' )
-					assertEquals( 1, outDims[ d ], "For case " + dims.name() + ": Output should have only one channel." );
-				else
-					assertEquals( inDims[ d ], outDims[ d ], "For case " + dims.name() + ": Output and input must have the same " + dimName + " size." );
-			}
-
-			// Test calibration
-			assertEquals( pixelSizeXY, label.getCalibration().pixelWidth );
-			assertEquals( pixelSizeXY, label.getCalibration().pixelHeight );
-			assertEquals( pixelSizeZ, label.getCalibration().pixelDepth );
-			assertEquals( frameInterval, label.getCalibration().frameInterval );
-			assertEquals( xyUnits, label.getCalibration().getUnit() );
-			assertEquals( tUnits, label.getCalibration().getTimeUnit() );
+			final char dimName = dimNames.charAt( d );
+			if ( dimName == 'C' )
+				assertEquals( 1, outDims[ d ], "For case " + dims.name() + ": Output should have only one channel." );
+			else
+				assertEquals( inDims[ d ], outDims[ d ], "For case " + dims.name() + ": Output and input must have the same " + dimName + " size." );
 		}
+
+		// Test calibration
+		assertEquals( pixelSizeXY, label.getCalibration().pixelWidth );
+		assertEquals( pixelSizeXY, label.getCalibration().pixelHeight );
+		assertEquals( pixelSizeZ, label.getCalibration().pixelDepth );
+		assertEquals( frameInterval, label.getCalibration().frameInterval );
+		assertEquals( xyUnits, label.getCalibration().getUnit() );
+		assertEquals( tUnits, label.getCalibration().getTimeUnit() );
 	}
 
 	private static final long XY_SIZE = 128;
@@ -139,7 +272,7 @@ public class CellposeDimensionalitiesTest
 		XYCT( new long[] { XY_SIZE, XY_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL, Axes.TIME } ),
 
 		XYZ( new long[] { XY_SIZE, XY_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z } ),
-		XYZC( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL } ),
+		XYCZ( new long[] { XY_SIZE, XY_SIZE, C_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL, Axes.Z } ),
 
 		// We don't test the 5D case yet. TODO
 //		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
@@ -288,5 +421,4 @@ public class CellposeDimensionalitiesTest
 			e.printStackTrace();
 		}
 	}
-
 }
