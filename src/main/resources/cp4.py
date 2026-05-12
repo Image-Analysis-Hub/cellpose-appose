@@ -114,6 +114,12 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         z_axis = None
         if channel_axis is None:
             img = np.expand_dims(img, axis=-1)
+        else:
+            # Move channel_axis to the end.
+            c = channel_axis % img.ndim
+            spatial = [ax for ax in range(img.ndim) if ax != c]
+            img = np.transpose(img, (*spatial, c))
+            channel_axis = None
 
     task.update(message=f"Final parameters for model.eval: channel_axis={channel_axis}, z_axis={z_axis}, stitch_threshold={stitch_threshold}, do_3D={do_3D}. Image shape: {img.shape}")
     
