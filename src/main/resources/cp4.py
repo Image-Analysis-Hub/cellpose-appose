@@ -168,15 +168,18 @@ if appose_mode:
         message = f"CP4: Fetch image from Fiji ({input_image.shape})"
         )
 else:
-    file = '../../../sample_data/test.tif'
+    import os
+    sample_folder = '../../../samples/' # When you run this script from its location.
+    test_file = 'testImg_XYCT.tif'
+    file = os.path.join(sample_folder, test_file) 
     input_image = io.imread(file)
     custom_model = None
-    model = 'cyto3'
     diameter = 30
     use_3D = False
     stitch_threshold = 0.5
-    z_axis = 0
+    z_axis = None
     channel_axis = 1
+    time_axis = 0
     anisotropy = None
     compute_flows = True
     resample = True
@@ -225,16 +228,19 @@ task.update(
 
 # return output
 if appose_mode:
-    masks_5d = np.rollaxis(make_5d(masks), -3, -4)           # ZYX -> TZCYX
+    task.update(message = f'Input image shape: {input_image.shape}')
+    task.update(message = f'Masks shape: {masks.shape}')
+    masks_5d = make_5d(masks, z_axis=z_axis, time_axis=time_axis)
     task.outputs["labels"] = share_as_ndarray(masks_5d)      # share masks to Appose as `labels` output
     if compute_flows:
-        flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)       # ZYXC -> TZCYX
+        flows_5d = make_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
         task.outputs["flows"] = share_as_ndarray(flows_5d)    # share flows to Appose as `flows` output
 else:
-    io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
+    save_path = os.path.join(sample_folder, test_file.replace('.tif', '_masks.tif'))
+    io.imsave(save_path, masks.astype(np.uint16))
     if compute_flows:
-        io.imsave(f'../../../sample_data/test_flows.tif',
-                flows[0].astype(np.float32))
+        flow_save_path = os.path.join(sample_folder, test_file.replace('.tif', '_flows.tif'))
+        io.imsave(flow_save_path, flows[0].astype(np.float32))
 
 task.update(
     current = 5,
