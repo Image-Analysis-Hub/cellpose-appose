@@ -106,6 +106,14 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
             # We have no channel axis. add a fake one so Cellpose doesn't complain, and remove it after prediction.
             img = np.expand_dims(img, axis=-1)
             channel_axis = None
+    
+    # Another special case. If we have a Z stack, but stitch_threshold= 0., cellpose will
+    # complain that the z_axis should be None to process a batch of 2D planes. We abide.
+    # But then we must also check that we have a channel image.
+    if z_axis is not None and stitch_threshold == 0.:
+        z_axis = None
+        if channel_axis is None:
+            img = np.expand_dims(img, axis=-1)
 
     task.update(message=f"Final parameters for model.eval: channel_axis={channel_axis}, z_axis={z_axis}, stitch_threshold={stitch_threshold}, do_3D={do_3D}. Image shape: {img.shape}")
     
