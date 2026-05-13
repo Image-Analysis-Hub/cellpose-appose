@@ -73,6 +73,7 @@ import net.imglib2.appose.ShmImg;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgView;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.img.display.imagej.ImgPlusViews;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.RealType;
@@ -83,6 +84,26 @@ import net.imglib2.view.Views;
  */
 public class Cellpose
 {
+
+	/**
+	 * Run Cellpose with the given parameters on the given image, and write
+	 * results in the given output list.
+	 * 
+	 * @param <T>
+	 * @param <R>
+	 * @param img
+	 * @param params
+	 * @param pythonScriptPath
+	 * @param envName
+	 * @param output
+	 */
+	private static < T extends RealType< T > & NativeType< T >, R extends RealType< R > & NativeType< R > > void run(
+			final ImgPlus< T > img,
+			final CellposeParameters params,
+			final String pythonScriptPath,
+			final String envName,
+			final List< ImgPlus< R > > output )
+	{}
 
 	/**
 	 * Core method to run Cellpose 3 or Cellpose-SAM, depending on the
@@ -115,6 +136,28 @@ public class Cellpose
 			final String pythonScriptPath,
 			final String envName ) throws BuildException, IOException, InterruptedException, TaskException
 	{
+		// Do we have a 5D image? If yes we do special prcessing, time by time.
+		final int tAxis = img.dimensionIndex( Axes.TIME );
+		final int nt = tAxis >= 0 ? ( int ) img.dimension( tAxis ) : 1;
+		final int zAxis = img.dimensionIndex( Axes.Z );
+		final int nz = zAxis >= 0 ? ( int ) img.dimension( zAxis ) : 1;
+		if ( nt > 1 && nz > 1 )
+		{
+			/*
+			 * We have a 5D image. First create the output place holder. The
+			 * main issue is that we don't know yet what will be the type of the
+			 * output image.
+			 */
+			final Img< T > output = img.factory().create( img );
+			final ImgPlus< T > outputImgPlus = outputToImgPlus( output, img );
+
+			for ( int t = 0; t < nt; t++ )
+			{
+				final ImgPlus< T > tpImg = ImgPlusViews.hyperSlice( img, tAxis, t );
+
+			}
+		}
+
 		// Inputs.
 		final Map< String, Object > inputs = params.toApposeMap( img );
 
