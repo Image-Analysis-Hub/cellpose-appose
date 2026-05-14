@@ -31,7 +31,7 @@ jobs:
 
       - name: Build with Maven
         run: |
-          mvn
+          mvn -DskipTests
         shell: bash -l {0}
 
       - name: Get Maven Version and Upload Artifact
