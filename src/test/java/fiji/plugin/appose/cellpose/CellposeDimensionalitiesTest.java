@@ -41,6 +41,7 @@ public class CellposeDimensionalitiesTest
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
 				.channels( 1, 0 )
+				.computeFlows( true )
 				.build();
 		test( cellpose3Runner( params ), CellposeTestDims.XY );
 	}
@@ -50,6 +51,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.build();
 		test( cellpose3Runner( params ), CellposeTestDims.XYC );
@@ -60,6 +62,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.build();
 		test( cellpose3Runner( params ), CellposeTestDims.XYT );
@@ -70,6 +73,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.build();
 		test( cellpose3Runner( params ), CellposeTestDims.XYCT );
@@ -80,6 +84,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.stitchThreshold( 0.4 )
 				.build();
@@ -90,6 +95,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.stitchThreshold( 0.4 )
 				.build();
@@ -101,6 +107,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.stitchThreshold( 0. )
 				.build();
@@ -112,6 +119,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.stitchThreshold( 0. )
 				.build();
@@ -122,6 +130,7 @@ public class CellposeDimensionalitiesTest
 	void testCellpose4_XY()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XY );
 	}
@@ -130,6 +139,7 @@ public class CellposeDimensionalitiesTest
 	void testCellpose4_XYC()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYC );
 	}
@@ -138,6 +148,7 @@ public class CellposeDimensionalitiesTest
 	void testCellpose4_XYT()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYT );
 	}
@@ -146,6 +157,7 @@ public class CellposeDimensionalitiesTest
 	void testCellpose4_XYCT()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCT );
 	}
@@ -155,6 +167,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
 				.stitchThreshold( 0.4 )
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYZ );
 	}
@@ -164,6 +177,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
 				.stitchThreshold( 0.4 )
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
 	}
@@ -173,6 +187,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
 				.stitchThreshold( 0. )
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYZ );
 	}
@@ -182,6 +197,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
 				.stitchThreshold( 0. )
+				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
 	}
@@ -221,19 +237,23 @@ public class CellposeDimensionalitiesTest
 		final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
 		final ImagePlus imp = toImp( img );
 		final ImagePlus[] outputs = runner.apply( imp );
+
+		/*
+		 * Labels.
+		 */
 		final ImagePlus label = outputs[ 0 ];
 
 		// Test output dimensions
 		final String dimNames = "XYCZT";
 		final int[] inDims = imp.getDimensions();
-		final int[] outDims = label.getDimensions();
+		final int[] outMaskDims = label.getDimensions();
 		for ( int d = 0; d < dimNames.length(); d++ )
 		{
 			final char dimName = dimNames.charAt( d );
 			if ( dimName == 'C' )
-				assertEquals( 1, outDims[ d ], "For case " + dims.name() + ": Output should have only one channel." );
+				assertEquals( 1, outMaskDims[ d ], "For case " + dims.name() + ": Label output should have only one channel." );
 			else
-				assertEquals( inDims[ d ], outDims[ d ], "For case " + dims.name() + ": Output and input must have the same " + dimName + " size." );
+				assertEquals( inDims[ d ], outMaskDims[ d ], "For case " + dims.name() + ": Label output and input must have the same " + dimName + " size." );
 		}
 
 		// Test calibration
@@ -243,6 +263,31 @@ public class CellposeDimensionalitiesTest
 		assertEquals( frameInterval, label.getCalibration().frameInterval );
 		assertEquals( xyUnits, label.getCalibration().getUnit() );
 		assertEquals( tUnits, label.getCalibration().getTimeUnit() );
+
+		/*
+		 * Flows/
+		 */
+
+		final ImagePlus flow = outputs[ 1 ];
+		// Test output dimensions
+		final int[] outFlowDims = flow.getDimensions();
+		for ( int d = 0; d < dimNames.length(); d++ )
+		{
+			final char dimName = dimNames.charAt( d );
+			if ( dimName == 'C' )
+				// C must always be there, and of dim 3.
+				assertEquals( 3, outFlowDims[ d ], "For case " + dims.name() + ": Flow output must have 3 channels." );
+			else
+				assertEquals( inDims[ d ], outFlowDims[ d ], "For case " + dims.name() + ": Flow output and input must have the same " + dimName + " size." );
+		}
+
+		// Test calibration
+		assertEquals( pixelSizeXY, flow.getCalibration().pixelWidth );
+		assertEquals( pixelSizeXY, flow.getCalibration().pixelHeight );
+		assertEquals( pixelSizeZ, flow.getCalibration().pixelDepth );
+		assertEquals( frameInterval, flow.getCalibration().frameInterval );
+		assertEquals( xyUnits, flow.getCalibration().getUnit() );
+		assertEquals( tUnits, flow.getCalibration().getTimeUnit() );
 	}
 
 	private static final long XY_SIZE = 128;
@@ -390,6 +435,7 @@ public class CellposeDimensionalitiesTest
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
 				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
 				.channels( 1, 0 )
 				.build();
 
