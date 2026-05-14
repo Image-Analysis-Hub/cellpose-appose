@@ -41,10 +41,11 @@ def make_5d(arr: np.ndarray) -> np.ndarray:
         arr = np.expand_dims(arr, axis=0)
     return arr
 
-def make_5d(img: np.ndarray,
+def make_mask_5d(img: np.ndarray,
             z_axis: int | None = None,
-            time_axis: int | None = None) -> np.ndarray:
-    """Return image as 5D (T, Z, C, Y, X), adding singleton dims if missing.
+            time_axis: int | None = None,
+            is_flows: bool = False) -> np.ndarray:
+    """Return cellpose mask output as 5D (T, Z, C, Y, X), adding singleton dims if missing.
 
     The input image was always with dimensions TZCYX and in this order, 
     but T and Z may be missing. In addition, even if the input image had 
@@ -65,6 +66,32 @@ def make_5d(img: np.ndarray,
         result = np.expand_dims(result, axis=0)
     return result
     
+
+def make_flow_5d(img: np.ndarray,
+            z_axis: int | None = None,
+            time_axis: int | None = None,
+            is_flows: bool = False) -> np.ndarray:
+    """Return cellpose flow output as 5D (T, Z, C, Y, X), adding singleton dims if missing.
+
+    The input image was always with dimensions TZCYX and in this order, 
+    but T and Z may be missing. Flow output has dimensions YXC.
+    We identify singleton dimensions for Z and T withthe z_axis and
+    time_axis values, that may be None if the corresponding axis is missing 
+    in the input. When this is the case, we add a singleton dimension at the 
+    right position in the output. In the end the output is always 5D with 
+    dimensions in TZCYX order.
+    """
+    # Move the last axis (C axis) to before Y and X. There might other dims before.
+    result = np.moveaxis(img, -1, -3)
+    # If Z is absent, add it before the channel axis (which is now at -3).
+    if z_axis is None:
+        result = np.expand_dims(result, axis=-4)
+    # If T is absent, add it at the beginning (before Z).
+    if time_axis is None:
+        result = np.expand_dims(result, axis=0)
+    return result
+    
+
 
 def flip_image(image: np.ndarray) -> np.ndarray:
     """Flips a NumPy array between Java (F_ORDER) and NumPy-friendly (C_ORDER)"""

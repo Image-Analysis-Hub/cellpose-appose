@@ -135,11 +135,10 @@ if appose_mode:
     task = globals()['task']
     listen(task.update)
 else:
-    from cp_utils import get_torch_device, share_as_ndarray, make_5d
+    from cp_utils import get_torch_device, share_as_ndarray, make_mask_5d, make_flow_5d
     from appose.python_worker import Task
     import os
     sample_folder = '../../../samples/' # When you run this script from its location.
-    test_file = 'testImg_XYCT.tif'
     task = Task()
 
 # load arguments and input from Appose task
@@ -164,6 +163,7 @@ if appose_mode:
         message = f"CP3: Fetch input from Fiji ({input_image.shape})"
         )
 else:
+    test_file = 'testImg_XYZC.tif'
     file = os.path.join(sample_folder, test_file) 
     input_image = io.imread(file)
     custom_model = None
@@ -172,9 +172,9 @@ else:
     channels = [0, 1]
     use_3D = False
     stitch_threshold = 0
-    z_axis = None
+    time_axis = None
+    z_axis = 0
     channel_axis = 1
-    time_axis = 0
     anisotropy = None
     compute_flows = True
     resample = True
@@ -225,12 +225,14 @@ task.update(
     message=f"CP3: Returning results"
 )
 
-# return output
+# Shape and return output
+masks_5d = make_mask_5d(masks, z_axis=z_axis, time_axis=time_axis)
+if compute_flows:
+    flows_5d = make_flow_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
+
 if appose_mode:
-    masks_5d = make_5d(masks, z_axis=z_axis, time_axis=time_axis)
     task.outputs["labels"] = share_as_ndarray(masks_5d)    # share masks to Appose as `labels` output
     if compute_flows:
-        flows_5d = make_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
         task.outputs["flows"] = share_as_ndarray(flows_5d) # share flows to Appose as `flows` output
 else:
     save_path = os.path.join(sample_folder, test_file.replace('.tif', '_masks.tif'))

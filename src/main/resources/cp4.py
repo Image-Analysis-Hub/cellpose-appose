@@ -162,7 +162,7 @@ if appose_mode:
     task = globals()['task']
     listen(task.update)
 else:
-    from cp_utils import get_torch_device, share_as_ndarray, make_5d
+    from cp_utils import get_torch_device, share_as_ndarray, make_mask_5d, make_flow_5d
     from appose.python_worker import Task
     task = Task()
 
@@ -266,9 +266,9 @@ task.update(
 task.update(message=f'Input image shape: {input_image.shape}')
 task.update(message=f'Masks shape: {masks.shape}')
 task.update(message=f'Z axis: {z_axis}, Time axis: {time_axis}')
-masks_5d = make_5d(masks, z_axis=z_axis, time_axis=time_axis)
+masks_5d = make_mask_5d(masks, z_axis=z_axis, time_axis=time_axis)
 if compute_flows:
-    flows_5d = make_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
+    flows_5d = make_flow_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
 
 task.update(message=f'Masks 5D shape: {masks_5d.shape}')    
 
