@@ -60,6 +60,7 @@ import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.ApposeUtils.ApposeLogger;
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
+import ij.CompositeImage;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.process.StackStatistics;
@@ -382,8 +383,10 @@ public class Cellpose
 			@SuppressWarnings( "rawtypes" )
 			final ImgPlus flows = outputs.get( 1 );
 			@SuppressWarnings( "unchecked" )
-			final ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
+			ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
 			flowsImp.getProcessor().resetMinAndMax();
+			flowsImp = new CompositeImage( flowsImp );
+			flowsImp.setDisplayMode( CompositeImage.COMPOSITE );
 			transferCalibration( flows, flowsImp );
 			return new ImagePlus[] { labels, flowsImp };
 		}
