@@ -33,50 +33,35 @@
 package fiji.plugin.appose.cellpose;
 
 import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
+import static fiji.plugin.appose.ApposeUtils.outputToImgPlus;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apposed.appose.Appose;
 import org.apposed.appose.BuildException;
-import org.apposed.appose.Environment;
-import org.apposed.appose.NDArray;
-import org.apposed.appose.Service;
-import org.apposed.appose.Service.Task;
-import org.apposed.appose.Service.TaskStatus;
 import org.apposed.appose.TaskException;
 
 import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.ApposeUtils.ApposeLogger;
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.CompositeImage;
-import ij.IJ;
 import ij.ImagePlus;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
-import net.imagej.axis.CalibratedAxis;
-import net.imagej.axis.DefaultLinearAxis;
-import net.imglib2.RandomAccessibleInterval;
-import net.imglib2.appose.ShmImg;
+import net.imglib2.Dimensions;
+import net.imglib2.FinalDimensions;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgView;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.img.display.imagej.ImgPlusViews;
 import net.imglib2.type.NativeType;
-import net.imglib2.type.Type;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.view.Views;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
+import net.imglib2.util.Util;
 
 /**
  * Static calls to Cellpose-3 or Cellpose-SAM.
@@ -95,6 +80,12 @@ public class Cellpose
 	 *            the input image.
 	 * @param params
 	 *            the parameters to run Cellpose with.
+	 * @param pythonScriptPath
+	 *            the path to the Python script to run (e.g. "/cp3.py" or
+	 *            "/cp4.py").
+	 * @param envName
+	 *            the name of the Python environment to create and use (e.g.
+	 *            "cp3" or "cp4").
 	 * @return a list containing the label image, and optionally the flows
 	 *         image. If flows are not computed, the list will contain only the
 	 *         label image.
@@ -110,136 +101,91 @@ public class Cellpose
 	 *             if executing the Python script fails.
 	 */
 	private static < T extends RealType< T > & NativeType< T >, R extends IntegerType< R > & NativeType< R > > CellposeOutput< R > run(
-			final ImgPlus< T > img,
+			final ImgPlus< T > input,
 			final CellposeParameters params,
 			final String pythonScriptPath,
 			final String envName ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		// Inputs.
-		final Map< String, Object > inputs = params.toApposeMap( img );
-
-		// Python env. specifications.
-		final String cellposeEnv = pixiEnv();
-
-		// Create Python env.
-		final ApposeLogger logger = new ApposeUtils.ApposeLogger();
-		final Environment env = Appose
-				.pixi()
-				.content( cellposeEnv )
-				.subscribeProgress( logger::showProgress )
-				.subscribeOutput( logger::showProgress )
-				.subscribeError( logger::showProgress )
-				.environment( envName )
-				.build();
-		logger.close();
-
-		// Python scripts and service.
-		final String utilsScript = IOUtils.toString( Cellpose.class.getResource( "/cp_utils.py" ), StandardCharsets.UTF_8 );
-		final String cellposeScript = IOUtils.toString( Cellpose.class.getResource( pythonScriptPath ), StandardCharsets.UTF_8 );
-		try (Service python = env.python().init( utilsScript ))
+		try (final CellposeRunner runner = new CellposeRunner( params, pythonScriptPath, envName ))
 		{
-			// The Python task.
-			final Task task = python.task( cellposeScript, inputs );
+			runner.init();
 
-			// Start the script, and return to Java immediately.
-			IJ.showStatus( "Starting Cellpose-Appose task..." );
-			final long start = System.currentTimeMillis();
-			// To catch update message from the python script
-			task.listen( ApposeUtils.ijTaskListener() );
-			task.start();
-			// Wait for task completion.
-			task.waitFor();
+			// Do we have a 5D image? If yes we process time by time.
+			final int tAxis = input.dimensionIndex( Axes.TIME );
+			final int nt = tAxis >= 0 ? ( int ) input.dimension( tAxis ) : 1;
+			final int zAxis = input.dimensionIndex( Axes.Z );
+			final int nz = zAxis >= 0 ? ( int ) input.dimension( zAxis ) : 1;
+			final int cAxis = input.dimensionIndex( Axes.CHANNEL );
 
-			// Verify that it worked.
-			if ( task.status != TaskStatus.COMPLETE )
-				throw new RuntimeException( "Python script failed with error: " + task.error );
-
-			// Benchmark.
-			final long end = System.currentTimeMillis();
-			IJ.showStatus( "Cellpose finished in " + ( end - start ) / 1000. + " s" );
-
-			// Unwrap and process outputs.
-			final NDArray labelsArr = ( NDArray ) task.outputs.get( "labels" );
-			final Img< R > labels = new ShmImg<>( labelsArr );
-			final ImgPlus< R > labelsImgPlus = outputToImgPlus( labels, img );
-
-			if ( params.computeFlows )
+			if ( nt > 1 && nz > 1 )
 			{
-				final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
-				final Img< UnsignedByteType > flows = new ShmImg<>( flowsArr );
-				final ImgPlus< UnsignedByteType > flowsImgPlus = outputToImgPlus( flows, img );
-				return new CellposeOutput< R >( labelsImgPlus, flowsImgPlus );
-			}
-			return new CellposeOutput<>( labelsImgPlus );
-		}
-	}
+				/*
+				 * One issue is that we don't know in advance what the type of
+				 * the labels output is going to be. It can be uint32 or uint64,
+				 * the latter happening if there are more that 65k labels in one
+				 * time-point. And this can happen at any time-point.
+				 * 
+				 * For now, we are optimistic, and assume it is only uint16 for
+				 * 5D use cases. Other use cases are unaffected.
+				 */
 
-	/**
-	 * Convert (wrap) the Img output of Cellpose-Appose to an ImgPlus with
-	 * metadata. We simply copy the input metadata, skipping the channel axis,
-	 * and suppose all the output axes are in the same order that of the input.
-	 * <p>
-	 * The contract is that the output <code>img</code> returned by the cp3.py
-	 * script is always a XYCZT image. The input might not be have all these
-	 * dimensions and we want to return an output {@link ImgPlus} with
-	 * dimensions that match the input.
-	 * 
-	 * @param <R>
-	 *            the type of pixel.
-	 * @param img
-	 *            the output image to convert.
-	 * @param metadata
-	 *            the input image to read metadata from.
-	 * @return
-	 */
-	private static < R extends Type< R >, T > ImgPlus< R > outputToImgPlus( final Img< R > img, final ImgPlus< T > metadata )
-	{
-		assert img.numDimensions() == 5;
+				// Placeholder for labels output.
+				final long[] ldims = input.dimensionsAsLongArray();
+				if ( cAxis >= 0 )
+					ldims[ cAxis ] = 1; // only 1 channel in the labels output
+				final Dimensions labelsDim = FinalDimensions.wrap( ldims );
+				final Img< UnsignedIntType > outputLabels = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedIntType() ).create( ldims );
+				final ImgPlus< UnsignedIntType > outputLabelsImgPlus = outputToImgPlus( outputLabels, input );
 
-		// Drop only the singleton dimensions
-		final List< Integer > keptDims = new ArrayList<>( 5 );
-		for ( int d = 0; d < 5; d++ )
-		{
-			if ( img.dimension( d ) > 1 )
-				keptDims.add( d );
-		}
-
-		final RandomAccessibleInterval< R > view = Views.dropSingletonDimensions( img );
-		final Img< R > wrapped = ImgView.wrap( view, img.factory() );
-
-		// We expect the Python code to always return the image in this order.
-		final CalibratedAxis[] allAxes = new CalibratedAxis[] {
-				new DefaultLinearAxis( Axes.X ),
-				new DefaultLinearAxis( Axes.Y ),
-				new DefaultLinearAxis( Axes.CHANNEL ),
-				new DefaultLinearAxis( Axes.Z ),
-				new DefaultLinearAxis( Axes.TIME )
-		};
-
-		final List< CalibratedAxis > newAxes = new ArrayList<>();
-		for ( final int d : keptDims )
-			newAxes.add( allAxes[ d ] );
-
-		// Copy name and calibration from original metadata if available
-		final String name = metadata.getName();
-		final ImgPlus< R > result = new ImgPlus<>( wrapped, name,
-				newAxes.toArray( new CalibratedAxis[ 0 ] ) );
-
-		// Copy scales/units from metadata for matching axes
-		for ( int d = 0; d < newAxes.size(); d++ )
-		{
-			final CalibratedAxis axis = newAxes.get( d );
-			for ( int md = 0; md < metadata.numDimensions(); md++ )
-			{
-				if ( axis.type().equals( metadata.axis( md ).type() ) )
+				// Placeholder for flows output if needed.
+				final ImgPlus< UnsignedByteType > outputFlowsImgPlus;
+				if ( params.computeFlows )
 				{
-					result.setAxis( metadata.axis( md ), d );
-					break;
+					final long[] fdims = input.dimensionsAsLongArray();
+					if ( cAxis >= 0 )
+						fdims[ cAxis ] = 3; // 3 channels in the flows output
+					final Img< UnsignedByteType > outputFlows = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedByteType() ).create( fdims );
+					outputFlowsImgPlus = outputToImgPlus( outputFlows, input );
 				}
+				else
+				{
+					outputFlowsImgPlus = null;
+				}
+
+				// Process time point by time point.
+				for ( int t = 0; t < nt; t++ )
+				{
+					// Input reslice.
+					final ImgPlus< T > inputTp = ImgPlusViews.hyperSlice( input, tAxis, t );
+
+					// Labels output reslice.
+					final ImgPlus< UnsignedIntType > outputLabelsImgPlusTp = ImgPlusViews.hyperSlice( outputLabelsImgPlus, tAxis, t );
+
+					// Flows output reslice.
+					final ImgPlus< UnsignedByteType > outputFlowsImgPlusTp;
+					if ( params.computeFlows )
+						outputFlowsImgPlusTp = ImgPlusViews.hyperSlice( outputFlowsImgPlus, tAxis, t );
+					else
+						outputFlowsImgPlusTp = null;
+
+					// In a CellposeOutput.
+					final CellposeOutput< UnsignedIntType > outputTp = new CellposeOutput<>( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
+
+					// Exec and write output in the right place.
+					runner.run( inputTp, outputTp );
+				}
+
+				// Return all time-points.
+				@SuppressWarnings( "unchecked" )
+				final CellposeOutput< R > out = ( CellposeOutput< R > ) new CellposeOutput< UnsignedIntType >( outputLabelsImgPlus, outputFlowsImgPlus );
+				return out;
+			}
+			else
+			{
+				// Otherwise process in one go.
+				return runner.run( input, null );
 			}
 		}
-
-		return result;
 	}
 
 	/**
@@ -385,16 +331,5 @@ public class Cellpose
 			return new ImagePlus[] { labels, flowsImp };
 		}
 		return new ImagePlus[] { labels };
-	}
-
-	/**
-	 * Returns the content of the pixi.toml file to build the environment return
-	 * throws IOException
-	 */
-	public static String pixiEnv() throws IOException
-	{
-		final URL pixiFile = Cellpose.class.getResource( "/pixi.toml" );
-		final String env = IOUtils.toString( pixiFile, StandardCharsets.UTF_8 );
-		return env;
 	}
 }
