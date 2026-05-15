@@ -32,14 +32,17 @@
  */
 package fiji.plugin.appose.cellpose;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
-import org.python.antlr.PythonParser.raise_stmt_return;
 import org.scijava.Context;
 import org.scijava.Initializable;
 import org.scijava.command.CommandInfo;
 import org.scijava.command.CommandService;
 import org.scijava.module.Module;
-import org.scijava.module.ModuleException;
 
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
 import fiji.plugin.appose.cellpose.cp3.CellposeAppose;
@@ -49,8 +52,6 @@ import ij.WindowManager;
 import ij.gui.NewImage;
 import ij.plugin.Duplicator;
 import ij.process.ImageStatistics;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 
 
@@ -64,12 +65,12 @@ public class TestCellPoseAppose
 	{
 		try
 		{
-			final String pixi_content = Cellpose.pixiEnv();
+			final String pixi_content = CellposeRunner.pixiEnv();
 			assertNotEquals( "", pixi_content, "Pixi content read is empty" );
 			assertTrue( pixi_content.contains("cellpose"), "Something is wrong in pixi content read: "+pixi_content );
 			assertTrue( pixi_content.contains("dependencies"), "Something is wrong in pixi content read: "+pixi_content );
 		} 
-		catch (Exception e) 
+		catch (final Exception e) 
 		{
 			e.printStackTrace();
 			throw e;
@@ -86,9 +87,9 @@ public class TestCellPoseAppose
 			imp.setDimensions( 1, nSlices, 1 );
 			WindowManager.setTempCurrentImage( imp ); 
 	
-			Context ctx = new Context();
-			CommandInfo info = ctx.service(CommandService.class).getCommand(CellposeAppose.class);
-			Module module = info.createModule();
+			final Context ctx = new Context();
+			final CommandInfo info = ctx.service(CommandService.class).getCommand(CellposeAppose.class);
+			final Module module = info.createModule();
 		    
 			// Inject services into the module's command instance
 			ctx.inject(module.getDelegateObject());
@@ -104,7 +105,7 @@ public class TestCellPoseAppose
 			assertEquals( "None", module.getInput("mode_3d") );
 	
 			// Test running cellpose, installing env if necessary
-			CellposeAppose cp3 = (CellposeAppose) module.getDelegateObject();
+			final CellposeAppose cp3 = (CellposeAppose) module.getDelegateObject();
 			cp3.setInput( "cyto_channel", 1);
 			cp3.run();
 			ctx.dispose();
@@ -128,11 +129,11 @@ public class TestCellPoseAppose
 			// Get the label image results
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 			// Check the image statistics if it looks like a successfull run
-			ImageStatistics stats = labelsCP3.getStatistics();
+			final ImageStatistics stats = labelsCP3.getStatistics();
 			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with default parameters" );
 			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with default parameters" );
 		}
-		catch (Exception e)
+		catch (final Exception e)
 		{
 			throw e;
 		}
@@ -153,11 +154,11 @@ public class TestCellPoseAppose
 			// Get the label image results
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 			// Check the image statistics if it looks like a successfull run
-			ImageStatistics stats = labelsCP3.getStatistics();
+			final ImageStatistics stats = labelsCP3.getStatistics();
 			assertFalse( stats.max <= 0, "CP3: No labels were found in blob image, with nuclei model" );
 			assertTrue( stats.max > 50, "CP3: Not enough labels were found in blob image, with nuclei model" );
 		}
-		catch (Exception e)
+		catch (final Exception e)
 		{
 			throw e;
 		}
@@ -170,7 +171,7 @@ public class TestCellPoseAppose
 		{
 			final ImagePlus stack = IJ.openImage( "https://imagej.net/images/mitosis.tif" );
 			// Keep only one time point
-			ImagePlus imp = new Duplicator().run(
+			final ImagePlus imp = new Duplicator().run(
 						stack,
 						1, stack.getNChannels(),   
 						1, stack.getNSlices(),      
@@ -192,11 +193,11 @@ public class TestCellPoseAppose
 			
 			// Check the image statistics if it looks like a successfull run
 			labelsCP3.setSlice(2);
-			ImageStatistics stats = labelsCP3.getStatistics();
+			final ImageStatistics stats = labelsCP3.getStatistics();
 			assertFalse( stats.max <= 0, "CP3: No labels were found in test image, with default parameters" );
 			assertTrue( stats.max > 1, "CP3: Not enough labels were found in test image, with default parameters" );
 		}
-		catch (Exception e)
+		catch (final Exception e)
 		{
 			throw e;
 		}
@@ -209,7 +210,7 @@ public class TestCellPoseAppose
 		{
 			final ImagePlus stack = IJ.openImage( "https://imagej.net/images/mitosis.tif" );
 			// Keep only one slice
-			ImagePlus imp = new Duplicator().run(
+			final ImagePlus imp = new Duplicator().run(
 						stack,
 						1, stack.getNChannels(),   
 						3, 3,      
@@ -229,11 +230,11 @@ public class TestCellPoseAppose
 			
 			// Check the image statistics if it looks like a successfull run
 			labelsCP3.setSlice(2);
-			ImageStatistics stats = labelsCP3.getStatistics();
+			final ImageStatistics stats = labelsCP3.getStatistics();
 			assertFalse( stats.max <= 0, "CP3: No labels were found in test image, with default parameters" );
 			assertTrue( stats.max > 2, "CP3: Not enough labels were found in test image, with default parameters" );
 		}
-		catch (Exception e)
+		catch (final Exception e)
 		{
 			throw e;
 		}

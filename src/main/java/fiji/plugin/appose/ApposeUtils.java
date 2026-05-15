@@ -73,8 +73,15 @@ import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
+import net.imagej.axis.CalibratedAxis;
+import net.imagej.axis.DefaultLinearAxis;
+import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.Img;
+import net.imglib2.img.ImgView;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 
 public class ApposeUtils
 {
@@ -98,6 +105,74 @@ public class ApposeUtils
 				context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
 			return context;
 		}
+	}
+
+	/**
+	 * Convert (wrap) the Img output of Cellpose-Appose to an ImgPlus with
+	 * metadata. We simply copy the input metadata, skipping the channel axis,
+	 * and suppose all the output axes are in the same order that of the input.
+	 * <p>
+	 * The contract is that the output <code>img</code> returned by the cp3.py
+	 * script is always a XYCZT image. The input might not be have all these
+	 * dimensions and we want to return an output {@link ImgPlus} with
+	 * dimensions that match the input.
+	 * 
+	 * @param <R>
+	 *            the type of pixel.
+	 * @param img
+	 *            the output image to convert.
+	 * @param metadata
+	 *            the input image to read metadata from.
+	 * @return
+	 */
+	public static < R extends Type< R >, T > ImgPlus< R > outputToImgPlus( final Img< R > img, final ImgPlus< T > metadata )
+	{
+		assert img.numDimensions() == 5;
+
+		// Drop only the singleton dimensions
+		final List< Integer > keptDims = new ArrayList<>( 5 );
+		for ( int d = 0; d < 5; d++ )
+		{
+			if ( img.dimension( d ) > 1 )
+				keptDims.add( d );
+		}
+
+		final RandomAccessibleInterval< R > view = Views.dropSingletonDimensions( img );
+		final Img< R > wrapped = ImgView.wrap( view, img.factory() );
+
+		// We expect the Python code to always return the image in this order.
+		final CalibratedAxis[] allAxes = new CalibratedAxis[] {
+				new DefaultLinearAxis( Axes.X ),
+				new DefaultLinearAxis( Axes.Y ),
+				new DefaultLinearAxis( Axes.CHANNEL ),
+				new DefaultLinearAxis( Axes.Z ),
+				new DefaultLinearAxis( Axes.TIME )
+		};
+
+		final List< CalibratedAxis > newAxes = new ArrayList<>();
+		for ( final int d : keptDims )
+			newAxes.add( allAxes[ d ] );
+
+		// Copy name and calibration from original metadata if available
+		final String name = metadata.getName();
+		final ImgPlus< R > result = new ImgPlus<>( wrapped, name,
+				newAxes.toArray( new CalibratedAxis[ 0 ] ) );
+
+		// Copy scales/units from metadata for matching axes
+		for ( int d = 0; d < newAxes.size(); d++ )
+		{
+			final CalibratedAxis axis = newAxes.get( d );
+			for ( int md = 0; md < metadata.numDimensions(); md++ )
+			{
+				if ( axis.type().equals( metadata.axis( md ).type() ) )
+				{
+					result.setAxis( metadata.axis( md ), d );
+					break;
+				}
+			}
+		}
+
+		return result;
 	}
 
 	/**
