@@ -86,14 +86,29 @@ def run_cellpose_v3(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
         maximum= 5,
         message=f"CP3: Predict labels (device={device})"
     )
+
+    # Check if we need to pre-process the dimensions of the image
+    channel_axis = kwargs.get('channel_axis', None)
+    z_axis = kwargs.get('z_axis', None)
+    time_axis = kwargs.get('time_axis', None)
+    stitch_threshold=kwargs.get('stitch_threshold', 0.)
+    do_3D=kwargs.get('use_3D', False)
+
+    if time_axis is not None and z_axis is None:
+        # The only way to process T axis in batch is to fake it as a Z-axis and prevent stitching.
+        z_axis = time_axis
+        stitch_threshold = 0. # force no stitching
+        do_3D = False # force 2D processing
+    
     masks, flows, styles = model.eval(
         img,
         channels=kwargs.get('channels', [0, 0]),
         diameter=kwargs.get('diameter', 30),
-        do_3D=kwargs.get('use_3D', False),
+        do_3D=do_3D,
         anisotropy=kwargs.get('anisotropy', 1.0),
-        stitch_threshold=kwargs.get('stitch_threshold', 0.0),
-        z_axis=kwargs.get('z_axis', None),
+        stitch_threshold=stitch_threshold,
+        z_axis=z_axis,
+        channel_axis=channel_axis,
         flow3D_smooth=kwargs.get('flow3D_smooth', 0),
         resample=kwargs.get('resample', True),
         normalize=kwargs.get('normalize', True),
@@ -120,8 +135,10 @@ if appose_mode:
     task = globals()['task']
     listen(task.update)
 else:
-    from cp_utils import get_torch_device, share_as_ndarray, make_5d
+    from cp_utils import get_torch_device, share_as_ndarray, make_mask_5d, make_flow_5d
     from appose.python_worker import Task
+    import os
+    sample_folder = '../../../samples/' # When you run this script from its location.
     task = Task()
 
 # load arguments and input from Appose task
@@ -131,6 +148,8 @@ if appose_mode:
     nuclei_channel_index: int | None = globals()['nuclei_channel']
     stitch_threshold: float = globals()['stitch_threshold']
     z_axis: int = globals()['z_axis']
+    channel_axis: int| None = globals()['channel_axis']
+    time_axis: int | None = globals()['t_axis']
     anisotropy: float = globals()['anisotropy']
     niter: int | None = globals()['niter']
 
@@ -144,7 +163,8 @@ if appose_mode:
         message = f"CP3: Fetch input from Fiji ({input_image.shape})"
         )
 else:
-    file = '../../../sample_data/test.tif'
+    test_file = 'testImg_XYZC.tif'
+    file = os.path.join(sample_folder, test_file) 
     input_image = io.imread(file)
     custom_model = None
     model_name = 'cyto3'
@@ -152,7 +172,9 @@ else:
     channels = [0, 1]
     use_3D = False
     stitch_threshold = 0
-    z_axis = None
+    time_axis = None
+    z_axis = 0
+    channel_axis = 1
     anisotropy = None
     compute_flows = True
     resample = True
@@ -182,6 +204,8 @@ masks, flows, styles = run_cellpose_v3(
         "stitch_threshold": stitch_threshold,
         "anisotropy": anisotropy,
         "z_axis": z_axis,
+        "channel_axis": channel_axis,
+        "time_axis": time_axis,
         "use_gpu": use_gpu,
         "device": device,
         'flow3D_smooth': flow3D_smooth,
@@ -201,18 +225,21 @@ task.update(
     message=f"CP3: Returning results"
 )
 
-# return output
+# Shape and return output
+masks_5d = make_mask_5d(masks, z_axis=z_axis, time_axis=time_axis)
+if compute_flows:
+    flows_5d = make_flow_5d(flows[0], z_axis=z_axis, time_axis=time_axis)
+
 if appose_mode:
-    masks_5d = np.rollaxis(make_5d(masks), -3, -4)         # ZYX -> TZCYX
     task.outputs["labels"] = share_as_ndarray(masks_5d)    # share masks to Appose as `labels` output
     if compute_flows:
-        flows_5d = np.rollaxis(make_5d(flows[0]), -1, -3)  # ZYXC -> TZCYX
         task.outputs["flows"] = share_as_ndarray(flows_5d) # share flows to Appose as `flows` output
 else:
-    io.imsave(f'../../../sample_data/test_masks.tif', masks.astype(np.uint16))
+    save_path = os.path.join(sample_folder, test_file.replace('.tif', '_masks.tif'))
+    io.imsave(save_path, masks.astype(np.uint16))
     if compute_flows:
-        io.imsave(f'../../../sample_data/test_flows.tif',
-                flows[0].astype(np.float32))
+        save_path = os.path.join(sample_folder, test_file.replace('.tif', '_flows.tif'))
+        io.imsave(save_path, flows[0].astype(np.float32))
 
 task.update(
     current = 5,

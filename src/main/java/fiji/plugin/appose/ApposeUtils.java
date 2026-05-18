@@ -42,16 +42,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JDialog;
 import javax.swing.JProgressBar;
@@ -59,9 +61,6 @@ import javax.swing.WindowConstants;
 
 import org.apposed.appose.TaskEvent;
 import org.scijava.Context;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
@@ -73,7 +72,6 @@ import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
-import net.imagej.ImgPlusMetadata;
 import net.imagej.axis.Axes;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.real.DoubleType;
@@ -117,7 +115,7 @@ public class ApposeUtils
 			if ( e.message != null )
 			{
 				IJ.showStatus( e.message );
-				//System.out.println( e.message );
+				System.out.println( e.message );
 			}
 
 			if ( e.maximum >= 0 )
@@ -325,8 +323,18 @@ public class ApposeUtils
 	 * @param to
 	 *            the ImagePlus to copy to.
 	 */
-	public static final void transferCalibration( final ImgPlusMetadata from, final ImagePlus to )
+	public static final void transferCalibration( final ImgPlus< ? > from, final ImagePlus to )
 	{
+		final int zaxis = from.dimensionIndex( Axes.Z );
+		final int nz = zaxis < 0 ? 1 : ( int ) from.dimension( zaxis );
+
+		final int caxis = from.dimensionIndex( Axes.CHANNEL );
+		final int nc = caxis < 0 ? 1 : ( int ) from.dimension( caxis );
+
+		final int taxis = from.dimensionIndex( Axes.TIME );
+		final int nt = taxis < 0 ? 1 : ( int ) from.dimension( taxis );
+
+		to.setDimensions( nc, nz, nt );
 		final Calibration tc = to.getCalibration();
 		for ( int d = 0; d < from.numDimensions(); d++ )
 		{
@@ -360,7 +368,6 @@ public class ApposeUtils
 		return imp.getNSlices() > 1;
 	}
 
-	
 	/**
 	 * Displays the parameters used in a formatted manner
 	 * 
@@ -438,43 +445,55 @@ public class ApposeUtils
 	 */
 	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
 	{
-		// from
-		// https://github.com/ijpb/MorphoLibJ/blob/master/src/main/java/inra/ijpb/plugins/LabelMapToPolygonRois.java
+		// We don't create ROIs for 3D images.
+		if ( labels.getNSlices() > 1 )
+			return Collections.emptyList();
 
-		final ImageProcessor image = labels.getProcessor();
+		final List< PolygonRoi > rois = new ArrayList<>();
+		final int nt = labels.getNFrames();
+		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
 
-		final int conn = 4;
-		final LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
-
-		// compute boundaries
-		final LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
-		final Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
-		final int nRois = boundaries.values().stream().mapToInt( List::size ).sum();
-		final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
-		final String pattern = prefix + "_%0" + nDigits + "d";
-
-		final List< PolygonRoi > rois = new ArrayList<>( nRois );
-		int index = 1; // Start at 1 to match ImageJ ROI display
-		for ( final int label : boundaries.keySet() )
+		for ( int t = 1; t <= nt; t++ )
 		{
-			final ArrayList< Polygon2D > polygons = boundaries.get( label );
+			final ImageProcessor image = labels.getImageStack().getProcessor( t );
 
-			if ( polygons.size() <= 1 && nRois <= 1 )
+			final int conn = 4;
+			final LabelMapToPolygons.VertexLocation loc = LabelMapToPolygons.VertexLocation.CORNER;
+
+			// compute boundaries
+			final LabelMapToPolygons tracker = new LabelMapToPolygons( conn, loc );
+			final Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
+			final int nRois = boundaries.values().stream().mapToInt( List::size ).sum();
+			final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
+			final String pattern = ( nt > 1 )
+					? prefix + "_t%0 " + nDigitsT + "d" + "_%0" + nDigits + "d"
+					: prefix + "_%0" + nDigits + "d";
+
+			int index = 1; // Start at 1 to match ImageJ ROI display
+			for ( final int label : boundaries.keySet() )
 			{
-				final PolygonRoi roi = polygons.get( 0 ).createRoi();
-				roi.setName( prefix );
-				roi.setStrokeColor( color );
-				rois.add( roi );
-			}
-			else
-			{
-				for ( final Polygon2D poly : polygons )
+				final ArrayList< Polygon2D > polygons = boundaries.get( label );
+
+				if ( polygons.size() <= 1 && nRois <= 1 )
 				{
-					final PolygonRoi roi = poly.createRoi();
-					final String name = String.format( pattern, index++ );
-					roi.setName( name );
+					final PolygonRoi roi = polygons.get( 0 ).createRoi();
+					roi.setName( prefix );
 					roi.setStrokeColor( color );
 					rois.add( roi );
+				}
+				else
+				{
+					for ( final Polygon2D poly : polygons )
+					{
+						final PolygonRoi roi = poly.createRoi();
+						final String name = ( nt > 1 )
+								? String.format( pattern, t, index++ )
+								: String.format( pattern, index++ );
+						roi.setPosition( t );
+						roi.setName( name );
+						roi.setStrokeColor( color );
+						rois.add( roi );
+					}
 				}
 			}
 		}
@@ -503,13 +522,13 @@ public class ApposeUtils
 
 	/**
 	 * Returns the CUDA version available on the system by querying
-	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS
-	 * is macOS. The returned value is already mapped to the pixi environment
+	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS is
+	 * macOS. The returned value is already mapped to the pixi environment
 	 * suffix (e.g. {@code "126"}, {@code "130"}).
 	 * <p>
-	 * {@code nvidia-smi} is preferred over {@code nvcc} because it reflects
-	 * the driver-supported CUDA version and is present on any system with a
-	 * GPU driver installed, even without the full CUDA toolkit.
+	 * {@code nvidia-smi} is preferred over {@code nvcc} because it reflects the
+	 * driver-supported CUDA version and is present on any system with a GPU
+	 * driver installed, even without the full CUDA toolkit.
 	 *
 	 * @return a pixi suffix string such as {@code "126"}, or {@code null}.
 	 */
@@ -523,8 +542,8 @@ public class ApposeUtils
 			pb.redirectErrorStream( true );
 			final Process process = pb.start();
 			final StringBuilder output = new StringBuilder();
-			try ( BufferedReader reader = new BufferedReader(
-					new InputStreamReader( process.getInputStream() ) ) )
+			try (BufferedReader reader = new BufferedReader(
+					new InputStreamReader( process.getInputStream() ) ))
 			{
 				String line;
 				while ( ( line = reader.readLine() ) != null )
@@ -547,26 +566,28 @@ public class ApposeUtils
 
 	/**
 	 * Maps raw CUDA version strings (as reported by {@code nvidia-smi}) to the
-	 * pixi environment suffix. Only versions listed here are supported; any other
-	 * version returns {@code null}.
+	 * pixi environment suffix. Only versions listed here are supported; any
+	 * other version returns {@code null}.
 	 */
 	static final Map< String, String > CUDA_VERSION_MAP;
 	static
 	{
 		CUDA_VERSION_MAP = new HashMap<>();
 		CUDA_VERSION_MAP.put( "12", "126" );
-		CUDA_VERSION_MAP.put( "13", "130" ); 
+		CUDA_VERSION_MAP.put( "13", "130" );
 	}
 
 	/**
 	 * Maps a raw CUDA version string to the pixi environment suffix using
 	 * {@link #CUDA_VERSION_MAP}.
 	 *
-	 * @return the mapped suffix, or {@code null} if the version is not recognized.
+	 * @return the mapped suffix, or {@code null} if the version is not
+	 *         recognized.
 	 */
 	static String mapCudaVersion( final String rawVersion )
 	{
-		// Only pass the major version (e.g. "12" from "12.6") to the map, as minor versions are not distinguished in the pixi environments.
+		// Only pass the major version (e.g. "12" from "12.6") to the map, as
+		// minor versions are not distinguished in the pixi environments.
 		final String majorVersion = rawVersion.split( "\\." )[ 0 ];
 		return CUDA_VERSION_MAP.get( majorVersion );
 	}
@@ -588,7 +609,7 @@ public class ApposeUtils
 	{
 		return convertImageAxis( imp.getNSlices(), imp.getNChannels(), imp.getNFrames() );
 	}
-	
+
 	public static ImageAxisInfo convertImageAxis( final int nslices, final int nchannels, final int nframes )
 	{
 		// print info about the image in the log
@@ -599,7 +620,7 @@ public class ApposeUtils
 		System.out.println( "\t" + nframes + " T frames" );
 		System.out.println( "─".repeat( 50 ) );
 
-		int ndimensions = ((nchannels>1)?1:0)+ ((nslices>1)?1:0) + ((nframes>1)?1:0) + 2;
+		final int ndimensions = ( ( nchannels > 1 ) ? 1 : 0 ) + ( ( nslices > 1 ) ? 1 : 0 ) + ( ( nframes > 1 ) ? 1 : 0 ) + 2;
 		// no Z
 		if ( nslices == 1 )
 		{
