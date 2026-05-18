@@ -110,7 +110,7 @@ def run_cellpose_v4(img: np.ndarray, kwargs: dict) -> tuple[np.ndarray, np.ndarr
     # Another special case. If we have a Z stack, but stitch_threshold= 0., cellpose will
     # complain that the z_axis should be None to process a batch of 2D planes. We abide.
     # But then we must also check that we have a channel image.
-    if z_axis is not None and stitch_threshold == 0.:
+    if not do_3D and z_axis is not None and stitch_threshold == 0.:
         z_axis = None
         if channel_axis is None:
             img = np.expand_dims(img, axis=-1)
