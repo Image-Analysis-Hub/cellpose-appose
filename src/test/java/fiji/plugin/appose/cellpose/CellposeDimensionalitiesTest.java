@@ -91,6 +91,18 @@ public class CellposeDimensionalitiesTest
 		test( cellpose3Runner( params ), CellposeTestDims.XYZ );
 	}
 
+	@Test
+	void testCellpose3_XYZT()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
+				.channels( 1, 0 )
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYZT );
+	}
+
 	void testCellpose3_XYCZ()
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
@@ -342,7 +354,7 @@ public class CellposeDimensionalitiesTest
 		XYCZ( new long[] { XY_SIZE, XY_SIZE, C_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL, Axes.Z } ),
 
 		// We don't test the 5D case yet. TODO
-//		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
+		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
 //		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } ),
 		;
 
