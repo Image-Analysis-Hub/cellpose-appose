@@ -184,11 +184,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			throw new RuntimeException( "No image available to process" );
 		}
 		
-		if ( imp.getNSlices() > 1 && imp.getNFrames() > 1 )
-		{
-			throw new RuntimeException( "5D images are not supported, please select a single time point or a single Z-slice to process." );
-		}
-
 
 		is3D = ApposeUtils.is3d( imp );
 
