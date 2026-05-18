@@ -150,6 +150,19 @@ public class CellposeDimensionalitiesTest
 	}
 
 	@Test
+	void testCellpose3_XYZT_NoStich_Mode3D()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
+				.channels( 1, 0 )
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYZT );
+	}
+
+	@Test
 	void testCellpose3_XYCZ_NoStich()
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
@@ -260,6 +273,17 @@ public class CellposeDimensionalitiesTest
 	}
 
 	@Test
+	void testCellpose4_XYZT_NoStich_Mode3D()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYZT );
+	}
+
+	@Test
 	void testCellpose4_XYZT_NoStich()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
@@ -291,6 +315,17 @@ public class CellposeDimensionalitiesTest
 	}
 	
 	@Test
+	void testCellpose3_XYCZT_NoStich_Mode3D()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.computeFlows( true )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZT );
+	}
+
+	@Test
 	void testCellpose4_XYCZ_NoStich_Mode3D()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
@@ -299,6 +334,17 @@ public class CellposeDimensionalitiesTest
 				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose4_XYCZT_NoStich_Mode3D()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZT );
 	}
 
 	@Test
