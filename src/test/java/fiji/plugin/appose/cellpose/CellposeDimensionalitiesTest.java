@@ -201,6 +201,28 @@ public class CellposeDimensionalitiesTest
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
 	}
+	
+	@Test
+	void testCellpose3_XYCZ_NoStich_Mode3D()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.computeFlows( true )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZ );
+	}
+	
+	@Test
+	void testCellpose4_XYCZ_NoStich_Mode3D()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.do3D( true )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
+	}
 
 	private static final Function< ImagePlus, ImagePlus[] > cellpose3Runner( final Cellpose3Parameters params )
 	{
