@@ -23,6 +23,7 @@ import ij.IJ;
 import net.imagej.ImgPlus;
 import net.imglib2.appose.ShmImg;
 import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImgPlusViews;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
@@ -117,17 +118,21 @@ class CellposeRunner implements AutoCloseable
 		// Unwrap and process outputs.
 		final NDArray labelsArr = ( NDArray ) task.outputs.get( "labels" );
 		final Img< R > labels = new ShmImg<>( labelsArr );
-		final ImgPlus< R > labelsImgPlus = outputToImgPlus( labels, input );
+		ImgPlus< R > labelsImgPlus = outputToImgPlus( labels, input );
 
 		if ( params.computeFlows )
 		{
 			final NDArray flowsArr = ( NDArray ) task.outputs.get( "flows" );
 			final Img< UnsignedByteType > flows = new ShmImg<>( flowsArr );
-			final ImgPlus< UnsignedByteType > flowsImgPlus = outputToImgPlus( flows, input );
+			ImgPlus< UnsignedByteType > flowsImgPlus = outputToImgPlus( flows, input );
+			// Drop the time singleton dimension for writing into output.
 
 			if ( output != null )
 			{
-				// Write the new labels to the provided output object.
+				// Drop the time singleton dimension for writing into output.
+				labelsImgPlus = ImgPlusViews.hyperSlice( labelsImgPlus, 4, 0 );
+				flowsImgPlus = ImgPlusViews.hyperSlice( flowsImgPlus, 4, 0 );
+
 				ImgUtil.copy( labelsImgPlus, output.labels );
 				ImgUtil.copy( flowsImgPlus, output.flows );
 				return output;
@@ -137,6 +142,9 @@ class CellposeRunner implements AutoCloseable
 
 		if ( output != null )
 		{
+			// Drop the time singleton dimension for writing into output.
+			labelsImgPlus = ImgPlusViews.hyperSlice( labelsImgPlus, 4, 0 );
+
 			// Write the new labels to the provided output object.
 			ImgUtil.copy( labelsImgPlus, output.labels );
 			return output;

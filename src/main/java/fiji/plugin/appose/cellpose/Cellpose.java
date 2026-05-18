@@ -60,7 +60,7 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedIntType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
 import net.imglib2.util.Util;
 
 /**
@@ -141,23 +141,15 @@ public class Cellpose
 					ldims = new long[] { ldims[ 0 ], ldims[ 1 ], 1, ldims[ 2 ], ldims[ 3 ] };
 				}
 				final Dimensions labelsDim = FinalDimensions.wrap( ldims );
-				final Img< UnsignedIntType > outputLabels = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedIntType() ).create( ldims );
-				final ImgPlus< UnsignedIntType > outputLabelsImgPlus = outputToImgPlus( outputLabels, input );
+				final Img< UnsignedShortType > outputLabels = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedShortType() ).create( ldims );
+				final ImgPlus< UnsignedShortType > outputLabelsImgPlus = outputToImgPlus( outputLabels, input );
 
 				// Placeholder for flows output if needed.
 				final ImgPlus< UnsignedByteType > outputFlowsImgPlus;
 				if ( params.computeFlows )
 				{
-					long[] fdims = input.dimensionsAsLongArray();
-					if ( cAxis >= 0 )
-					{
-						fdims[ cAxis ] = 3; // 3 channels in the flows output
-					}
-					else
-					{
-						// If there is no channel axis, we add one.
-						fdims = new long[] { fdims[ 0 ], fdims[ 1 ], 3, fdims[ 2 ], fdims[ 3 ] };
-					}
+					final long[] fdims = ldims;
+					fdims[ 2 ] = 3; // 3 channels in the flows output
 					final Img< UnsignedByteType > outputFlows = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedByteType() ).create( fdims );
 					outputFlowsImgPlus = outputToImgPlus( outputFlows, input );
 				}
@@ -167,23 +159,24 @@ public class Cellpose
 				}
 
 				// Process time point by time point.
+				final int outputTAxis = 4; // in the output, the time axis is always the 5th dimension, after X,Y,Z,C
 				for ( int t = 0; t < nt; t++ )
 				{
 					// Input reslice.
 					final ImgPlus< T > inputTp = ImgPlusViews.hyperSlice( input, tAxis, t );
 
 					// Labels output reslice.
-					final ImgPlus< UnsignedIntType > outputLabelsImgPlusTp = ImgPlusViews.hyperSlice( outputLabelsImgPlus, tAxis, t );
+					final ImgPlus< UnsignedShortType > outputLabelsImgPlusTp = ImgPlusViews.hyperSlice( outputLabelsImgPlus, outputTAxis, t );
 
 					// Flows output reslice.
 					final ImgPlus< UnsignedByteType > outputFlowsImgPlusTp;
 					if ( params.computeFlows )
-						outputFlowsImgPlusTp = ImgPlusViews.hyperSlice( outputFlowsImgPlus, tAxis, t );
+						outputFlowsImgPlusTp = ImgPlusViews.hyperSlice( outputFlowsImgPlus, outputTAxis, t );
 					else
 						outputFlowsImgPlusTp = null;
 
 					// In a CellposeOutput.
-					final CellposeOutput< UnsignedIntType > outputTp = new CellposeOutput<>( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
+					final CellposeOutput< UnsignedShortType > outputTp = new CellposeOutput<>( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
 
 					// Exec and write output in the right place.
 					runner.run( inputTp, outputTp );
@@ -191,7 +184,7 @@ public class Cellpose
 
 				// Return all time-points.
 				@SuppressWarnings( "unchecked" )
-				final CellposeOutput< R > out = ( CellposeOutput< R > ) new CellposeOutput< UnsignedIntType >( outputLabelsImgPlus, outputFlowsImgPlus );
+				final CellposeOutput< R > out = ( CellposeOutput< R > ) new CellposeOutput< UnsignedShortType >( outputLabelsImgPlus, outputFlowsImgPlus );
 				return out;
 			}
 			else
