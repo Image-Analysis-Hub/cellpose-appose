@@ -130,9 +130,16 @@ public class Cellpose
 				 */
 
 				// Placeholder for labels output.
-				final long[] ldims = input.dimensionsAsLongArray();
+				long[] ldims = input.dimensionsAsLongArray();
 				if ( cAxis >= 0 )
+				{
 					ldims[ cAxis ] = 1; // only 1 channel in the labels output
+				}
+				else
+				{
+					// If there is no channel axis, we add one.
+					ldims = new long[] { ldims[ 0 ], ldims[ 1 ], 1, ldims[ 2 ], ldims[ 3 ] };
+				}
 				final Dimensions labelsDim = FinalDimensions.wrap( ldims );
 				final Img< UnsignedIntType > outputLabels = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedIntType() ).create( ldims );
 				final ImgPlus< UnsignedIntType > outputLabelsImgPlus = outputToImgPlus( outputLabels, input );
@@ -141,9 +148,16 @@ public class Cellpose
 				final ImgPlus< UnsignedByteType > outputFlowsImgPlus;
 				if ( params.computeFlows )
 				{
-					final long[] fdims = input.dimensionsAsLongArray();
+					long[] fdims = input.dimensionsAsLongArray();
 					if ( cAxis >= 0 )
+					{
 						fdims[ cAxis ] = 3; // 3 channels in the flows output
+					}
+					else
+					{
+						// If there is no channel axis, we add one.
+						fdims = new long[] { fdims[ 0 ], fdims[ 1 ], 3, fdims[ 2 ], fdims[ 3 ] };
+					}
 					final Img< UnsignedByteType > outputFlows = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedByteType() ).create( fdims );
 					outputFlowsImgPlus = outputToImgPlus( outputFlows, input );
 				}
