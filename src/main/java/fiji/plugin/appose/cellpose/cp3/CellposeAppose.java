@@ -302,11 +302,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Print os and arch info
 		System.out.println( "Starting process..." );
 
-		if ( imp.getNSlices() > 1 && imp.getNFrames() > 1 )
-		{
-			throw new RuntimeException( "5D images are not supported, please select a single time point or a single Z-slice to process." );
-		}
-
 		try
 		{
 			final List<Integer> channels = Arrays.asList(
