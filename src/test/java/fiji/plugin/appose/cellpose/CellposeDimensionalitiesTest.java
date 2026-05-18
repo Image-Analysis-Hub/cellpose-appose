@@ -220,6 +220,16 @@ public class CellposeDimensionalitiesTest
 	}
 
 	@Test
+	void testCellpose4_XYZT()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0.4 )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYZT );
+	}
+
+	@Test
 	void testCellpose4_XYCZ()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
@@ -230,6 +240,16 @@ public class CellposeDimensionalitiesTest
 	}
 
 	@Test
+	void testCellpose4_XYCZT()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0.4 )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZT );
+	}
+
+	@Test
 	void testCellpose4_XYZ_NoStich()
 	{
 		final Cellpose4Parameters params = Cellpose4Parameters.builder()
@@ -237,6 +257,16 @@ public class CellposeDimensionalitiesTest
 				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYZ );
+	}
+
+	@Test
+	void testCellpose4_XYZT_NoStich()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYZT );
 	}
 
 	@Test
@@ -269,6 +299,16 @@ public class CellposeDimensionalitiesTest
 				.computeFlows( true )
 				.build();
 		test( cellpose4Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose4_XYCZT_NoStich()
+	{
+		final Cellpose4Parameters params = Cellpose4Parameters.builder()
+				.stitchThreshold( 0. )
+				.computeFlows( true )
+				.build();
+		test( cellpose4Runner( params ), CellposeTestDims.XYCZT );
 	}
 
 	private static final Function< ImagePlus, ImagePlus[] > cellpose3Runner( final Cellpose3Parameters params )
