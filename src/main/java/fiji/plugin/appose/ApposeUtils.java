@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -75,13 +76,10 @@ import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
 import net.imagej.axis.CalibratedAxis;
 import net.imagej.axis.DefaultLinearAxis;
-import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgView;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.real.DoubleType;
-import net.imglib2.view.Views;
 
 public class ApposeUtils
 {
@@ -129,17 +127,6 @@ public class ApposeUtils
 	{
 		assert img.numDimensions() == 5;
 
-		// Drop only the singleton dimensions
-		final List< Integer > keptDims = new ArrayList<>( 5 );
-		for ( int d = 0; d < 5; d++ )
-		{
-			if ( img.dimension( d ) > 1 )
-				keptDims.add( d );
-		}
-
-		final RandomAccessibleInterval< R > view = Views.dropSingletonDimensions( img );
-		final Img< R > wrapped = ImgView.wrap( view, img.factory() );
-
 		// We expect the Python code to always return the image in this order.
 		final CalibratedAxis[] allAxes = new CalibratedAxis[] {
 				new DefaultLinearAxis( Axes.X ),
@@ -148,14 +135,11 @@ public class ApposeUtils
 				new DefaultLinearAxis( Axes.Z ),
 				new DefaultLinearAxis( Axes.TIME )
 		};
-
-		final List< CalibratedAxis > newAxes = new ArrayList<>();
-		for ( final int d : keptDims )
-			newAxes.add( allAxes[ d ] );
+		final List< CalibratedAxis > newAxes = Arrays.asList( allAxes );
 
 		// Copy name and calibration from original metadata if available
 		final String name = metadata.getName();
-		final ImgPlus< R > result = new ImgPlus<>( wrapped, name,
+		final ImgPlus< R > result = new ImgPlus<>( img, name,
 				newAxes.toArray( new CalibratedAxis[ 0 ] ) );
 
 		// Copy scales/units from metadata for matching axes
