@@ -176,15 +176,16 @@ public class Cellpose
 						outputFlowsImgPlusTp = null;
 
 					// In a CellposeOutput.
-					final CellposeOutput< UnsignedShortType > outputTp = new CellposeOutput<>( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
+					@SuppressWarnings( { "rawtypes", "unchecked" } )
+					final CellposeOutput< R > outputTp = new CellposeOutput( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
 
 					// Exec and write output in the right place.
 					runner.run( inputTp, outputTp );
 				}
 
 				// Return all time-points.
-				@SuppressWarnings( "unchecked" )
-				final CellposeOutput< R > out = ( CellposeOutput< R > ) new CellposeOutput< UnsignedShortType >( outputLabelsImgPlus, outputFlowsImgPlus );
+				@SuppressWarnings( { "rawtypes", "unchecked" } )
+				final CellposeOutput< R > out = new CellposeOutput( outputLabelsImgPlus, outputFlowsImgPlus );
 				return out;
 			}
 			else

@@ -1,6 +1,7 @@
 package fiji.plugin.appose.cellpose;
 
 import net.imagej.ImgPlus;
+import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedIntType;
@@ -9,7 +10,7 @@ import net.imglib2.type.numeric.integer.UnsignedLongType;
 /**
  * Represents the output of Cellpose. Stores masks and flows possibly.
  */
-public class CellposeOutput< T extends IntegerType< T > >
+public class CellposeOutput< T extends IntegerType< T > & NativeType< T > >
 {
 
 	/**
