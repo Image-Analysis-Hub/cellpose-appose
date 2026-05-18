@@ -409,36 +409,36 @@ public class CellposeDimensionalitiesTest
 			{
 
 				view = ImgPlusViews.hyperSlice( imgPlus, timeAxis, t );
-				processTimepoint( view );
+				processTimepoint( view, ( int ) t );
 			}
 		}
 		else
 		{
-			processTimepoint( imgPlus );
+			processTimepoint( imgPlus, 0 );
 		}
 	}
 
-	private static void processTimepoint( final ImgPlus< UnsignedByteType > imgPlus )
+	private static void processTimepoint( final ImgPlus< UnsignedByteType > imgPlus, final int tp )
 	{
 		final int channelAxis = imgPlus.dimensionIndex( Axes.CHANNEL );
 		if ( channelAxis < 0 )
 		{
-			processChannel( imgPlus );
+			processChannel( imgPlus, tp );
 		}
 		else
 		{
 			// Write only in channel 0
 			final ImgPlus< UnsignedByteType > view = ImgPlusViews.hyperSlice( imgPlus, channelAxis, 0 );
-			processChannel( view );
+			processChannel( view, tp );
 		}
 	}
 
-	private static void processChannel( final ImgPlus< UnsignedByteType > imgPlus )
+	private static void processChannel( final ImgPlus< UnsignedByteType > imgPlus, final int tp )
 	{
 		final int zAxis = imgPlus.dimensionIndex( Axes.Z );
 		if ( zAxis < 0 )
 		{
-			writeCircle( imgPlus );
+			writeCircle( imgPlus, tp );
 		}
 		else
 		{
@@ -446,7 +446,7 @@ public class CellposeDimensionalitiesTest
 			for ( long z = Z_SIZE / 2 - 3; z <= Z_SIZE / 2 + 3; z++ )
 			{
 				final ImgPlus< UnsignedByteType > view = ImgPlusViews.hyperSlice( imgPlus, zAxis, z );
-				writeCircle( view );
+				writeCircle( view, tp );
 			}
 		}
 
@@ -454,12 +454,13 @@ public class CellposeDimensionalitiesTest
 		Gauss3.gauss( 1., Views.extendMirrorSingle( imgPlus ), imgPlus );
 	}
 
-	private static void writeCircle( final ImgPlus< UnsignedByteType > imgPlus )
+	private static void writeCircle( final ImgPlus< UnsignedByteType > imgPlus, final int tp )
 	{
 		assert imgPlus.numDimensions() == 2;
 
 		final double radius = 30.;
-		final double[] center = new double[] { XY_SIZE / 2., XY_SIZE / 2. };
+		// Slight shift with time.
+		final double[] center = new double[] { XY_SIZE / 2. + 5. * tp, XY_SIZE / 2. };
 		final WritableSphere circle = GeomMasks.closedSphere( center, radius );
 		Regions.sample( circle, imgPlus ).forEach( p -> p.set( 200 ) );
 	}
@@ -476,7 +477,7 @@ public class CellposeDimensionalitiesTest
 		ImageJ.main( args );
 		try
 		{
-			final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYT };
+			final CellposeTestDims[] toTest = new CellposeTestDims[] { CellposeTestDims.XYZT };
 			for ( final CellposeTestDims dims : toTest )
 			{
 				final ImgPlus< UnsignedByteType > img = createTestImgForDims( dims );
