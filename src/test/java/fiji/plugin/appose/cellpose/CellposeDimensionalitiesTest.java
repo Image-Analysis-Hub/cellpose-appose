@@ -114,6 +114,17 @@ public class CellposeDimensionalitiesTest
 		test( cellpose3Runner( params ), CellposeTestDims.XYCZ );
 	}
 
+	void testCellpose3_XYCZT()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
+				.channels( 1, 0 )
+				.stitchThreshold( 0.4 )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZT );
+	}
+
 	@Test
 	void testCellpose3_XYZ_NoStich()
 	{
@@ -127,6 +138,18 @@ public class CellposeDimensionalitiesTest
 	}
 
 	@Test
+	void testCellpose3_XYZT_NoStich()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
+				.channels( 1, 0 )
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYZT );
+	}
+
+	@Test
 	void testCellpose3_XYCZ_NoStich()
 	{
 		final Cellpose3Parameters params = Cellpose3Parameters.builder()
@@ -136,6 +159,18 @@ public class CellposeDimensionalitiesTest
 				.stitchThreshold( 0. )
 				.build();
 		test( cellpose3Runner( params ), CellposeTestDims.XYCZ );
+	}
+
+	@Test
+	void testCellpose3_XYCZT_NoStich()
+	{
+		final Cellpose3Parameters params = Cellpose3Parameters.builder()
+				.model( Cellpose3BuiltinModels.CYTO2 )
+				.computeFlows( true )
+				.channels( 1, 0 )
+				.stitchThreshold( 0. )
+				.build();
+		test( cellpose3Runner( params ), CellposeTestDims.XYCZT );
 	}
 
 	@Test
@@ -353,9 +388,8 @@ public class CellposeDimensionalitiesTest
 		XYZ( new long[] { XY_SIZE, XY_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z } ),
 		XYCZ( new long[] { XY_SIZE, XY_SIZE, C_SIZE, Z_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL, Axes.Z } ),
 
-		// We don't test the 5D case yet. TODO
 		XYZT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.TIME } ),
-//		XYZCT( new long[] { XY_SIZE, XY_SIZE, Z_SIZE, C_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.Z, Axes.CHANNEL, Axes.TIME } ),
+		XYCZT( new long[] { XY_SIZE, XY_SIZE, C_SIZE, Z_SIZE, T_SIZE }, new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL, Axes.Z, Axes.TIME } ),
 		;
 
 		private final long[] dims;
