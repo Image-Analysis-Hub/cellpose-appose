@@ -32,10 +32,7 @@
  */
 package fiji.plugin.appose.cellpose;
 
-import static fiji.plugin.appose.ApposeUtils.getBestTorchConfig;
-import static fiji.plugin.appose.ApposeUtils.outputToImgPlus;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
-import static fiji.plugin.appose.ApposeUtils.transferCalibration;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import java.io.IOException;
@@ -43,25 +40,22 @@ import java.io.IOException;
 import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
 
-import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
-import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.CompositeImage;
 import ij.ImagePlus;
+import ij.measure.Calibration;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
-import net.imglib2.Dimensions;
-import net.imglib2.FinalDimensions;
-import net.imglib2.img.Img;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.AxisInfo;
+import net.imglib2.cellpose.Cellpose3Parameters;
+import net.imglib2.cellpose.Cellpose4Parameters;
+import net.imglib2.cellpose.CellposeOutput;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.img.display.imagej.ImgPlusViews;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
-import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
-import net.imglib2.type.numeric.integer.UnsignedShortType;
-import net.imglib2.util.Util;
 
 /**
  * Static calls to Cellpose-3 or Cellpose-SAM.
@@ -69,221 +63,6 @@ import net.imglib2.util.Util;
 public class Cellpose
 {
 
-	/**
-	 * Core method to run Cellpose 3 or Cellpose-SAM, depending on the
-	 * specification of the script and environment to use. To be used by other
-	 * methods in this class.
-	 * 
-	 * @param <T>
-	 *            the pixel type of the input image.
-	 * @param img
-	 *            the input image.
-	 * @param params
-	 *            the parameters to run Cellpose with.
-	 * @param pythonScriptPath
-	 *            the path to the Python script to run (e.g. "/cp3.py" or
-	 *            "/cp4.py").
-	 * @param envName
-	 *            the name of the Python environment to create and use (e.g.
-	 *            "cp3" or "cp4").
-	 * @return a list containing the label image, and optionally the flows
-	 *         image. If flows are not computed, the list will contain only the
-	 *         label image.
-	 * @throws BuildException
-	 *             if installing and building the Python environment fails.
-	 * @throws IOException
-	 *             if reading the Python scripts or environment specifications
-	 *             fails.
-	 * @throws InterruptedException
-	 *             if the thread is interrupted while waiting for the Python
-	 *             script to finish.
-	 * @throws TaskException
-	 *             if executing the Python script fails.
-	 */
-	private static < T extends RealType< T > & NativeType< T >, R extends IntegerType< R > & NativeType< R > > CellposeOutput< R > run(
-			final ImgPlus< T > input,
-			final CellposeParameters params,
-			final String pythonScriptPath,
-			final String envName ) throws BuildException, IOException, InterruptedException, TaskException
-	{
-		try (final CellposeRunner runner = new CellposeRunner( params, pythonScriptPath, envName ))
-		{
-			runner.init();
-
-			// Do we have a 5D image? If yes we process time by time.
-			final int tAxis = input.dimensionIndex( Axes.TIME );
-			final int nt = tAxis >= 0 ? ( int ) input.dimension( tAxis ) : 1;
-			final int zAxis = input.dimensionIndex( Axes.Z );
-			final int nz = zAxis >= 0 ? ( int ) input.dimension( zAxis ) : 1;
-			final int cAxis = input.dimensionIndex( Axes.CHANNEL );
-
-			if ( nt > 1 && nz > 1 )
-			{
-				/*
-				 * One issue is that we don't know in advance what the type of
-				 * the labels output is going to be. It can be uint32 or uint64,
-				 * the latter happening if there are more that 65k labels in one
-				 * time-point. And this can happen at any time-point.
-				 * 
-				 * For now, we are optimistic, and assume it is only uint16 for
-				 * 5D use cases. Other use cases are unaffected.
-				 */
-
-				// Placeholder for labels output.
-				long[] ldims = input.dimensionsAsLongArray();
-				if ( cAxis >= 0 )
-				{
-					ldims[ cAxis ] = 1; // only 1 channel in the labels output
-				}
-				else
-				{
-					// If there is no channel axis, we add one.
-					ldims = new long[] { ldims[ 0 ], ldims[ 1 ], 1, ldims[ 2 ], ldims[ 3 ] };
-				}
-				final Dimensions labelsDim = FinalDimensions.wrap( ldims );
-				final Img< UnsignedShortType > outputLabels = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedShortType() ).create( ldims );
-				final ImgPlus< UnsignedShortType > outputLabelsImgPlus = outputToImgPlus( outputLabels, input );
-
-				// Placeholder for flows output if needed.
-				final ImgPlus< UnsignedByteType > outputFlowsImgPlus;
-				if ( params.computeFlows )
-				{
-					final long[] fdims = ldims;
-					fdims[ 2 ] = 3; // 3 channels in the flows output
-					final Img< UnsignedByteType > outputFlows = Util.getArrayOrCellImgFactory( labelsDim, new UnsignedByteType() ).create( fdims );
-					outputFlowsImgPlus = outputToImgPlus( outputFlows, input );
-				}
-				else
-				{
-					outputFlowsImgPlus = null;
-				}
-
-				// Process time point by time point.
-				final int outputTAxis = 4; // in the output, the time axis is always the 5th dimension, after X,Y,Z,C
-				for ( int t = 0; t < nt; t++ )
-				{
-					// Input reslice.
-					final ImgPlus< T > inputTp = ImgPlusViews.hyperSlice( input, tAxis, t );
-
-					// Labels output reslice.
-					final ImgPlus< UnsignedShortType > outputLabelsImgPlusTp = ImgPlusViews.hyperSlice( outputLabelsImgPlus, outputTAxis, t );
-
-					// Flows output reslice.
-					final ImgPlus< UnsignedByteType > outputFlowsImgPlusTp;
-					if ( params.computeFlows )
-						outputFlowsImgPlusTp = ImgPlusViews.hyperSlice( outputFlowsImgPlus, outputTAxis, t );
-					else
-						outputFlowsImgPlusTp = null;
-
-					// In a CellposeOutput.
-					@SuppressWarnings( { "rawtypes", "unchecked" } )
-					final CellposeOutput< R > outputTp = new CellposeOutput( outputLabelsImgPlusTp, outputFlowsImgPlusTp );
-
-					// Exec and write output in the right place.
-					runner.run( inputTp, outputTp );
-				}
-
-				// Return all time-points.
-				@SuppressWarnings( { "rawtypes", "unchecked" } )
-				final CellposeOutput< R > out = new CellposeOutput( outputLabelsImgPlus, outputFlowsImgPlus );
-				return out;
-			}
-			else
-			{
-				// Otherwise process in one go.
-				return runner.run( input, null );
-			}
-		}
-	}
-
-	/**
-	 * Run Cellpose 3 with the given parameters on the given image, and return
-	 * the resulting label image, and optionally the flows.
-	 * 
-	 * @param <T>
-	 *            the pixel type of the input image.
-	 * @param img
-	 *            the input image.
-	 * @param params
-	 *            the parameters to run Cellpose with.
-	 * @return a {@link CellposeOutput} object containing the label image, and
-	 *         optionally the flows image.
-	 * @throws BuildException
-	 *             if installing and building the Python environment fails.
-	 * @throws IOException
-	 *             if reading the Python scripts or environment specifications
-	 *             fails.
-	 * @throws TaskException
-	 *             if executing the Python script fails.
-	 */
-	public static < T extends RealType< T > & NativeType< T >, R extends IntegerType< R > & NativeType< R > > CellposeOutput< R > cellpose3( final ImgPlus< T > img, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
-	{
-		final String envName = "cp3" + getBestTorchConfig();
-		final String pythonScriptPath = "/cp3.py";
-		return run( img, params, pythonScriptPath, envName );
-	}
-
-	/**
-	 * Run Cellpose 3 on the given image with the given parameters, and return
-	 * the resulting label image, and optionally the flows as ImagePlus.
-	 * 
-	 * @param imp
-	 *            the input image.
-	 * @param params
-	 *            the parameters to run Cellpose with.
-	 * @return an array containing the resulting label image, and optionally the
-	 *         flows image.
-	 * @throws TaskException
-	 *             if executing the Python script fails.
-	 * @throws InterruptedException
-	 *             if the thread is interrupted while waiting for the Python
-	 *             script to finish.
-	 * @throws IOException
-	 *             if reading the Python scripts or environment specifications
-	 *             fails.
-	 * @throws BuildException
-	 *             if installing and building the Python environment fails.
-	 */
-	@SuppressWarnings( { "unchecked", "rawtypes" } )
-	public static ImagePlus[] cellpose3( final ImagePlus imp, final Cellpose3Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
-	{
-		final ImgPlus img = rawWraps( imp );
-		final CellposeOutput outputs = cellpose3( img, params );
-		final ImagePlus[] imps = toImp( outputs );
-		for ( final ImagePlus out : imps )
-			ApposeUtils.transferCalibration( imp, out );
-		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
-		if ( params.computeFlows )
-			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-3" );
-		return imps;
-	}
-
-	/**
-	 * Run Cellpose-SAM with the given parameters on the given image, and return
-	 * the resulting label image, and optionally the flows.
-	 * 
-	 * @param <T>
-	 *            the pixel type of the input image.
-	 * @param img
-	 *            the input image.
-	 * @param params
-	 *            the parameters to run Cellpose with.
-	 * @return a {@link CellposeOutput} object containing the label image, and
-	 *         optionally the flows image.
-	 * @throws BuildException
-	 *             if installing and building the Python environment fails.
-	 * @throws IOException
-	 *             if reading the Python scripts or environment specifications
-	 *             fails.
-	 * @throws TaskException
-	 *             if executing the Python script fails.
-	 */
-	public static < T extends RealType< T > & NativeType< T >, R extends IntegerType< R > & NativeType< R > > CellposeOutput< R > cellpose4( final ImgPlus< T > img, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
-	{
-		final String envName = "cp4" + getBestTorchConfig();
-		final String pythonScriptPath = "/cp4.py";
-		return run( img, params, pythonScriptPath, envName );
-	}
 
 	/**
 	 * Run Cellpose-SAM on the given image with the given parameters, and return
@@ -307,37 +86,130 @@ public class Cellpose
 	 *             if installing and building the Python environment fails.
 	 */
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
-	public static ImagePlus[] cellpose4( final ImagePlus imp, final Cellpose4Parameters params ) throws BuildException, IOException, InterruptedException, TaskException
+	public static ImagePlus[] cellpose4( final ImagePlus imp,
+			final Cellpose4Parameters params,
+			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		final ImgPlus img = rawWraps( imp );
-		final CellposeOutput outputs = cellpose4( img, params );
+		final ImgPlus input = rawWraps( imp );
+		final AxisInfo inputAxes = getAxisInfo( input );
+		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, params, listener );
 		final ImagePlus[] imps = toImp( outputs );
 		for ( final ImagePlus out : imps )
-			ApposeUtils.transferCalibration( imp, out );
+			transferCalibration( imp, out );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-SAM" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-SAM" );
 		return imps;
 	}
 
+	/**
+	 * Run Cellpose 3 on the given image with the given parameters, and return
+	 * the resulting label image, and optionally the flows as ImagePlus.
+	 * 
+	 * @param imp
+	 *            the input image.
+	 * @param params
+	 *            the parameters to run Cellpose with.
+	 * @param listener
+	 *            the listener to report progress and messages to.
+	 * @return an array containing the resulting label image, and optionally the
+	 *         flows image.
+	 * @throws TaskException
+	 *             if executing the Python script fails.
+	 * @throws InterruptedException
+	 *             if the thread is interrupted while waiting for the Python
+	 *             script to finish.
+	 * @throws IOException
+	 *             if reading the Python scripts or environment specifications
+	 *             fails.
+	 * @throws BuildException
+	 *             if installing and building the Python environment fails.
+	 */
+	@SuppressWarnings( { "unchecked", "rawtypes" } )
+	public static ImagePlus[] cellpose3(
+			final ImagePlus imp,
+			final Cellpose3Parameters params,
+			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+	{
+		final ImgPlus input = rawWraps( imp );
+		final AxisInfo inputAxes = getAxisInfo( input );
+		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, params, listener );
+
+		final ImagePlus[] imps = toImp( outputs );
+		for ( final ImagePlus out : imps )
+			transferCalibration( imp, out );
+		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
+		if ( params.computeFlows )
+			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-3" );
+		return imps;
+	}
+
+	private static AxisInfo getAxisInfo( final ImgPlus< ? > img )
+	{
+		final int x = img.dimensionIndex( Axes.X );
+		final int y = img.dimensionIndex( Axes.Y );
+		final int c = img.dimensionIndex( Axes.CHANNEL );
+		final int z = img.dimensionIndex( Axes.Z );
+		final int t = img.dimensionIndex( Axes.TIME );
+		return new AxisInfo( x, y, c, z, t );
+	}
+
 	private static < R extends IntegerType< R > & NativeType< R > > ImagePlus[] toImp( final CellposeOutput< R > outputs )
 	{
-		final ImgPlus< R > output = outputs.labels;
-		final ImagePlus labels = ImageJFunctions.wrap( output, "labels" );
-		final StackStatistics stats = new StackStatistics( labels );
-		labels.setDisplayRange( stats.min, stats.max );
-		useGlasbeyDarkLUT( labels );
-		transferCalibration( output, labels );
+		final RandomAccessibleInterval< R > labels = outputs.labels;
+		final ImagePlus labelsImp = ImageJFunctions.wrap( labels, "labels" );
+
+		// Set dimensionality. We assume output are always XYCZT.
+		final AxisInfo axesLabels = outputs.axesLabels;
+		final int nC = ( int ) axesLabels.nChannels( labels );
+		final int nZ = ( int ) axesLabels.nZ( labels );
+		final int nT = ( int ) axesLabels.nTimePoints( labels );
+		labelsImp.setDimensions( nC, nZ, nT );
+
+		// Set display range and LUT.
+		final StackStatistics stats = new StackStatistics( labelsImp );
+		labelsImp.setDisplayRange( stats.min, stats.max );
+		useGlasbeyDarkLUT( labelsImp );
+
+		// Deal with the flows.
 		if ( outputs.flows != null )
 		{
-			final ImgPlus< UnsignedByteType > flows = outputs.flows;
+			final RandomAccessibleInterval< UnsignedByteType > flows = outputs.flows;
 			ImagePlus flowsImp = ImageJFunctions.wrap( flows, "flows" );
+
+			final AxisInfo axesFlows = outputs.axesFlows;
+			final int nCFlows = ( int ) axesFlows.nChannels( flows );
+			final int nZFlows = ( int ) axesFlows.nZ( flows );
+			final int nTFlows = ( int ) axesFlows.nTimePoints( flows );
+			flowsImp.setDimensions( nCFlows, nZFlows, nTFlows );
 			flowsImp.getProcessor().resetMinAndMax();
 			flowsImp = new CompositeImage( flowsImp );
 			flowsImp.setDisplayMode( CompositeImage.COMPOSITE );
-			transferCalibration( flows, flowsImp );
-			return new ImagePlus[] { labels, flowsImp };
+			return new ImagePlus[] { labelsImp, flowsImp };
 		}
-		return new ImagePlus[] { labels };
+		return new ImagePlus[] { labelsImp };
+	}
+
+	/**
+	 * Transfers the calibration of an {@link ImagePlus} to another one,
+	 * generated from a capture of the first one.
+	 *
+	 * @param from
+	 *            the imp to copy from.
+	 * @param to
+	 *            the imp to copy to.
+	 */
+	private static final void transferCalibration( final ImagePlus from, final ImagePlus to )
+	{
+		final Calibration fc = from.getCalibration();
+		final Calibration tc = to.getCalibration();
+
+		tc.setUnit( fc.getUnit() );
+		tc.setTimeUnit( fc.getTimeUnit() );
+		tc.frameInterval = fc.frameInterval;
+
+		tc.pixelWidth = fc.pixelWidth;
+		tc.pixelHeight = fc.pixelHeight;
+		tc.pixelDepth = fc.pixelDepth;
 	}
 }
