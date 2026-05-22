@@ -42,6 +42,7 @@ import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import net.imglib2.cellpose.ApposeTaskListener;
 import net.imglib2.cellpose.Cellpose3BuiltinModels;
@@ -60,8 +61,10 @@ public class CellposeTestDrive
 		{
 			ImageJ.main( args );
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
-			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+//			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
+			final Roi copy = ( Roi ) imp.getRoi().clone();
 
 			/*
 			 * Cellpose 3
@@ -85,6 +88,7 @@ public class CellposeTestDrive
 			 */
 
 			final Cellpose4Parameters paramsCP4 = Cellpose4Parameters.defaultParameters();
+			imp.setRoi( copy ); // put it back.
 			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener );
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
