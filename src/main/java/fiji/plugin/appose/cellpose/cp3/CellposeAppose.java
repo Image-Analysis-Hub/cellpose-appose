@@ -138,22 +138,27 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
+	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
+	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation", visibility=ItemVisibility.MESSAGE )
+	// ---------
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>")
+    private final String dimMsg = "<html><hr width='100'></html>";
+
+	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "Mode of 3D segmentation" )
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"", visibility=ItemVisibility.MESSAGE )
+	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.", visibility=ItemVisibility.MESSAGE ) 
+	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
-	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
-	private Integer niter = 0; // number of iterations. If 0, put None and use default
 
 	// ---------
 	
@@ -228,6 +233,32 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			stitchItem.setStepSize( 0.05 );
 			stitchItem.setVisibility(ItemVisibility.NORMAL);					
 		} 
+		else
+		{
+			// List< String > modeChoices = Arrays.asList( "None" );
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			// mode3dItem.setChoices( modeChoices );
+			// mode3dItem.setDefaultValue( "None" );
+			setInput( "mode_3d", "None" );
+			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
+
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			// flowItem.setMinimumValue( 0 );
+			// flowItem.setDefaultValue( 0 );
+			setInput( "flow3d_smooth", "0" );
+			flowItem.setVisibility(ItemVisibility.MESSAGE);
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			// stitchItem.setMinimumValue( 0.0 );
+			// stitchItem.setMaximumValue( 1.0 );
+			// stitchItem.setStepSize( 0.05 );
+			// stitchItem.setDefaultValue( 0.1 );
+			setInput( "stitch_threshold", "0.1" );
+			stitchItem.setVisibility(ItemVisibility.MESSAGE);
+		}
 
 		// display system info (OS, device) for user awareness
 		sysInfo = "<center>OS: " + System.getProperty( "os.name" ) + " - " + System.getProperty( "os.arch" ) + " | Device: " + ( getCudaVersion() != null ? "CUDA " + getCudaVersion() : "CPU" ) + "</center>";

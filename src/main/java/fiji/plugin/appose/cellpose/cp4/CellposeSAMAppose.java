@@ -130,22 +130,27 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
+	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
+	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation", visibility=ItemVisibility.MESSAGE )
+	// ---------
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>")
+    private final String dimMsg = "<html><hr width='100'></html>";
+
+	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "How is cellpose is processing the image if it is 3D")
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"", visibility=ItemVisibility.MESSAGE  )
+	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis"  )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.", visibility=ItemVisibility.MESSAGE ) 
+	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
-	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
-	private Integer niter = 0; // number of iterations. If 0, put None and use default
 
 	// ---------
 	
@@ -172,8 +177,27 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Override
 	public void initialize()
 	{
+
+		// print out the parameters for debugging
+		System.out.println( "Initializing Cellpose-SAM Appose plugin with the following parameters:" );
+		System.out.println( "  custom_model: " + custom_model );
+		System.out.println( "  cell_diameter: " + cell_diameter );
+		System.out.println( "  chan0: " + chan0 );
+		System.out.println( "  chan1: " + chan1 );
+		System.out.println( "  chan2: " + chan2 );	
+		System.out.println( "  min_size: " + min_size );
+		System.out.println( "  normalize: " + normalize );
+		System.out.println( "  resample: " + resample );
+		System.out.println( "  tile_overlap: " + tile_overlap );
+		System.out.println( "  compute_flows: " + compute_flows );
+		System.out.println( "  mode_3d: " + mode_3d );
+		System.out.println( "  stitch_threshold: " + stitch_threshold );
+		System.out.println( "  flow3d_smooth: " + flow3d_smooth );
+		System.out.println( "  niter: " + niter );
+
 		// set the default value, otherwise it gets to -6
 		setInput( "cellprob_threshold", 0.0) ;
+
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
@@ -184,7 +208,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			throw new RuntimeException( "No image available to process" );
 		}
 		
-
 		is3D = ApposeUtils.is3d( imp );
 
 		List< String > channelChoices = ApposeUtils.getChannelChoices( imp, false );
@@ -204,26 +227,50 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 				getInfo().getMutableInput( "chan2", String.class );
 		c2Item.setChoices( channelChoices );
 
-		// Set the 3D mode selected by the user if the image is 3D
+		// if the image is 3D, update the GUI to display the 3D options, otherwise fix them
 		if ( is3D )
 		{
 			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
-			mode3dItem.setVisibility(ItemVisibility.NORMAL);
 
 			final MutableModuleItem< Integer > flowItem = 
 					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
 			flowItem.setMinimumValue( 0 );
-			flowItem.setVisibility(ItemVisibility.NORMAL);
 			
 			final MutableModuleItem< Double > stitchItem = 
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
 			stitchItem.setMinimumValue( 0.0 );
 			stitchItem.setMaximumValue( 1.0 );
-			stitchItem.setStepSize( 0.05 );
-			stitchItem.setVisibility(ItemVisibility.NORMAL);					
+			stitchItem.setStepSize( 0.05 );		
+
+		}
+		else
+		{
+			// List< String > modeChoices = Arrays.asList( "None" );
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			// mode3dItem.setChoices( modeChoices );
+			// mode3dItem.setDefaultValue( "None" );
+			setInput( "mode_3d", "None" );
+			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
+
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			// flowItem.setMinimumValue( 0 );
+			// flowItem.setDefaultValue( 0 );
+			setInput( "flow3d_smooth", "0" );
+			flowItem.setVisibility(ItemVisibility.MESSAGE);
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			// stitchItem.setMinimumValue( 0.0 );
+			// stitchItem.setMaximumValue( 1.0 );
+			// stitchItem.setStepSize( 0.05 );
+			// stitchItem.setDefaultValue( 0.1 );
+			setInput( "stitch_threshold", "0.1" );
+			stitchItem.setVisibility(ItemVisibility.MESSAGE);
 		}
 
 		// display system info (OS, device) for user awareness
@@ -298,7 +345,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
-
 		try
 		{
 			final Cellpose4Parameters params = Cellpose4Parameters.builder()
