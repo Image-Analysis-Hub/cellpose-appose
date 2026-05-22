@@ -33,8 +33,11 @@
 
 package fiji.plugin.appose.cellpose.cp3;
 
+import static fiji.plugin.appose.ApposeUtils.addROIs;
+import static fiji.plugin.appose.ApposeUtils.convertChannelChoiceToInt;
+import static fiji.plugin.appose.ApposeUtils.getChannelChoices;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
-
+import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -52,15 +55,16 @@ import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
-import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.cellpose.Cellpose;
-import fiji.plugin.appose.cellpose.Cellpose3BuiltinModels;
-
+import fiji.plugin.appose.cellpose.FijiApposeTaskListener;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
+import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.Cellpose3BuiltinModels;
+import net.imglib2.cellpose.Cellpose3Parameters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -192,9 +196,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			throw new RuntimeException( "No image available to process" );
 		}
 		
-		is3D = ApposeUtils.is3d( imp );
+		is3D = is3d( imp );
 
-		final List< String > channelChoices = ApposeUtils.getChannelChoices( imp, true );
+		final List< String > channelChoices = getChannelChoices( imp, true );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > cytoItem =
@@ -253,7 +257,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get extra parameters for 3D if needed
-			final boolean is3D = ApposeUtils.is3d( imp );
+			final boolean is3D = is3d( imp );
 
 			use3d = false;
 			if ( is3D )
@@ -305,8 +309,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			final List<Integer> channels = Arrays.asList(
-				ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ), 
-				ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ));
+					convertChannelChoiceToInt( cyto_channel, true ),
+					convertChannelChoiceToInt( nuclei_channel, true ) );
 
 			final Cellpose3Parameters params = Cellpose3Parameters.builder()
 					.model(cp_model)
@@ -326,12 +330,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.nIter( niter )
 					.build();
 
-			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params );
+			final ApposeTaskListener listener = new FijiApposeTaskListener();
+			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener );
 			
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				ApposeUtils.addROIs( labels, "Cellpose-3", Color.YELLOW );
+				addROIs( labels, "Cellpose-3", Color.YELLOW );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();

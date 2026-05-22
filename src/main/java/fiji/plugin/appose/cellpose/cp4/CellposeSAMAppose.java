@@ -33,7 +33,11 @@
 
 package fiji.plugin.appose.cellpose.cp4;
 
+import static fiji.plugin.appose.ApposeUtils.addROIs;
+import static fiji.plugin.appose.ApposeUtils.convertChannelChoiceToInt;
+import static fiji.plugin.appose.ApposeUtils.getChannelChoices;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
+import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -51,14 +55,15 @@ import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
-import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.cellpose.Cellpose;
+import fiji.plugin.appose.cellpose.FijiApposeTaskListener;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
-
+import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.Cellpose4Parameters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -185,9 +190,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		}
 		
 
-		is3D = ApposeUtils.is3d( imp );
+		is3D = is3d( imp );
 
-		List< String > channelChoices = ApposeUtils.getChannelChoices( imp, false );
+		final List< String > channelChoices = getChannelChoices( imp, false );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > c0Item =
@@ -207,7 +212,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Set the 3D mode selected by the user if the image is 3D
 		if ( is3D )
 		{
-			List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
+			final List< String > modeChoices = Arrays.asList( "2D+stitch", "3D" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
@@ -250,7 +255,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get the parameters based on the image properties
-			final boolean is3D = ApposeUtils.is3d( imp );
+			final boolean is3D = is3d( imp );
 
 			use3d = false;
 			if ( is3D )
@@ -304,9 +309,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final Cellpose4Parameters params = Cellpose4Parameters.builder()
 					.customModel(custom_model)
 					.diameter(cell_diameter)
-					.chan0( ApposeUtils.convertChannelChoiceToInt( chan0, false) )
-					.chan1( ApposeUtils.convertChannelChoiceToInt( chan1, false) )
-					.chan2( ApposeUtils.convertChannelChoiceToInt( chan2, false) )
+					.chan0( convertChannelChoiceToInt( chan0, false ) )
+					.chan1( convertChannelChoiceToInt( chan1, false ) )
+					.chan2( convertChannelChoiceToInt( chan2, false ) )
 					.minSize( min_size )
 					.normalize( normalize )
 					.resample( resample )
@@ -320,12 +325,13 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					.nIter( niter )
 					.build();
 
-			final ImagePlus[] outputs = Cellpose.cellpose4( imp, params );
+			final ApposeTaskListener listener = new FijiApposeTaskListener();
+			final ImagePlus[] outputs = Cellpose.cellpose4( imp, params, listener );
 			
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				ApposeUtils.addROIs( labels, "Cellpose-4", Color.YELLOW );
+				addROIs( labels, "Cellpose-4", Color.YELLOW );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
