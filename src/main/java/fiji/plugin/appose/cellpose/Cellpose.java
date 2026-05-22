@@ -32,6 +32,7 @@
  */
 package fiji.plugin.appose.cellpose;
 
+import static fiji.plugin.appose.ApposeUtils.clearOutsideRoi;
 import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
@@ -93,6 +94,8 @@ public class Cellpose
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, params, listener );
+		clearOutsideRoi( outputs, imp.getRoi() );
+
 		final ImagePlus[] imps = toImp( outputs );
 		for ( final ImagePlus out : imps )
 			transferCalibration( imp, out );
@@ -134,6 +137,7 @@ public class Cellpose
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, params, listener );
+		clearOutsideRoi( outputs, imp.getRoi() );
 
 		final ImagePlus[] imps = toImp( outputs );
 		for ( final ImagePlus out : imps )
@@ -165,6 +169,8 @@ public class Cellpose
 		final int nZ = ( int ) axesLabels.nZ( labels );
 		final int nT = ( int ) axesLabels.nTimePoints( labels );
 		labelsImp.setDimensions( nC, nZ, nT );
+		labelsImp.getCalibration().xOrigin = labels.min( 0 );
+		labelsImp.getCalibration().yOrigin = labels.min( 1 );
 
 		// Set display range and LUT.
 		final StackStatistics stats = new StackStatistics( labelsImp );
