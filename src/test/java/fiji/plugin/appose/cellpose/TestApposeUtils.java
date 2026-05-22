@@ -32,10 +32,10 @@
  */
 package fiji.plugin.appose.cellpose;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import fiji.plugin.appose.ApposeUtils;
 
@@ -46,14 +46,14 @@ public class TestApposeUtils
 	void test_convertChannelChoice() 
 	{
 		// CP3 and CP4 when None is selected -> Null
-		assertNull( ApposeUtils.convertChannelChoiceToInt( "None", true ), "None channel selection should be converted to null in CP3" );
-		assertNull( ApposeUtils.convertChannelChoiceToInt( "None", false ), "None channel selection should be converted to null in CP4" );
+		assertNull( "None channel selection should be converted to null in CP3", ApposeUtils.convertChannelChoiceToInt( "None", true ) );
+		assertNull( "None channel selection should be converted to null in CP4", ApposeUtils.convertChannelChoiceToInt( "None", false ) );
 		//assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", true ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp3" );
 		//assertEquals( ApposeUtils.convertChannelChoiceToInt( "None", false ), -1, "Converting channel choice to cellpose-compatible channel, wrong when select None for cp4" );
 		// CP3 and CP4 when channel 1 is selected -> 1 for CP3, 0 for CP4
-		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", true ), 1 );
-		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", false ), 0 );
+		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", true ), ( Integer ) 1 );
+		assertEquals( ApposeUtils.convertChannelChoiceToInt( "1", false ), ( Integer ) 0 );
 		// CP3 has the option Average -> return 0
-		assertEquals( ApposeUtils.convertChannelChoiceToInt( "Average", true ), 0 );				
+		assertEquals( ApposeUtils.convertChannelChoiceToInt( "Average", true ), ( Integer ) 0 );
 	}
 }
