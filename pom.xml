@@ -132,10 +132,12 @@
 			<artifactId>imglib2-appose</artifactId>
 			<version>${imglib2-appose.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>

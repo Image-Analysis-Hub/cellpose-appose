@@ -36,6 +36,7 @@ package fiji.plugin.appose.cellpose.cp3;
 import static fiji.plugin.appose.ApposeUtils.addROIs;
 import static fiji.plugin.appose.ApposeUtils.convertChannelChoiceToInt;
 import static fiji.plugin.appose.ApposeUtils.getChannelChoices;
+import static fiji.plugin.appose.ApposeUtils.asCUDA;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
 import static fiji.plugin.appose.ApposeUtils.is3d;
 
@@ -172,6 +173,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ")
 	private String sysInfo = "";
 
+	@Parameter(label="Torch version", choices = { "cpu", "cu128", "cu130" }, description = "Control which torch/cuda version to use.")
+	private String torchVersion = "cpu";
+
+	@Parameter( label = "use GPU", description = "Run on GPU if available" )
+	private Boolean useGPU = true;
+
 	// ---------
 	
 	private boolean use3d = false;
@@ -262,6 +269,16 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			// stitchItem.setDefaultValue( 0.1 );
 			setInput( "stitch_threshold", "0.1" );
 			stitchItem.setVisibility(ItemVisibility.MESSAGE);
+		}
+
+		if ( !asCUDA() )
+		{
+			torchVersion = "cpu";
+			final MutableModuleItem< String > torchItem =
+					getInfo().getMutableInput( "torchVersion", String.class );
+			torchItem.setChoices( List.of( "cpu" ) );
+			torchItem.setDefaultValue( "cpu" );
+			setInput( "torchVersion", "cpu" );
 		}
 
 		// display system info (OS, device) for user awareness
@@ -359,6 +376,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.stitchThreshold( stitch_threshold )
 					.flow3dSmooth( flow3d_smooth )
 					.nIter( niter )
+					.torchVersion(torchVersion)
+					.useGpu( useGPU )
 					.build();
 
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
