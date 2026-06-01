@@ -92,11 +92,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
             "<a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
 			" <font face='Courier New' size='5'>&#9829;</font> " +
 			"<a href='https://apposed.org/'>https://apposed.org/</a>" +
-            "<br/><br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2024.02.10.579780'>https://doi.org/10.1101/2024.02.10.579780</a></small>" +
+			"<br/><br/>See plugin documentation: <a href='https://imagej.net/plugins/cellpose-appose/'>https://imagej.net/plugins/cellpose-appose/</a>" +
+			"<br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2024.02.10.579780'>https://doi.org/10.1101/2024.02.10.579780</a></small>" +
             "</td><td>&nbsp;&nbsp;<img src='"+this.getClass().getResource("/cp_logo.png")+"' width='100' height='100'></img><td>" +
             "</tr></table>" +
             "</html>";
-
+	
+	
     // ---------
 			
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
