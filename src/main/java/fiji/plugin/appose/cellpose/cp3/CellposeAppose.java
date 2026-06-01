@@ -85,7 +85,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter
     private PrefService prefService; 
 
-	@Parameter(label="", visibility=ItemVisibility.MESSAGE)
+	@Parameter(label="", visibility=ItemVisibility.MESSAGE, persist = false)
     private final String messageTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Cell Detection using Cellpose (v3) brought to you by Appose !</h2>" +
@@ -101,7 +101,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	
     // ---------
 			
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist=false)
     private final String initMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cellpose model", description = "Choose CP model to run" )
@@ -133,7 +133,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
     // ---------
 
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>", persist = false)
     private final String advMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
@@ -152,7 +152,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 	// ---------
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "Mode of 3D segmentation" )
@@ -169,10 +169,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	// ---------
 	
-	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ", persist = false)
     private final String sysMsg = "<html><hr width='100'></html>";
 
-	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ", persist = false)
 	private String sysInfo = "";
 
 	@Parameter(label="Torch version", choices = { "cpu", "cu128", "cu130" }, description = "Control which torch/cuda version to use.")
