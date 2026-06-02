@@ -42,6 +42,7 @@ import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.OvalRoi;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import net.imglib2.cellpose.ApposeTaskListener;
@@ -61,10 +62,16 @@ public class CellposeTestDrive
 		{
 			ImageJ.main( args );
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
-//			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
-			final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
-			final Roi copy = ( Roi ) imp.getRoi().clone();
+			
+			// create the ROI to test
+			 Roi circleROI = new OvalRoi(0, 0, 120, 70); // x, y, width, height
+		     circleROI.setLocation(80, 60); 
+		     circleROI.setImage( imp );
+			imp.setRoi( circleROI );
+		     final Roi copy = ( Roi ) imp.getRoi().clone();
 
 			/*
 			 * Cellpose 3
