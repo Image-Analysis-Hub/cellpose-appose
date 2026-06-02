@@ -43,7 +43,7 @@ public class TestApposeUtils
 {
 
 	@Test
-	void test_convertChannelChoice() 
+	public void test_convertChannelChoice() 
 	{
 		// CP3 and CP4 when None is selected -> Null
 		assertNull( "None channel selection should be converted to null in CP3", ApposeUtils.convertChannelChoiceToInt( "None", true ) );
