@@ -34,9 +34,6 @@
 package fiji.plugin.appose;
 
 import java.awt.Color;
-import java.awt.EventQueue;
-import java.awt.Font;
-import java.awt.Window;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -47,174 +44,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.swing.JDialog;
-import javax.swing.JProgressBar;
-import javax.swing.WindowConstants;
-
-import org.apposed.appose.TaskEvent;
-import org.scijava.Context;
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.PolygonRoi;
-import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
-import net.imagej.axis.Axes;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.type.numeric.real.DoubleType;
 
 public class ApposeUtils
 {
-
-	private static Context context;
-
-	/**
-	 * Obtains and cache the SciJava {@link Context} in use by ImageJ.
-	 *
-	 * @return the SciJava context
-	 */
-	public static Context getContext()
-	{
-		final Context localContext = context;
-		if ( localContext != null )
-			return localContext;
-
-		synchronized ( ApposeUtils.class )
-		{
-			if ( context == null )
-				context = ( Context ) IJ.runPlugIn( "org.scijava.Context", "" );
-			return context;
-		}
-	}
-
-	/**
-	 * Forwards Appose task events to an ImageJ status bar.
-	 * 
-	 * @return a consumer of Appose task events that updates the given task
-	 *         accordingly.
-	 */
-	public static Consumer< TaskEvent > ijTaskListener()
-	{
-		return e -> {
-
-			long maximum = 100;
-
-			if ( e.message != null )
-			{
-				IJ.showStatus( e.message );
-				System.out.println( e.message );
-			}
-
-			if ( e.maximum >= 0 )
-				maximum = e.maximum;
-
-			if ( e.current >= 0 )
-				IJ.showProgress( ( double ) e.current / maximum );
-		};
-	}
-
-	public static class ApposeLogger
-	{
-
-		private volatile JDialog progressDialog;
-
-		private volatile JProgressBar progressBar;
-
-		private volatile ScheduledFuture< ? > delayedShowTask;
-
-		private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
-
-		public void close()
-		{
-			EventQueue.invokeLater( () -> {
-				// Cancel the delayed show if it hasn't run yet
-				if ( delayedShowTask != null )
-				{
-					delayedShowTask.cancel( false );
-					delayedShowTask = null;
-				}
-
-				if ( progressDialog != null )
-					progressDialog.dispose();
-				progressDialog = null;
-			} );
-		}
-
-		public void showProgress( final String msg )
-		{
-			showProgress( msg, null, null );
-		}
-
-		public void showProgress( final String msg, final Long cur, final Long max )
-		{
-			EventQueue.invokeLater( () -> {
-				if ( progressDialog == null )
-				{
-					// Schedule the dialog to appear after 1 second
-					if ( delayedShowTask == null )
-					{
-						delayedShowTask = scheduler.schedule( () -> {
-							EventQueue.invokeLater( () -> {
-								if ( progressDialog == null )
-								{
-									createAndShowDialog();
-								}
-							} );
-						}, 1, TimeUnit.SECONDS );
-					}
-					return; // Don't update yet, dialog not visible
-				}
-
-				// Update existing dialog
-				updateProgressBar( msg, cur, max );
-			} );
-		}
-
-		private void createAndShowDialog()
-		{
-			final Window owner = IJ.getInstance();
-			progressDialog = new JDialog( owner, "Fiji ♥ Appose" );
-			progressDialog.setDefaultCloseOperation( WindowConstants.DO_NOTHING_ON_CLOSE );
-			progressBar = new JProgressBar();
-			progressDialog.getContentPane().add( progressBar );
-			progressBar.setFont( new Font( "Courier", Font.PLAIN, 14 ) );
-			progressBar.setString(
-					"--------------------==================== " +
-							"Building Python environment " +
-							"====================--------------------" );
-			progressBar.setStringPainted( true );
-			progressBar.setIndeterminate( true );
-			progressDialog.pack();
-			progressDialog.setLocationRelativeTo( owner );
-			progressDialog.setVisible( true );
-			delayedShowTask = null;
-		}
-
-		private void updateProgressBar( final String msg, final Long cur, final Long max )
-		{
-			if ( msg != null && !msg.trim().isEmpty() )
-				progressBar.setString( "Building Python environment: " + msg.trim() );
-			if ( cur != null || max != null )
-				progressBar.setIndeterminate( false );
-			if ( max != null )
-				progressBar.setMaximum( max.intValue() );
-			if ( cur != null )
-				progressBar.setValue( cur.intValue() );
-		}
-	}
 
 	/**
 	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
@@ -291,98 +137,11 @@ public class ApposeUtils
 	}
 
 	/**
-	 * Transfers the calibration of an {@link ImagePlus} to another one,
-	 * generated from a capture of the first one.
-	 *
-	 * @param from
-	 *            the imp to copy from.
-	 * @param to
-	 *            the imp to copy to.
-	 */
-	public static final void transferCalibration( final ImagePlus from, final ImagePlus to )
-	{
-		final Calibration fc = from.getCalibration();
-		final Calibration tc = to.getCalibration();
-
-		tc.setUnit( fc.getUnit() );
-		tc.setTimeUnit( fc.getTimeUnit() );
-		tc.frameInterval = fc.frameInterval;
-
-		tc.pixelWidth = fc.pixelWidth;
-		tc.pixelHeight = fc.pixelHeight;
-		tc.pixelDepth = fc.pixelDepth;
-	}
-
-	/**
-	 * Transfers the calibration of an {@link ImgPlus} to an {@link ImagePlus}.
-	 * This include units, pixel sizes and frame interval. Y is supposed to be
-	 * the same as X, and Z is supposed to have the same unit as X.
-	 * 
-	 * @param from
-	 *            the ImgPlus to copy calibration info from.
-	 * @param to
-	 *            the ImagePlus to copy to.
-	 */
-	public static final void transferCalibration( final ImgPlus< ? > from, final ImagePlus to )
-	{
-		final int zaxis = from.dimensionIndex( Axes.Z );
-		final int nz = zaxis < 0 ? 1 : ( int ) from.dimension( zaxis );
-
-		final int caxis = from.dimensionIndex( Axes.CHANNEL );
-		final int nc = caxis < 0 ? 1 : ( int ) from.dimension( caxis );
-
-		final int taxis = from.dimensionIndex( Axes.TIME );
-		final int nt = taxis < 0 ? 1 : ( int ) from.dimension( taxis );
-
-		to.setDimensions( nc, nz, nt );
-		final Calibration tc = to.getCalibration();
-		for ( int d = 0; d < from.numDimensions(); d++ )
-		{
-			if ( from.axis( d ).type().equals( Axes.X ) )
-			{
-				tc.setXUnit( from.axis( d ).unit() );
-				tc.pixelWidth = from.averageScale( d );
-				tc.pixelHeight = from.averageScale( d );
-				// We suppose X = Y and same units for Z.
-				break;
-			}
-			else if ( from.axis( d ).type().equals( Axes.Z ) )
-			{
-				tc.pixelDepth = from.averageScale( d );
-				break;
-			}
-			else if ( from.axis( d ).type().equals( Axes.TIME ) )
-			{
-				tc.setTimeUnit( from.axis( d ).unit() );
-				tc.frameInterval = from.averageScale( d );
-				break;
-			}
-		}
-	}
-
-	/*
 	 * Check if the Image is 3D or 2D
 	 */
 	public static boolean is3d( final ImagePlus imp )
 	{
 		return imp.getNSlices() > 1;
-	}
-
-	/**
-	 * Displays the parameters used in a formatted manner
-	 * 
-	 * @param inputs
-	 *            the map containing all input parameters
-	 */
-	public static void displayParameters( final Map< String, Object > inputs )
-	{
-		System.out.println( "Parameters used: " );
-		System.out.println( "─".repeat( 50 ) );
-
-		inputs.forEach( ( key, value ) -> {
-			System.out.printf( "  %-20s: %s%n", key, value );
-		} );
-		System.out.println( "─".repeat( 50 ) );
 	}
 
 	public static List< String > getChannelChoices( final ImagePlus imp, final boolean cp3_mode )
@@ -403,25 +162,6 @@ public class ApposeUtils
 		if ( cp3_mode )
 			return Objects.equals( input, "None" ) ? null : ( Objects.equals( input, "Average" ) ? 0 : ( input == null ? null : Integer.parseInt( input ) ) );
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
-	}
-
-	public static void addROIs( final ImagePlus labels )
-	{
-		addROIs( labels, "r" );
-	}
-
-	/**
-	 * Creates ImageJ ROIs from a label image, and adds them to the RoiManager.
-	 * The ROIs are {@link PolygonRoi}s
-	 * 
-	 * @param labels
-	 *            the label image to create ROIs from.
-	 * @param prefix
-	 *            the prefix to use for naming the ROIs.
-	 */
-	public static void addROIs( final ImagePlus labels, final String prefix )
-	{
-		addROIs( labels, prefix, null );
 	}
 
 	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
@@ -521,6 +261,30 @@ public class ApposeUtils
 	}
 
 	/**
+	 * Checks if CUDA is available on the system by trying to execute {@code nvidia-smi}.
+	 * This method returns {@code false} on macOS, as CUDA is not supported on that platform.
+	 * @return
+	 */
+	public static Boolean asCUDA()
+	{
+		if ( getOperatingSystem() == OperatingSystem.MACOS )
+			return false;
+		try
+		{
+			// try to run nvidia-smi to check if it is available
+			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
+			pb.redirectErrorStream( true );
+			final Process process = pb.start();
+			process.waitFor();
+			return process.exitValue() == 0;
+		}
+		catch ( final IOException | InterruptedException e )
+		{
+			return false;
+		}
+	}
+
+	/**
 	 * Returns the CUDA version available on the system by querying
 	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS is
 	 * macOS. The returned value is already mapped to the pixi environment
@@ -569,7 +333,7 @@ public class ApposeUtils
 	 * pixi environment suffix. Only versions listed here are supported; any
 	 * other version returns {@code null}.
 	 */
-	static final Map< String, String > CUDA_VERSION_MAP;
+	private static final Map< String, String > CUDA_VERSION_MAP;
 	static
 	{
 		CUDA_VERSION_MAP = new HashMap<>();
@@ -584,79 +348,11 @@ public class ApposeUtils
 	 * @return the mapped suffix, or {@code null} if the version is not
 	 *         recognized.
 	 */
-	static String mapCudaVersion( final String rawVersion )
+	private static String mapCudaVersion( final String rawVersion )
 	{
 		// Only pass the major version (e.g. "12" from "12.6") to the map, as
 		// minor versions are not distinguished in the pixi environments.
 		final String majorVersion = rawVersion.split( "\\." )[ 0 ];
 		return CUDA_VERSION_MAP.get( majorVersion );
-	}
-
-	public static String getBestTorchConfig()
-	{
-		// if MacOS, return "-cpu"
-		if ( getOperatingSystem() == OperatingSystem.MACOS )
-			return "-cpu";
-		// getCudaVersion() already returns the mapped suffix (e.g. "126")
-		final String cudaVersion = getCudaVersion();
-		if ( cudaVersion != null )
-			return "-cu" + cudaVersion;
-		// else, return "-cpu"
-		return "-cpu";
-	}
-
-	public static ImageAxisInfo getImageAxisInfo( final ImagePlus imp )
-	{
-		return convertImageAxis( imp.getNSlices(), imp.getNChannels(), imp.getNFrames() );
-	}
-
-	public static ImageAxisInfo convertImageAxis( final int nslices, final int nchannels, final int nframes )
-	{
-		// print info about the image in the log
-		System.out.println( "─".repeat( 50 ) );
-		System.out.println( "Image dimension: " );
-		System.out.println( "\t" + nslices + " Z slices" );
-		System.out.println( "\t" + nchannels + " C channels" );
-		System.out.println( "\t" + nframes + " T frames" );
-		System.out.println( "─".repeat( 50 ) );
-
-		final int ndimensions = ( ( nchannels > 1 ) ? 1 : 0 ) + ( ( nslices > 1 ) ? 1 : 0 ) + ( ( nframes > 1 ) ? 1 : 0 ) + 2;
-		// no Z
-		if ( nslices == 1 )
-		{
-			if ( nchannels > 1 )
-			{
-				if ( nframes > 1 )
-				{
-					// XYCT -> TCYX
-					return new ImageAxisInfo( null, 1, 0 );
-				}
-				// XYC -> CYX
-				return new ImageAxisInfo( null, 0, null );
-			}
-
-			if ( nframes > 1 )
-			{
-				// XYT -> TYX
-				return new ImageAxisInfo( null, null, 0 );
-			}
-			// XY
-			return new ImageAxisInfo( null, null, null );
-		}
-
-		// 5D -> TZCYX
-		if ( ndimensions == 5 )
-			return new ImageAxisInfo( 1, 2, 0 );
-		// Now, 3D or 4D
-		if ( ndimensions == 3 )
-		{
-			// ZYX
-			return new ImageAxisInfo( 0, null, null );
-		}
-		// if Z and T, TZYX
-		if ( nframes > 1 )
-			return new ImageAxisInfo( 1, null, 0 );
-		// XYZC is left -> Z,C,Y,X
-		return new ImageAxisInfo( 0, 1, null );
 	}
 }

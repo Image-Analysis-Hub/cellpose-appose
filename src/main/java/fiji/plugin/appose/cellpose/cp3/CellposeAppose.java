@@ -33,8 +33,12 @@
 
 package fiji.plugin.appose.cellpose.cp3;
 
+import static fiji.plugin.appose.ApposeUtils.addROIs;
+import static fiji.plugin.appose.ApposeUtils.convertChannelChoiceToInt;
+import static fiji.plugin.appose.ApposeUtils.getChannelChoices;
+import static fiji.plugin.appose.ApposeUtils.asCUDA;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
-
+import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
 import java.io.IOException;
@@ -52,15 +56,16 @@ import org.scijava.plugin.Plugin;
 import org.scijava.prefs.PrefService;
 import org.scijava.task.TaskService;
 
-import fiji.plugin.appose.ApposeUtils;
 import fiji.plugin.appose.cellpose.Cellpose;
-import fiji.plugin.appose.cellpose.Cellpose3BuiltinModels;
-
+import fiji.plugin.appose.cellpose.FijiApposeTaskListener;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
+import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.Cellpose3BuiltinModels;
+import net.imglib2.cellpose.Cellpose3Parameters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
@@ -80,21 +85,23 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter
     private PrefService prefService; 
 
-	@Parameter(label="", visibility=ItemVisibility.MESSAGE)
+	@Parameter(label="", visibility=ItemVisibility.MESSAGE, persist = false)
     private final String messageTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Cell Detection using Cellpose (v3) brought to you by Appose !</h2>" +
-            "<a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
+            "See plugin documentation: <a href='https://imagej.net/plugins/cellpose-appose/'>https://imagej.net/plugins/cellpose-appose/</a>" +
+            "<br/><br/><a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
 			" <font face='Courier New' size='5'>&#9829;</font> " +
 			"<a href='https://apposed.org/'>https://apposed.org/</a>" +
-            "<br/><br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2024.02.10.579780'>https://doi.org/10.1101/2024.02.10.579780</a></small>" +
+			"<br/><small>Please cite the Cellpose paper if this tool was useful to you: <a href='https://doi.org/10.1101/2024.02.10.579780'>https://doi.org/10.1101/2024.02.10.579780</a></small>" +
             "</td><td>&nbsp;&nbsp;<img src='"+this.getClass().getResource("/cp_logo.png")+"' width='100' height='100'></img><td>" +
             "</tr></table>" +
             "</html>";
-
+	
+	
     // ---------
 			
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist=false)
     private final String initMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cellpose model", description = "Choose CP model to run" )
@@ -126,7 +133,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
     // ---------
 
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Advanced Options</b></html>", persist = false)
     private final String advMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
@@ -138,30 +145,41 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Tile overlap", min = "0", max = "1", description = "Overlap ratio between tiles", stepSize = "0.1" )
 	private double tile_overlap = 0.1; // overlap ration between cellpose tiles
 
+	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
+	private Integer niter = 0; // number of iterations. If 0, put None and use default
+
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
-	@Parameter( label = "Mode 3D", choices = { "None" }, description = "Mode of 3D segmentation", visibility=ItemVisibility.MESSAGE )
+	// ---------
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
+    private final String dimMsg = "<html><hr width='100'></html>";
+
+	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "Mode of 3D segmentation" )
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="\"2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis\"", visibility=ItemVisibility.MESSAGE )
+	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows.", visibility=ItemVisibility.MESSAGE ) 
+	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
-	@Parameter( label="Iterations", min="0", description="Number of iterations for flow computations (niter parameter). Increase it (eg 1000,2000) for elongated shapes" ) 
-	private Integer niter = 0; // number of iterations. If 0, put None and use default
 
 	// ---------
 	
-	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ", persist = false)
     private final String sysMsg = "<html><hr width='100'></html>";
 
-	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ", persist = false)
 	private String sysInfo = "";
+
+	@Parameter(label="Torch version", choices = { "cpu", "cu128", "cu130" }, description = "Control which torch/cuda version to use.")
+	private String torchVersion = "cpu";
+
+	@Parameter( label = "use GPU", description = "Run on GPU if available" )
+	private Boolean useGPU = true;
 
 	// ---------
 	
@@ -192,14 +210,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			throw new RuntimeException( "No image available to process" );
 		}
 		
-		if ( imp.getNSlices() > 1 && imp.getNFrames() > 1 )
-		{
-			throw new RuntimeException( "5D images are not supported, please select a single time point or a single Z-slice to process." );
-		}
+		is3D = is3d( imp );
 
-		is3D = ApposeUtils.is3d( imp );
-
-		final List< String > channelChoices = ApposeUtils.getChannelChoices( imp, true );
+		final List< String > channelChoices = getChannelChoices( imp, true );
 
 		// Set the max possible value of channels based on image dimension
 		final MutableModuleItem< String > cytoItem =
@@ -233,6 +246,42 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			stitchItem.setStepSize( 0.05 );
 			stitchItem.setVisibility(ItemVisibility.NORMAL);					
 		} 
+		else
+		{
+			// List< String > modeChoices = Arrays.asList( "None" );
+			final MutableModuleItem< String > mode3dItem =
+					getInfo().getMutableInput( "mode_3d", String.class );
+			// mode3dItem.setChoices( modeChoices );
+			// mode3dItem.setDefaultValue( "None" );
+			setInput( "mode_3d", "None" );
+			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
+
+			final MutableModuleItem< Integer > flowItem = 
+					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
+			// flowItem.setMinimumValue( 0 );
+			// flowItem.setDefaultValue( 0 );
+			setInput( "flow3d_smooth", "0" );
+			flowItem.setVisibility(ItemVisibility.MESSAGE);
+			
+			final MutableModuleItem< Double > stitchItem = 
+					getInfo().getMutableInput( "stitch_threshold", Double.class );
+			// stitchItem.setMinimumValue( 0.0 );
+			// stitchItem.setMaximumValue( 1.0 );
+			// stitchItem.setStepSize( 0.05 );
+			// stitchItem.setDefaultValue( 0.1 );
+			setInput( "stitch_threshold", "0.1" );
+			stitchItem.setVisibility(ItemVisibility.MESSAGE);
+		}
+
+		if ( !asCUDA() )
+		{
+			torchVersion = "cpu";
+			final MutableModuleItem< String > torchItem =
+					getInfo().getMutableInput( "torchVersion", String.class );
+			torchItem.setChoices( List.of( "cpu" ) );
+			torchItem.setDefaultValue( "cpu" );
+			setInput( "torchVersion", "cpu" );
+		}
 
 		// display system info (OS, device) for user awareness
 		sysInfo = "<center>OS: " + System.getProperty( "os.name" ) + " - " + System.getProperty( "os.arch" ) + " | Device: " + ( getCudaVersion() != null ? "CUDA " + getCudaVersion() : "CPU" ) + "</center>";
@@ -258,7 +307,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		try
 		{
 			// Get extra parameters for 3D if needed
-			final boolean is3D = ApposeUtils.is3d( imp );
+			final boolean is3D = is3d( imp );
 
 			use3d = false;
 			if ( is3D )
@@ -307,16 +356,11 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		// Print os and arch info
 		System.out.println( "Starting process..." );
 
-		if ( imp.getNSlices() > 1 && imp.getNFrames() > 1 )
-		{
-			throw new RuntimeException( "5D images are not supported, please select a single time point or a single Z-slice to process." );
-		}
-
 		try
 		{
 			final List<Integer> channels = Arrays.asList(
-				ApposeUtils.convertChannelChoiceToInt( cyto_channel, true ), 
-				ApposeUtils.convertChannelChoiceToInt( nuclei_channel, true ));
+					convertChannelChoiceToInt( cyto_channel, true ),
+					convertChannelChoiceToInt( nuclei_channel, true ) );
 
 			final Cellpose3Parameters params = Cellpose3Parameters.builder()
 					.model(cp_model)
@@ -334,14 +378,17 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.stitchThreshold( stitch_threshold )
 					.flow3dSmooth( flow3d_smooth )
 					.nIter( niter )
+					.torchVersion(torchVersion)
+					.useGpu( useGPU )
 					.build();
 
-			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params );
+			final ApposeTaskListener listener = new FijiApposeTaskListener();
+			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener );
 			
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				ApposeUtils.addROIs( labels, "Cellpose-3", Color.YELLOW );
+				addROIs( labels, "Cellpose-3", Color.YELLOW );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();

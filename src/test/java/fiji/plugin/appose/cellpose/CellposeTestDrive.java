@@ -39,12 +39,14 @@ import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
 
 import fiji.plugin.appose.ApposeUtils;
-import fiji.plugin.appose.cellpose.cp3.Cellpose3Parameters;
-import fiji.plugin.appose.cellpose.cp4.Cellpose4Parameters;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.plugin.frame.RoiManager;
+import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.Cellpose3BuiltinModels;
+import net.imglib2.cellpose.Cellpose3Parameters;
+import net.imglib2.cellpose.Cellpose4Parameters;
 
 /**
  * Interactive tests drive for Cellpose 3, using the static methods.
@@ -57,6 +59,7 @@ public class CellposeTestDrive
 		try
 		{
 			ImageJ.main( args );
+			final ApposeTaskListener listener = new FijiApposeTaskListener();
 			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
 			imp.show();
 
@@ -69,7 +72,7 @@ public class CellposeTestDrive
 					.model( Cellpose3BuiltinModels.CYTO2 )
 					.diameter( 30 )
 					.build();
-			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3 );
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3, listener );
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
@@ -82,7 +85,7 @@ public class CellposeTestDrive
 			 */
 
 			final Cellpose4Parameters paramsCP4 = Cellpose4Parameters.defaultParameters();
-			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4 );
+			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener );
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
