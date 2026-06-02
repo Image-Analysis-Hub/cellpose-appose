@@ -116,6 +116,10 @@ public class ApposeUtils
 	{
 		if ( roi == null )
 			return;
+		
+		// shift the roi in the crop image size (outputs are cropped images)
+		final Rectangle bounds = roi.getBounds();
+		roi.translate( -bounds.x, -bounds.y );
 
 		final RandomAccessibleInterval< T > labels = output.labels;
 		final Cursor< T > c = labels.localizingCursor();
@@ -141,6 +145,8 @@ public class ApposeUtils
 					cFlows.get().setZero();
 			}
 		}
+		// put to the ROI back to original image size
+		roi.translate( bounds.x, bounds.y );
 	}
 
 	private static LUT loadLutFromResource( final String resourcePath )
@@ -233,10 +239,10 @@ public class ApposeUtils
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
 	}
 
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final Roi roi )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, roi ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -252,7 +258,7 @@ public class ApposeUtils
 	 *            be used.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final Roi main_roi )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -262,6 +268,16 @@ public class ApposeUtils
 		final int nt = labels.getNFrames();
 		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
 
+		// shift if necessary the ROIs to match the original image
+		int shiftx = 0; 
+		int shifty = 0; 
+		if ( main_roi != null )
+		{
+			final Rectangle bounds = main_roi.getBounds();
+			shiftx = bounds.x;
+			shifty = bounds.y;
+		}
+		
 		for ( int t = 1; t <= nt; t++ )
 		{
 			final ImageProcessor image = labels.getImageStack().getProcessor( t );
@@ -287,6 +303,7 @@ public class ApposeUtils
 				{
 					final PolygonRoi roi = polygons.get( 0 ).createRoi();
 					roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
+					roi.translate(  shiftx, shifty );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
 					rois.add( roi );
@@ -297,6 +314,8 @@ public class ApposeUtils
 					{
 						final PolygonRoi roi = poly.createRoi();
 						roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
+						roi.translate( shiftx, shifty );
+						
 						final String name = ( nt > 1 )
 								? String.format( pattern, t, index++ )
 								: String.format( pattern, index++ );
