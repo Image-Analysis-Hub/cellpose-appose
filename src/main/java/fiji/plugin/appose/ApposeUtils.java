@@ -239,10 +239,11 @@ public class ApposeUtils
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
 	}
 
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final Roi roi )
+	
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color, roi ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, imp ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -258,7 +259,7 @@ public class ApposeUtils
 	 *            be used.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final Roi main_roi )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -269,6 +270,7 @@ public class ApposeUtils
 		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
 
 		// shift if necessary the ROIs to match the original image
+		Roi main_roi = imp.getRoi();
 		int shiftx = 0; 
 		int shifty = 0; 
 		if ( main_roi != null )
@@ -277,6 +279,9 @@ public class ApposeUtils
 			shiftx = bounds.x;
 			shifty = bounds.y;
 		}
+		
+		// get in which channel to put the ROIs
+		final int current_channel = imp.getC();
 		
 		for ( int t = 1; t <= nt; t++ )
 		{
@@ -306,6 +311,8 @@ public class ApposeUtils
 					roi.translate(  shiftx, shifty );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
+					roi.setPosition( current_channel, 1, t );
+					roi.setImage( imp );
 					rois.add( roi );
 				}
 				else
@@ -319,9 +326,10 @@ public class ApposeUtils
 						final String name = ( nt > 1 )
 								? String.format( pattern, t, index++ )
 								: String.format( pattern, index++ );
-						roi.setPosition( t );
+						roi.setPosition( current_channel, 1, t );
 						roi.setName( name );
 						roi.setStrokeColor( color );
+						roi.setImage( imp );
 						rois.add( roi );
 					}
 				}

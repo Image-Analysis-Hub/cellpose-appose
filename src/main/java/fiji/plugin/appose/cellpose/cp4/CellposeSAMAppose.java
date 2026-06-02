@@ -398,7 +398,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				addROIs( labels, "Cellpose-4", Color.YELLOW, imp.getRoi() );
+				addROIs( labels, "Cellpose-4", Color.YELLOW, imp );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
