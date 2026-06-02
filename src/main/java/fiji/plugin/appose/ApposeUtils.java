@@ -332,6 +332,30 @@ public class ApposeUtils
 	}
 
 	/**
+	 * Checks if CUDA is available on the system by trying to execute {@code nvidia-smi}.
+	 * This method returns {@code false} on macOS, as CUDA is not supported on that platform.
+	 * @return
+	 */
+	public static Boolean asCUDA()
+	{
+		if ( getOperatingSystem() == OperatingSystem.MACOS )
+			return false;
+		try
+		{
+			// try to run nvidia-smi to check if it is available
+			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
+			pb.redirectErrorStream( true );
+			final Process process = pb.start();
+			process.waitFor();
+			return process.exitValue() == 0;
+		}
+		catch ( final IOException | InterruptedException e )
+		{
+			return false;
+		}
+	}
+
+	/**
 	 * Returns the CUDA version available on the system by querying
 	 * {@code nvidia-smi}, or {@code null} if CUDA is not available or the OS is
 	 * macOS. The returned value is already mapped to the pixi environment
