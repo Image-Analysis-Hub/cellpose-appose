@@ -102,8 +102,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter (in pixels) @StRigaud: is this still used in CP4 ? 
 
-	@Parameter( label = "First channel", choices = { "None" }, description = "First channel index. N/A for none" )
-	private String chan0 = "None"; // channel 1, to be merged as RGB for by CP
+	@Parameter( label = "First channel", choices = { "1", "None" }, description = "First channel index. N/A for none" )
+	private String chan0 = "1"; // channel 1, to be merged as RGB for by CP
 
 	@Parameter( label = "Second channel", choices = { "None" }, description = "Second channel index. N/A for none" )
 	private String chan1 = "None"; // channel 2, to be merged as RGB for by CP
@@ -208,9 +208,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		System.out.println( "  flow3d_smooth: " + flow3d_smooth );
 		System.out.println( "  niter: " + niter );
 
-		// set the default value, otherwise it gets to -6
-		setInput( "cellprob_threshold", 0.0) ;
-
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
@@ -229,9 +226,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > c0Item =
 				getInfo().getMutableInput( "chan0", String.class );
 		c0Item.setChoices( channelChoices );
-		c0Item.setDefaultValue( "1" ); // By default, only first channel selected
-		setInput( "chan0", "1") ;
-
+		
 		final MutableModuleItem< String > c1Item =
 				getInfo().getMutableInput( "chan1", String.class );
 		c1Item.setChoices( channelChoices );
@@ -265,25 +260,15 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			// mode3dItem.setChoices( modeChoices );
-			// mode3dItem.setDefaultValue( "None" );
 			setInput( "mode_3d", "None" );
-			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
-
+			
 			final MutableModuleItem< Integer > flowItem = 
 					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-			// flowItem.setMinimumValue( 0 );
-			// flowItem.setDefaultValue( 0 );
 			setInput( "flow3d_smooth", "0" );
-			flowItem.setVisibility(ItemVisibility.MESSAGE);
 			
 			final MutableModuleItem< Double > stitchItem = 
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
-			// stitchItem.setMinimumValue( 0.0 );
-			// stitchItem.setMaximumValue( 1.0 );
-			// stitchItem.setStepSize( 0.05 );
-			// stitchItem.setDefaultValue( 0.1 );
 			setInput( "stitch_threshold", "0.1" );
-			stitchItem.setVisibility(ItemVisibility.MESSAGE);
 		}
 
 		if ( !asCUDA() )
