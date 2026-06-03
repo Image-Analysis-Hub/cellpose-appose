@@ -113,8 +113,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter
 
-	@Parameter( label = "Cytoplasmic channel", choices = { "None", "Average" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
-	private String cyto_channel = "None"; // cytoplasmic channel to segment
+	@Parameter( label = "Cytoplasmic channel", choices = { "1", "None", "Average" }, description = "Channel index of the cytoplasmic channel. N/A for none" )
+	private String cyto_channel = "1"; // cytoplasmic channel to segment
 
 	@Parameter( label = "Nuclei channel", choices = { "None" }, description = "Channel index of the nuclei channel. N/A for none" )
 	private String nuclei_channel = "None"; // nuclei channel to segment
@@ -218,9 +218,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > cytoItem =
 				getInfo().getMutableInput( "cyto_channel", String.class );
 		cytoItem.setChoices( channelChoices );
-		cytoItem.setDefaultValue( "1" ); // Default, cyto channel selected only
-		 setInput( "cyto_channel", channelChoices.get(0)) ;
-
+		
 		final MutableModuleItem< String > nucItem =
 				getInfo().getMutableInput( "nuclei_channel", String.class );
 		nucItem.setChoices( channelChoices );
@@ -355,13 +353,13 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
-
+		
 		try
 		{
 			final List<Integer> channels = Arrays.asList(
 					convertChannelChoiceToInt( cyto_channel, true ),
 					convertChannelChoiceToInt( nuclei_channel, true ) );
-
+		
 			final Cellpose3Parameters params = Cellpose3Parameters.builder()
 					.model(cp_model)
 					.customModel(custom_model)
