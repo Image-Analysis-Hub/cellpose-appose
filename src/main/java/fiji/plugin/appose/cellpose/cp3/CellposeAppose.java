@@ -248,29 +248,29 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		} 
 		else
 		{
-			// List< String > modeChoices = Arrays.asList( "None" );
+			List< String > modeChoices = Arrays.asList( "None" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
-			// mode3dItem.setChoices( modeChoices );
-			// mode3dItem.setDefaultValue( "None" );
+			mode3dItem.setChoices( modeChoices );
+			mode3dItem.setDefaultValue( "None" );
 			setInput( "mode_3d", "None" );
-			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
+			// mode3dItem.setVisibility(ItemVisibility.MESSAGE);
 
 			final MutableModuleItem< Integer > flowItem = 
 					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-			// flowItem.setMinimumValue( 0 );
-			// flowItem.setDefaultValue( 0 );
+			flowItem.setMinimumValue( 0 );
+			flowItem.setDefaultValue( 0 );
 			setInput( "flow3d_smooth", "0" );
-			flowItem.setVisibility(ItemVisibility.MESSAGE);
+			// flowItem.setVisibility(ItemVisibility.MESSAGE);
 			
 			final MutableModuleItem< Double > stitchItem = 
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
-			// stitchItem.setMinimumValue( 0.0 );
-			// stitchItem.setMaximumValue( 1.0 );
-			// stitchItem.setStepSize( 0.05 );
-			// stitchItem.setDefaultValue( 0.1 );
+			stitchItem.setMinimumValue( 0.0 );
+			stitchItem.setMaximumValue( 1.0 );
+			stitchItem.setStepSize( 0.05 );
+			stitchItem.setDefaultValue( 0.1 );
 			setInput( "stitch_threshold", "0.1" );
-			stitchItem.setVisibility(ItemVisibility.MESSAGE);
+			// stitchItem.setVisibility(ItemVisibility.MESSAGE);
 		}
 
 		if ( !asCUDA() )
