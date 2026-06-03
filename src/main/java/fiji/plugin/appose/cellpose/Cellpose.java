@@ -92,7 +92,9 @@ public class Cellpose
 			final Cellpose4Parameters params,
 			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		final Roi initialRoi = ( Roi ) imp.getRoi().clone();
+		Roi initialRoi = imp.getRoi();
+		if ( initialRoi != null )
+			initialRoi = ( Roi ) initialRoi.clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, params, listener );
@@ -136,7 +138,9 @@ public class Cellpose
 			final Cellpose3Parameters params,
 			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
 	{
-		final Roi initialRoi = ( Roi ) imp.getRoi().clone();
+		Roi initialRoi = imp.getRoi();
+		if ( initialRoi != null )
+			initialRoi = ( Roi ) initialRoi.clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, params, listener );

@@ -152,18 +152,18 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private Boolean compute_flows = false; // whether to compute flows channel
 
 	// ---------
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
+	@Parameter( visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
 
-	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "Mode of 3D segmentation" )
+	@Parameter( visibility=ItemVisibility.NORMAL, label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "Mode of 3D segmentation" )
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" )
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis" )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
 
@@ -199,7 +199,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void initialize()
 	{
 		// set the default value, otherwise it gets to -6
-		setInput( "cellprob_threshold", 0.0) ;
+		// setInput( "cellprob_threshold", 0.0) ;
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
@@ -248,29 +248,29 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		} 
 		else
 		{
-			// List< String > modeChoices = Arrays.asList( "None" );
+			List< String > modeChoices = Arrays.asList( "None" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
-			// mode3dItem.setChoices( modeChoices );
-			// mode3dItem.setDefaultValue( "None" );
+			mode3dItem.setChoices( modeChoices );
+			mode3dItem.setDefaultValue( "None" );
 			setInput( "mode_3d", "None" );
-			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
+			// mode3dItem.setVisibility(ItemVisibility.MESSAGE);
 
 			final MutableModuleItem< Integer > flowItem = 
 					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-			// flowItem.setMinimumValue( 0 );
-			// flowItem.setDefaultValue( 0 );
+			flowItem.setMinimumValue( 0 );
+			flowItem.setDefaultValue( 0 );
 			setInput( "flow3d_smooth", "0" );
-			flowItem.setVisibility(ItemVisibility.MESSAGE);
+			// flowItem.setVisibility(ItemVisibility.MESSAGE);
 			
 			final MutableModuleItem< Double > stitchItem = 
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
-			// stitchItem.setMinimumValue( 0.0 );
-			// stitchItem.setMaximumValue( 1.0 );
-			// stitchItem.setStepSize( 0.05 );
-			// stitchItem.setDefaultValue( 0.1 );
+			stitchItem.setMinimumValue( 0.0 );
+			stitchItem.setMaximumValue( 1.0 );
+			stitchItem.setStepSize( 0.05 );
+			stitchItem.setDefaultValue( 0.1 );
 			setInput( "stitch_threshold", "0.1" );
-			stitchItem.setVisibility(ItemVisibility.MESSAGE);
+			// stitchItem.setVisibility(ItemVisibility.MESSAGE);
 		}
 
 		if ( !asCUDA() )
