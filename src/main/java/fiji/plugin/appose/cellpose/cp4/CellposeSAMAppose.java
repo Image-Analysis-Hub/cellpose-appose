@@ -102,8 +102,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Diameter", min = "0", description = "Average diameter of a cell/nuclei (in pixels)" )
 	private int cell_diameter = 30; // cell diameter (in pixels) @StRigaud: is this still used in CP4 ? 
 
-	@Parameter( label = "First channel", choices = { "None" }, description = "First channel index. N/A for none" )
-	private String chan0 = "None"; // channel 1, to be merged as RGB for by CP
+	@Parameter( label = "First channel", choices = { "1", "None" }, description = "First channel index. N/A for none" )
+	private String chan0 = "1"; // channel 1, to be merged as RGB for by CP
 
 	@Parameter( label = "Second channel", choices = { "None" }, description = "Second channel index. N/A for none" )
 	private String chan1 = "None"; // channel 2, to be merged as RGB for by CP
@@ -147,15 +147,15 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
 
-	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "How is cellpose is processing the image if it is 3D")
+	@Parameter( visibility=ItemVisibility.NORMAL, label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "How is cellpose is processing the image if it is 3D")
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis"  )
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis"  )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
 
@@ -208,9 +208,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		System.out.println( "  flow3d_smooth: " + flow3d_smooth );
 		System.out.println( "  niter: " + niter );
 
-		// set the default value, otherwise it gets to -6
-		setInput( "cellprob_threshold", 0.0) ;
-
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
@@ -229,9 +226,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > c0Item =
 				getInfo().getMutableInput( "chan0", String.class );
 		c0Item.setChoices( channelChoices );
-		c0Item.setDefaultValue( "1" ); // By default, only first channel selected
-		setInput( "chan0", "1") ;
-
+		
 		final MutableModuleItem< String > c1Item =
 				getInfo().getMutableInput( "chan1", String.class );
 		c1Item.setChoices( channelChoices );
@@ -265,25 +260,15 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			// mode3dItem.setChoices( modeChoices );
-			// mode3dItem.setDefaultValue( "None" );
 			setInput( "mode_3d", "None" );
-			mode3dItem.setVisibility(ItemVisibility.MESSAGE);
-
+			
 			final MutableModuleItem< Integer > flowItem = 
 					getInfo().getMutableInput( "flow3d_smooth", Integer.class );
-			// flowItem.setMinimumValue( 0 );
-			// flowItem.setDefaultValue( 0 );
 			setInput( "flow3d_smooth", "0" );
-			flowItem.setVisibility(ItemVisibility.MESSAGE);
 			
 			final MutableModuleItem< Double > stitchItem = 
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
-			// stitchItem.setMinimumValue( 0.0 );
-			// stitchItem.setMaximumValue( 1.0 );
-			// stitchItem.setStepSize( 0.05 );
-			// stitchItem.setDefaultValue( 0.1 );
 			setInput( "stitch_threshold", "0.1" );
-			stitchItem.setVisibility(ItemVisibility.MESSAGE);
 		}
 
 		if ( !asCUDA() )
@@ -368,6 +353,14 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
+		
+		// Check if the image is RGB
+		if ( imp.isRGB() )
+		{
+			IJ.error( "Image is RGB, which is not handled. Change image type in Image>Color>Make Composite and start again" );
+			return;
+		}
+				
 		try
 		{
 			final Cellpose4Parameters params = Cellpose4Parameters.builder()
