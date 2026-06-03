@@ -191,6 +191,8 @@ public class Cellpose
 			final int nZFlows = ( int ) axesFlows.nZ( flows );
 			final int nTFlows = ( int ) axesFlows.nTimePoints( flows );
 			flowsImp.setDimensions( nCFlows, nZFlows, nTFlows );
+			flowsImp.getCalibration().xOrigin = labels.min( 0 );
+			flowsImp.getCalibration().yOrigin = labels.min( 1 );
 			flowsImp.getProcessor().resetMinAndMax();
 			flowsImp = new CompositeImage( flowsImp );
 			flowsImp.setDisplayMode( CompositeImage.COMPOSITE );
