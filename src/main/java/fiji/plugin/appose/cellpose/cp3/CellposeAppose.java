@@ -302,6 +302,14 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
+		
+		// Check if the image is RGB
+		if ( imp.isRGB() )
+		{
+			IJ.error( "Image is RGB, which is not handled. Change image type in Image>Color>Make Composite" );
+			return;
+		}
+		
 		try
 		{
 			// Get extra parameters for 3D if needed

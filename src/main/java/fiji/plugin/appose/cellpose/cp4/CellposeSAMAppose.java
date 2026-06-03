@@ -147,15 +147,15 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
 
-	@Parameter( label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "How is cellpose is processing the image if it is 3D")
+	@Parameter( visibility=ItemVisibility.NORMAL, label = "Mode 3D", choices = { "None", "2D+stitch", "3D" }, description = "How is cellpose is processing the image if it is 3D")
 	private String mode_3d = "None"; // mode 3D of CP to use, only for 3D image
 
 	private boolean is3D = false;
 
-	@Parameter( label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis"  )
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Stitch threshold", min="0.0", max="1.0", description="2D+stitch mode only: IOU threshold to stitch labels together along the Z-axis"  )
 	private Double stitch_threshold = 0.1; 
 	
-	@Parameter( label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
 
@@ -353,6 +353,14 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	{
 		// Print os and arch info
 		System.out.println( "Starting process..." );
+		
+		// Check if the image is RGB
+		if ( imp.isRGB() )
+		{
+			IJ.error( "Image is RGB, which is not handled. Change image type in Image>Color>Make Composite" );
+			return;
+		}
+				
 		try
 		{
 			final Cellpose4Parameters params = Cellpose4Parameters.builder()
