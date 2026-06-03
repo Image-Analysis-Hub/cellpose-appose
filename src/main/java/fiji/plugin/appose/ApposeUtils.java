@@ -240,10 +240,10 @@ public class ApposeUtils
 	}
 
 	
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color, imp ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -259,11 +259,11 @@ public class ApposeUtils
 	 * @param prefix
 	 *            the prefix to use for naming the ROIs.
 	 * @param color
-	 *            the color to use for the ROIs. If null, the default color will
-	 *            be used.
+	 *            the color to use for the ROIs. If <code>null</code>, the
+	 *            default color will be used.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -272,9 +272,6 @@ public class ApposeUtils
 		final List< PolygonRoi > rois = new ArrayList<>();
 		final int nt = labels.getNFrames();
 		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
-		
-		// get in which channel to put the ROIs
-		final int current_channel = imp.getC();
 		
 		for ( int t = 1; t <= nt; t++ )
 		{
@@ -293,6 +290,7 @@ public class ApposeUtils
 					: prefix + "_%0" + nDigits + "d";
 
 			int index = 1; // Start at 1 to match ImageJ ROI display
+			final int targetChannel = 0; // Show ROIs on all channels.
 			for ( final int label : boundaries.keySet() )
 			{
 				final ArrayList< Polygon2D > polygons = boundaries.get( label );
@@ -303,8 +301,7 @@ public class ApposeUtils
 					roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
-					roi.setPosition( current_channel, 1, t );
-					roi.setImage( imp );
+					roi.setPosition( targetChannel, 1, t );
 					rois.add( roi );
 				}
 				else
@@ -317,10 +314,9 @@ public class ApposeUtils
 						final String name = ( nt > 1 )
 								? String.format( pattern, t, index++ )
 								: String.format( pattern, index++ );
-						roi.setPosition( current_channel, 1, t );
+						roi.setPosition( targetChannel, 1, t );
 						roi.setName( name );
 						roi.setStrokeColor( color );
-						roi.setImage( imp );
 						rois.add( roi );
 					}
 				}
