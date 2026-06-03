@@ -9,6 +9,8 @@ Two version of cellpose is available:
 
 This plugin is based on [Appose](https://github.com/apposed/appose), that automatically install python environment and allows python script execution with shared objects with Fiji.
 
+See full documentation [here](https://imagej.net/plugins/cellpose-appose).
+
 ## Plugin Installation
 
 You can install the plugin for the unliste update site `Appose-Playground`:
@@ -45,3 +47,8 @@ mvn clean install
 ```
 
 You can also directly install the `.jar` in a Fiji via the option `-Dscijava.app.directory=<path/to/your/Fiji>`
+
+The core of running cellpose has been move to a separated repository in [https://github.com/imglib/imglib2-cellpose](https://github.com/imglib/imglib2-cellpose).
+This allows to have a reusable artifact to run cellpose from Java, so it can also be directly called in other Fiji or Icy plugins.
+
+This repository takes care of the interface between the user and the imglib2-cellpose code.
