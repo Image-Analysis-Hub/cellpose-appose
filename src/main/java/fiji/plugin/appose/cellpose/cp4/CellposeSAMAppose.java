@@ -34,9 +34,9 @@
 package fiji.plugin.appose.cellpose.cp4;
 
 import static fiji.plugin.appose.ApposeUtils.addROIs;
+import static fiji.plugin.appose.ApposeUtils.asCUDA;
 import static fiji.plugin.appose.ApposeUtils.convertChannelChoiceToInt;
 import static fiji.plugin.appose.ApposeUtils.getChannelChoices;
-import static fiji.plugin.appose.ApposeUtils.asCUDA;
 import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
 import static fiji.plugin.appose.ApposeUtils.is3d;
 
@@ -398,7 +398,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				addROIs( labels, "Cellpose-4", Color.YELLOW, imp );
+				addROIs( labels, "Cellpose-4", Color.YELLOW );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
