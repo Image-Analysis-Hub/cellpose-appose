@@ -34,6 +34,7 @@
 package fiji.plugin.appose;
 
 import java.awt.Color;
+import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,26 +53,100 @@ import fiji.plugin.appose.RoiUtils.Polygon2D;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.PolygonRoi;
+import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import ij.process.LUT;
 import net.imagej.ImgPlus;
+import net.imglib2.Cursor;
+import net.imglib2.FinalInterval;
+import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.cellpose.CellposeOutput;
 import net.imglib2.img.ImagePlusAdapter;
+import net.imglib2.img.Img;
+import net.imglib2.img.ImgView;
+import net.imglib2.type.NativeType;
+import net.imglib2.type.numeric.IntegerType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.DoubleType;
+import net.imglib2.view.Views;
 
 public class ApposeUtils
 {
 
 	/**
 	 * A utility to wrap an ImagePlus into an ImgPlus, without too many
-	 * warnings. Hacky.
+	 * warnings.
+	 * <p>
+	 * If the input ImagePlus has a ROI, the returned ImgPlus will be a view of
+	 * the original image, restricted to the bounding box of the ROI in X and Y
+	 * (and with min for X and Y set to the min & max of the ROI bounding box).
+	 * If the input ImagePlus does not have a ROI, the returned ImgPlus wrap the
+	 * full image.
 	 */
 	@SuppressWarnings( { "rawtypes", "unchecked" } )
 	public static final < T > ImgPlus< T > rawWraps( final ImagePlus imp )
 	{
+		final Roi roi = imp.getRoi();
 		final ImgPlus< DoubleType > img = ImagePlusAdapter.wrapImgPlus( imp );
 		final ImgPlus raw = img;
-		return raw;
+		if ( roi == null )
+			return raw;
+		
+		// Crop the view to the bounding box of the ROI.
+		final Rectangle bounds = roi.getBounds();
+		final long min[] = img.minAsLongArray();
+		final long max[] = img.maxAsLongArray();
+		min[ 0 ] = bounds.x;
+		min[ 1 ] = bounds.y;
+		max[ 0 ] = bounds.x + bounds.width - 1;
+		max[ 1 ] = bounds.y + bounds.height - 1;
+		final FinalInterval interval = new FinalInterval( min, max );
+		final RandomAccessibleInterval view = Views.interval( raw, interval );
+
+		final Img img2 = ImgView.wrap( view, img.factory() );
+		final ImgPlus raw2 = new ImgPlus( img2, raw );
+		return raw2;
+	}
+
+	/**
+	 * Clear pixels outside the ROI in the Cellpose output.
+	 */
+	public static final < T extends NativeType< T > & IntegerType< T > > void clearOutsideRoi( final CellposeOutput< T > output, final Roi roi )
+	{
+		if ( roi == null )
+			return;
+		
+		// shift the roi in the crop image size (outputs are cropped images)
+		final Rectangle bounds = roi.getBounds();
+		roi.translate( -bounds.x, -bounds.y );
+
+		final RandomAccessibleInterval< T > labels = output.labels;
+		final Cursor< T > c = labels.localizingCursor();
+		while ( c.hasNext() )
+		{
+			c.next();
+			final int x = c.getIntPosition( 0 );
+			final int y = c.getIntPosition( 1 );
+			if ( !roi.contains( x, y ) )
+				c.get().setZero();
+		}
+
+		if ( output.flows != null )
+		{
+			final RandomAccessibleInterval< UnsignedByteType > flows = output.flows;
+			final Cursor< UnsignedByteType > cFlows = flows.localizingCursor();
+			while ( cFlows.hasNext() )
+			{
+				cFlows.next();
+				final int x = cFlows.getIntPosition( 0 );
+				final int y = cFlows.getIntPosition( 1 );
+				if ( !roi.contains( x, y ) )
+					cFlows.get().setZero();
+			}
+		}
+		// put to the ROI back to original image size
+		roi.translate( bounds.x, bounds.y );
 	}
 
 	private static LUT loadLutFromResource( final String resourcePath )
@@ -164,10 +239,11 @@ public class ApposeUtils
 		return Objects.equals( input, "None" ) ? null : ( input == null ? null : Integer.parseInt( input ) - 1 );
 	}
 
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
+	
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, imp ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -175,7 +251,11 @@ public class ApposeUtils
 	 * {@link PolygonRoi}s.
 	 * 
 	 * @param labels
-	 *            the label image to create ROIs from.
+	 *            the label image to create ROIs from. Important: the ROIs are
+	 *            created at coordinates relative to the calibration.xOrigin and
+	 *            calibration.yOrigin of this label image, so that they are the
+	 *            right position if the label image was generated from a crop
+	 *            view of the input.
 	 * @param prefix
 	 *            the prefix to use for naming the ROIs.
 	 * @param color
@@ -183,7 +263,7 @@ public class ApposeUtils
 	 *            be used.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final ImagePlus imp )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -192,7 +272,10 @@ public class ApposeUtils
 		final List< PolygonRoi > rois = new ArrayList<>();
 		final int nt = labels.getNFrames();
 		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
-
+		
+		// get in which channel to put the ROIs
+		final int current_channel = imp.getC();
+		
 		for ( int t = 1; t <= nt; t++ )
 		{
 			final ImageProcessor image = labels.getImageStack().getProcessor( t );
@@ -217,8 +300,11 @@ public class ApposeUtils
 				if ( polygons.size() <= 1 && nRois <= 1 )
 				{
 					final PolygonRoi roi = polygons.get( 0 ).createRoi();
+					roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
+					roi.setPosition( current_channel, 1, t );
+					roi.setImage( imp );
 					rois.add( roi );
 				}
 				else
@@ -226,12 +312,15 @@ public class ApposeUtils
 					for ( final Polygon2D poly : polygons )
 					{
 						final PolygonRoi roi = poly.createRoi();
+						roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
+						
 						final String name = ( nt > 1 )
 								? String.format( pattern, t, index++ )
 								: String.format( pattern, index++ );
-						roi.setPosition( t );
+						roi.setPosition( current_channel, 1, t );
 						roi.setName( name );
 						roi.setStrokeColor( color );
+						roi.setImage( imp );
 						rois.add( roi );
 					}
 				}
