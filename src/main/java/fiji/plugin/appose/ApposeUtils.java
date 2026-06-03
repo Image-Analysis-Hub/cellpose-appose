@@ -251,7 +251,11 @@ public class ApposeUtils
 	 * {@link PolygonRoi}s.
 	 * 
 	 * @param labels
-	 *            the label image to create ROIs from.
+	 *            the label image to create ROIs from. Important: the ROIs are
+	 *            created at coordinates relative to the calibration.xOrigin and
+	 *            calibration.yOrigin of this label image, so that they are the
+	 *            right position if the label image was generated from a crop
+	 *            view of the input.
 	 * @param prefix
 	 *            the prefix to use for naming the ROIs.
 	 * @param color
@@ -268,17 +272,6 @@ public class ApposeUtils
 		final List< PolygonRoi > rois = new ArrayList<>();
 		final int nt = labels.getNFrames();
 		final int nDigitsT = ( int ) Math.ceil( Math.log10( nt + 1 ) );
-
-		// shift if necessary the ROIs to match the original image
-		Roi main_roi = imp.getRoi();
-		int shiftx = 0; 
-		int shifty = 0; 
-		if ( main_roi != null )
-		{
-			final Rectangle bounds = main_roi.getBounds();
-			shiftx = bounds.x;
-			shifty = bounds.y;
-		}
 		
 		// get in which channel to put the ROIs
 		final int current_channel = imp.getC();
@@ -308,7 +301,6 @@ public class ApposeUtils
 				{
 					final PolygonRoi roi = polygons.get( 0 ).createRoi();
 					roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
-					roi.translate(  shiftx, shifty );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
 					roi.setPosition( current_channel, 1, t );
@@ -321,7 +313,6 @@ public class ApposeUtils
 					{
 						final PolygonRoi roi = poly.createRoi();
 						roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
-						roi.translate( shiftx, shifty );
 						
 						final String name = ( nt > 1 )
 								? String.format( pattern, t, index++ )

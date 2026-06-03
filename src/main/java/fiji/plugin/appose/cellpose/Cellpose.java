@@ -43,6 +43,7 @@ import org.apposed.appose.TaskException;
 
 import ij.CompositeImage;
 import ij.ImagePlus;
+import ij.gui.Roi;
 import ij.measure.Calibration;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
@@ -91,14 +92,15 @@ public class Cellpose
 			final Cellpose4Parameters params,
 			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
 	{
+		final Roi initialRoi = ( Roi ) imp.getRoi().clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, params, listener );
-		clearOutsideRoi( outputs, imp.getRoi() );
+		clearOutsideRoi( outputs, initialRoi );
 
 		final ImagePlus[] imps = toImp( outputs );
 		for ( final ImagePlus out : imps )
-			transferCalibration( imp, out );
+			transferCalibration( imp, out, initialRoi );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-SAM" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-SAM" );
@@ -134,14 +136,15 @@ public class Cellpose
 			final Cellpose3Parameters params,
 			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
 	{
+		final Roi initialRoi = ( Roi ) imp.getRoi().clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
 		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, params, listener );
-		clearOutsideRoi( outputs, imp.getRoi() );
+		clearOutsideRoi( outputs, initialRoi );
 
 		final ImagePlus[] imps = toImp( outputs );
 		for ( final ImagePlus out : imps )
-			transferCalibration( imp, out );
+			transferCalibration( imp, out, initialRoi );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
 		if ( params.computeFlows )
 			imps[ 1 ].setTitle( imp.getTitle() + "_flows_Cellpose-3" );
@@ -198,14 +201,17 @@ public class Cellpose
 
 	/**
 	 * Transfers the calibration of an {@link ImagePlus} to another one,
-	 * generated from a capture of the first one.
+	 * generated from a capture of the first one. Also is the specified ROI is
+	 * not null, it will set the origin of the target image to the top-left
+	 * corner of the bounding box of the ROI.
 	 *
 	 * @param from
 	 *            the imp to copy from.
 	 * @param to
 	 *            the imp to copy to.
+	 * @param initialRoi
 	 */
-	private static final void transferCalibration( final ImagePlus from, final ImagePlus to )
+	private static final void transferCalibration( final ImagePlus from, final ImagePlus to, final Roi initialRoi )
 	{
 		final Calibration fc = from.getCalibration();
 		final Calibration tc = to.getCalibration();
@@ -217,5 +223,16 @@ public class Cellpose
 		tc.pixelWidth = fc.pixelWidth;
 		tc.pixelHeight = fc.pixelHeight;
 		tc.pixelDepth = fc.pixelDepth;
+
+		if ( initialRoi != null )
+		{
+			tc.xOrigin = fc.xOrigin + initialRoi.getBounds().x;
+			tc.yOrigin = fc.yOrigin + initialRoi.getBounds().y;
+		}
+		else
+		{
+			tc.xOrigin = fc.xOrigin;
+			tc.yOrigin = fc.yOrigin;
+		}
 	}
 }
