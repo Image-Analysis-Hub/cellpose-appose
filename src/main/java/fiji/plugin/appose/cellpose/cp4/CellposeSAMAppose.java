@@ -357,7 +357,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		// Check if the image is RGB
 		if ( imp.isRGB() )
 		{
-			IJ.error( "Image is RGB, which is not handled. Change image type in Image>Color>Make Composite" );
+			IJ.error( "Image is RGB, which is not handled. Change image type in Image>Color>Make Composite and start again" );
 			return;
 		}
 				
