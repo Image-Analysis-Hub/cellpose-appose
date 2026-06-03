@@ -85,7 +85,6 @@
 		<connection>scm:git:git://github.com/Image-Analysis-Hub/cellpose-appose</connection>
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
-		<tag>Cellpose_Appose-0.1.6</tag>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
 	</scm>
 
@@ -106,9 +105,9 @@
 		<!-- Use Java 21. -->
 		<scijava.jvm.version>21</scijava.jvm.version>
 		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
-
-		<appose.version>0.11.0</appose.version>
+		
 		<imglib2-appose.version>0.9.0</imglib2-appose.version>
+		<appose.version>0.11.0</appose.version>
 	</properties>
 
 
@@ -118,14 +117,14 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-
-		<!-- Appose dependencies -->
+		
 		<dependency>
 			<groupId>org.apposed</groupId>
 			<artifactId>appose</artifactId>
 			<version>${appose.version}</version>
 		</dependency>
-		
+
+
 		<!-- ImgLib2 dependencies -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
@@ -144,21 +143,15 @@
 			<version>0.0.4</version>
 		</dependency>
 
+		<!-- Test dependencies -->
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>imagej</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-<!-- Test dependencies -->
 		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-api</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.junit.jupiter</groupId>
-			<artifactId>junit-jupiter-engine</artifactId>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
 

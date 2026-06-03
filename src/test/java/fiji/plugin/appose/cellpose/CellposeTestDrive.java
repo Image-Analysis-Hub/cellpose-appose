@@ -42,6 +42,8 @@ import fiji.plugin.appose.ApposeUtils;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import ij.gui.OvalRoi;
+import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import net.imglib2.cellpose.ApposeTaskListener;
 import net.imglib2.cellpose.Cellpose3BuiltinModels;
@@ -61,7 +63,15 @@ public class CellposeTestDrive
 			ImageJ.main( args );
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
 			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
+			
+			// create the ROI to test
+			 Roi circleROI = new OvalRoi(0, 0, 120, 70); // x, y, width, height
+		     circleROI.setLocation(80, 60); 
+		     circleROI.setImage( imp );
+			imp.setRoi( circleROI );
+		     final Roi copy = ( Roi ) imp.getRoi().clone();
 
 			/*
 			 * Cellpose 3
@@ -76,7 +86,7 @@ public class CellposeTestDrive
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE );
+			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE, imp );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP3.show();
 			
@@ -85,11 +95,12 @@ public class CellposeTestDrive
 			 */
 
 			final Cellpose4Parameters paramsCP4 = Cellpose4Parameters.defaultParameters();
+			imp.setRoi( copy ); // put it back.
 			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener );
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED );
+			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED, imp );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP4.show();
 		}
