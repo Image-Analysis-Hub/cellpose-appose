@@ -129,7 +129,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
     private final String advMsg = "<html><hr width='100'></html>";
 
 	@Parameter( label = "Cell probability threshold", min = "-6.0", max = "6.0", description = "Threshold on cell detection", stepSize = "0.1" )
-	private double cellprob_threshold = 0.0;
+	private Double cellprob_threshold = 0.0;
 
 	@Parameter( label = "Flows Threshold", min = "0", max = "1", description = "Threshold on flows to detect objects (only for 2D)", stepSize = "0.1" )
 	private double flow_threshold = 0.4; // probability threshold on flows
@@ -190,6 +190,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Override
 	public void initialize()
 	{
+		// prefService.clear( this.getClass() ); 
 
 		// print out the parameters for debugging
 		System.out.println( "Initializing Cellpose-SAM Appose plugin with the following parameters:" );
