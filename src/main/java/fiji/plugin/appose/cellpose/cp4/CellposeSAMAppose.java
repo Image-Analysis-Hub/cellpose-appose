@@ -192,23 +192,6 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	{
 		// prefService.clear( this.getClass() ); 
 
-		// print out the parameters for debugging
-		System.out.println( "Initializing Cellpose-SAM Appose plugin with the following parameters:" );
-		System.out.println( "  custom_model: " + custom_model );
-		System.out.println( "  cell_diameter: " + cell_diameter );
-		System.out.println( "  chan0: " + chan0 );
-		System.out.println( "  chan1: " + chan1 );
-		System.out.println( "  chan2: " + chan2 );	
-		System.out.println( "  min_size: " + min_size );
-		System.out.println( "  normalize: " + normalize );
-		System.out.println( "  resample: " + resample );
-		System.out.println( "  tile_overlap: " + tile_overlap );
-		System.out.println( "  compute_flows: " + compute_flows );
-		System.out.println( "  mode_3d: " + mode_3d );
-		System.out.println( "  stitch_threshold: " + stitch_threshold );
-		System.out.println( "  flow3d_smooth: " + flow3d_smooth );
-		System.out.println( "  niter: " + niter );
-
 		// Grab the current image (last touched image in Fiji)
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		if ( imp == null )
