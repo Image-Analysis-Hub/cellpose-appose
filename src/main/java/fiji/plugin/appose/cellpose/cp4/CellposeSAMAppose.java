@@ -64,6 +64,7 @@ import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import net.imglib2.cellpose.ApposeTaskListener;
+import net.imglib2.cellpose.Cellpose3BuiltinModels;
 import net.imglib2.cellpose.Cellpose4Parameters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -96,6 +97,10 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
     @Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist = false)
     private final String initMsg = "<html><hr width='100'></html>";
 
+    @Parameter( label = "Cellpose model", description = "Choose CP model to run" )
+	private Cellpose4BuiltinModels cp_model = Cellpose4BuiltinModels.CPSAMV2; // cellpose model to use, ignored if custom model path is provided
+
+    
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
 	private String custom_model = ""; // path to custom model, if empty use the selected Cellpose model
 
@@ -348,6 +353,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		try
 		{
 			final Cellpose4Parameters params = Cellpose4Parameters.builder()
+					.model(cp_model)
 					.customModel(custom_model)
 					.diameter(cell_diameter)
 					.chan0( convertChannelChoiceToInt( chan0, false ) )
