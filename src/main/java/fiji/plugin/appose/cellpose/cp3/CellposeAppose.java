@@ -175,7 +175,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter(visibility=ItemVisibility.MESSAGE, label=" ", persist = false)
 	private String sysInfo = "";
 
-	@Parameter(label="Torch version", choices = { "cpu", "cu128", "cu130" }, description = "Control which torch/cuda version to use.")
+	@Parameter(label="Torch version", choices = { "cpu", "cu126", "cu130" }, description = "Control which torch/cuda version to use.")
 	private String torchVersion = "cpu";
 
 	@Parameter( label = "use GPU", description = "Run on GPU if available" )
