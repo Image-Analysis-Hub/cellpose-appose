@@ -389,7 +389,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.randomizeLabels( shuffle )
 					.build();
 
-			final ApposeTaskListener listener = new FijiApposeTaskListener();
+			final ApposeTaskListener listener = new FijiApposeTaskListener( "Cellpose 3" );
 			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener );
 			
 			final ImagePlus labels = outputs[ 0 ];

@@ -64,6 +64,13 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	
 	private boolean DEBUG = false;  // active/deactivate debug prints to console
 
+	private String title;
+
+	public FijiApposeTaskListener( final String title )
+	{
+		this.title = title;
+	}
+
 	/*
 	 * Normal Appose messages -> IJ toolbar.
 	 */
@@ -87,6 +94,11 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	{
 		//System.out.println("msg "+msg);
 		IJ.showStatus( msg );	
+	}
+
+	public void error( final String msg )
+	{
+		IJ.error( title, msg );
 	}
 
 	/*

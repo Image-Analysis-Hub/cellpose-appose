@@ -61,9 +61,9 @@ public class CellposeTestDrive
 		try
 		{
 			ImageJ.main( args );
-			final ApposeTaskListener listener = new FijiApposeTaskListener();
-			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Development/TrackMateWS/CellMigration-4.tif" );
-			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			final ApposeTaskListener listener = new FijiApposeTaskListener( "Cellpose 3" );
+			final ImagePlus imp = IJ.openImage( "/Users/tinevez/Development/TrackMateWS/CellMigration-4.tif" );
+//			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
 			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
 			
