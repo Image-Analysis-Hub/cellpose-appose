@@ -31,6 +31,13 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
 
+	private String title;
+
+	public FijiApposeTaskListener( final String title )
+	{
+		this.title = title;
+	}
+
 	/*
 	 * Normal Appose messages -> IJ toolbar.
 	 */
@@ -52,6 +59,11 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 		IJ.showStatus( msg );
 	}
 
+	public void error( final String msg )
+	{
+		IJ.error( title, msg );
+	}
+
 	/*
 	 * Installation messages -> Custom progres dialog.
 	 */
@@ -66,21 +78,15 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	public Consumer< String > errorListener()
 	{
 		return str -> {
-			/*
-			 * We have an issue here: pixi always return an error message that
-			 * says "✔ The cp4-cpu environment has been installed." when the
-			 * environment is ready, even if it was already installed. So we
-			 * need to filter out this message to avoid showing an error dialog.
-			 */
 			if ( str != null && str.contains( "✔ The" ) && str.contains( "environment has been installed." ) )
 			{
 				final String envName = str.substring( str.indexOf( "✔ The" ) + 5, str.indexOf( "environment" ) );
-				IJ.showStatus( "Python environment " + envName + " is ready." );
+				message( "Python environment " + envName + " is ready." );
 			}
 			else
 			{
 				// Actual error.
-				log( "ERROR: " + str );
+				error( "ERROR: " + str );
 			}
 		};
 	}
