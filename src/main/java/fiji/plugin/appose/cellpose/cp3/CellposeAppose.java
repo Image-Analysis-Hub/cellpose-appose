@@ -41,7 +41,6 @@ import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
 import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -192,7 +191,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-
 	/*
 	 * Initialize the plugin.
 	 * This method is called when the plugin is loaded, and it is used to initialize the plugin parameters.
@@ -253,7 +251,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		} 
 		else
 		{
-			List< String > modeChoices = Arrays.asList( "None" );
+			final List< String > modeChoices = Arrays.asList( "None" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
@@ -302,8 +300,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Override
 	public void run()
 	{
-
-
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		
