@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
@@ -11,7 +13,7 @@
 
 	<groupId>fiji.plugin</groupId>
 	<artifactId>Cellpose_Appose</artifactId>
-    <version>0.1.9-SNAPSHOT</version>
+	<version>0.1.9-SNAPSHOT</version>
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
@@ -105,7 +107,7 @@
 		<!-- Use Java 21. -->
 		<scijava.jvm.version>21</scijava.jvm.version>
 		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
-		
+
 		<imglib2-appose.version>0.9.0</imglib2-appose.version>
 		<appose.version>0.11.0</appose.version>
 	</properties>
@@ -117,13 +119,18 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.apposed</groupId>
 			<artifactId>appose</artifactId>
 			<version>${appose.version}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.scijava</groupId>
+			<artifactId>config-ui-fiji</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 
 		<!-- ImgLib2 dependencies -->
 		<dependency>
@@ -140,7 +147,7 @@
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>
-			<version>0.0.4</version>
+			<version>0.0.5-SNAPSHOT</version>
 		</dependency>
 
 		<!-- Test dependencies -->
@@ -156,8 +163,8 @@
 		</dependency>
 
 	</dependencies>
-	
-	
+
+
 	<repositories>
 		<repository>
 			<id>scijava.public</id>
