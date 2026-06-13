@@ -187,9 +187,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-	// Fiji task
-	private org.scijava.task.Task fijiTask;
-
 	/*
 	 * Initialize the plugin.
 	 * This method is called when the plugin is loaded, and it is used to initialize the plugin parameters.
@@ -250,7 +247,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		} 
 		else
 		{
-			List< String > modeChoices = Arrays.asList( "None" );
+			final List< String > modeChoices = Arrays.asList( "None" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
@@ -299,11 +296,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Override
 	public void run()
 	{
-		// start task
-		fijiTask = taskService.createTask( "cellpose-appose" );
-		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
-		fijiTask.start();
-
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
 		
