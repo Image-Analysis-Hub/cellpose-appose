@@ -1,78 +1,24 @@
 package fiji.plugin.appose.cellpose.cp3;
 
-import static fiji.plugin.appose.ApposeUtils.addROIs;
-
-import java.awt.Color;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apposed.appose.BuildException;
-import org.scijava.ui.config.fiji.ConfigFijiPlugin;
-import org.scijava.ui.config.fiji.listeners.FijiApposeProgressListener;
-import org.scijava.ui.config.visitors.gui.FrameBuilder.ConfigFrame.Progress;
+import org.apposed.appose.TaskException;
 
 import fiji.plugin.appose.cellpose.Cellpose;
+import fiji.plugin.appose.cellpose.CellposeAbstractPlugin;
 import fiji.plugin.appose.cellpose.CellposeApposeListener;
-import ij.IJ;
 import ij.ImagePlus;
-import ij.plugin.frame.RoiManager;
+import net.imglib2.cellpose.Cellpose3BuiltinModels;
 import net.imglib2.cellpose.Cellpose3Parameters;
-import net.imglib2.type.NativeType;
-import net.imglib2.type.numeric.RealType;
 
-public class Cellpose3Plugin extends ConfigFijiPlugin< Cellpose3Config >
+public class Cellpose3Plugin extends CellposeAbstractPlugin< Cellpose3Config, Cellpose3BuiltinModels, Cellpose3Parameters >
 {
 
 	@Override
-	public void run( final Progress progress ) throws Exception
-	{
-		process( progress );
-		super.run( progress );
-	}
-
-	public < T extends RealType< T > & NativeType< T > > void process( final Progress progress ) throws IOException, BuildException
-	{
-		// Print os and arch info
-		progress.message( "Starting process..." );
-
-		final ImagePlus imp = getImagePlus();
-		final Cellpose3Config config = getConfig();
-
-		try
-		{
-			// Convert config to Cellpose3Parameters.
-			final Cellpose3Parameters params = toParams( getConfig() );
-					
-			// Adapt listener.
-			final FijiApposeProgressListener l = new FijiApposeProgressListener( progress, config.getName() );
-			final CellposeApposeListener listener = CellposeApposeListener.of( l );
-
-			// Exec.
-			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener );
-
-			// Unwrap the outputs and show them.
-			final ImagePlus labels = outputs[ 0 ];
-			if ( config.exportROIs().getValue() && imp.getNSlices() == 1 )
-			{
-				addROIs( labels, "Cellpose-3", Color.YELLOW );
-				RoiManager.getInstance2().runCommand( "Show All" );
-			}
-			if ( config.exportLabels().getValue() )
-				labels.show();
-			if ( config.exportFlows().getValue() && outputs.length > 1 )
-			{
-				final ImagePlus flows = outputs[ 1 ];
-				flows.show();
-			}
-		}
-		catch ( final Exception e )
-		{
-			IJ.handleException( e );
-		}
-	}
-
-	private Cellpose3Parameters toParams( final Cellpose3Config config )
+	protected Cellpose3Parameters toParams( final Cellpose3Config config )
 	{
 		final List< Integer > channels = Arrays.asList(
 				config.chan1().getValue(),
@@ -110,5 +56,11 @@ public class Cellpose3Plugin extends ConfigFijiPlugin< Cellpose3Config >
 		final double pixelSize = imp.getCalibration().pixelWidth;
 		final String units = imp.getCalibration().getUnit();
 		return new Cellpose3Config( nChannels , pixelSize , units  );
+	}
+
+	@Override
+	protected ImagePlus[] execCellpose( final ImagePlus imp, final Cellpose3Parameters params, final CellposeApposeListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+	{
+		return Cellpose.cellpose3( imp, params, listener );
 	}
 }
