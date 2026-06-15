@@ -68,7 +68,7 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 				.key( "CUSTOM_MODEL_PATH" )
 				.defaultValue( "" ) // Better than null.
 				.name( "Path to custom model" )
-				.help( "Path to a custom Cellpose 3 model. " )
+				.help( "Path to a custom Cellpose model. " )
 				.get();
 
 		// One or the other, but not both.
