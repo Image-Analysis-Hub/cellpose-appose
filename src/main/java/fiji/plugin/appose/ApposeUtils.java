@@ -240,10 +240,31 @@ public class ApposeUtils
 	}
 
 	
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
+	/**
+	 * Creates a list of ImageJ ROIs from a label image and adds them to the ROI
+	 * manager. The ROIs are {@link PolygonRoi}s.
+	 * 
+	 * @param labels
+	 *            the label image to create ROIs from. Important: the ROIs are
+	 *            created at coordinates relative to the calibration.xOrigin and
+	 *            calibration.yOrigin of this label image, so that they are the
+	 *            right position if the label image was generated from a crop
+	 *            view of the input.
+	 * @param prefix
+	 *            the prefix to use for naming the ROIs.
+	 * @param color
+	 *            the color to use for the ROIs. If <code>null</code>, the
+	 *            default color will be used.
+	 * @param multipleChannels
+	 *            set it to <code>true</code> if the target image has multiple
+	 *            channels. Otherwise the ROIs will be displayed on all frames
+	 *            of the target image.
+	 * @return a list of ROIs corresponding to the labels in the input image.
+	 */
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, multipleChannels ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -261,9 +282,13 @@ public class ApposeUtils
 	 * @param color
 	 *            the color to use for the ROIs. If <code>null</code>, the
 	 *            default color will be used.
+	 * @param multipleChannels
+	 *            set it to <code>true</code> if the target image has multiple
+	 *            channels. Otherwise the ROIs will be displayed on all frames
+	 *            of the target image.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -290,7 +315,20 @@ public class ApposeUtils
 					: prefix + "_%0" + nDigits + "d";
 
 			int index = 1; // Start at 1 to match ImageJ ROI display
-			final int targetChannel = 0; // Show ROIs on all channels.
+
+			/*
+			 * There is some weirdness in ImageJ display of multiple ROIs from
+			 * the ROI manager. If the target imp has multiple channels, and if
+			 * you assign the ROI channel to 0, then the ROI is properly
+			 * displayed on all channels, but only on its frame, as expected.
+			 * 
+			 * BUT if the imp has only one channel, then the ROI is displayed on
+			 * all frames, which is not what we want. The workaround is to
+			 * assign the ROI channel to 1.
+			 */
+			final int targetChannel = multipleChannels
+					? 0 // Show ROIs on all channels.
+					: 1;
 			for ( final int label : boundaries.keySet() )
 			{
 				final ArrayList< Polygon2D > polygons = boundaries.get( label );

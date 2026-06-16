@@ -63,16 +63,18 @@ public class CellposeTestDrive
 			ImageJ.main( args );
 			final ApposeTaskListener listener = new FijiApposeTaskListener( "Cellpose 3" );
 			final ImagePlus imp = IJ.openImage( "/Users/tinevez/Development/TrackMateWS/CellMigration-4.tif" );
+			final boolean multipleChannels = imp.getNChannels() > 1;
 //			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
-			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
+			// final ImagePlus imp = IJ.openImage(
+			// "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
-			
+
 			// create the ROI to test
-			 final Roi circleROI = new OvalRoi(0, 0, 120, 70); // x, y, width, height
-		     circleROI.setLocation(80, 60); 
-		     circleROI.setImage( imp );
+			final Roi circleROI = new OvalRoi( 0, 0, 120, 70 ); // x, y, width, height
+			circleROI.setLocation( 80, 60 );
+			circleROI.setImage( imp );
 			imp.setRoi( circleROI );
-		     final Roi copy = ( Roi ) imp.getRoi().clone();
+			final Roi copy = ( Roi ) imp.getRoi().clone();
 
 			/*
 			 * Cellpose 3
@@ -87,10 +89,10 @@ public class CellposeTestDrive
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE );
+			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE, multipleChannels );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP3.show();
-			
+
 			/*
 			 * Cellpose 4
 			 */
@@ -101,7 +103,7 @@ public class CellposeTestDrive
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED );
+			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED, multipleChannels );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP4.show();
 		}

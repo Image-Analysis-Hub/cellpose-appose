@@ -390,7 +390,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				addROIs( labels, "Cellpose-3", Color.YELLOW );
+				final boolean multipleChannels = imp.getNChannels() > 1;
+				addROIs( labels, "Cellpose-3", Color.YELLOW, multipleChannels );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
