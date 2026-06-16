@@ -250,7 +250,7 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 				.name( "Torch version" )
 				.help( "On Windows and Linux, control which torch / cuda version to use." )
 				.addChoice( "cpu" )
-				.addChoice( "cu128" )
+				.addChoice( "cu126" )
 				.addChoice( "cu130" )
 				.defaultValue( "cpu" )
 				.get();
