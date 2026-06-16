@@ -1,5 +1,8 @@
 package fiji.plugin.appose.cellpose;
 
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
 import fiji.plugin.appose.cellpose.cp3.Cellpose3Plugin;
 import ij.IJ;
 import ij.ImageJ;
@@ -11,6 +14,7 @@ public class Cellpose3FijiPluginDemo
 	@SuppressWarnings( "unchecked" )
 	public static void main( final String[] args )
 	{
+		setLF();
 		try
 		{
 			ImageJ.main( args );
@@ -32,5 +36,18 @@ public class Cellpose3FijiPluginDemo
 		{
 			e.printStackTrace();
 		}
+	}
+
+	static void setLF()
+	{
+		try
+		{
+			UIManager.setLookAndFeel( UIManager.getSystemLookAndFeelClassName() );
+		}
+		catch ( ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e )
+		{
+			e.printStackTrace();
+		}
+
 	}
 }
