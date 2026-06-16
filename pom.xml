@@ -86,7 +86,8 @@
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
-	</scm>
+	  <tag>Cellpose_Appose-0.1.9</tag>
+  </scm>
 
 	<issueManagement>
 		<system>GitHub Issues</system>

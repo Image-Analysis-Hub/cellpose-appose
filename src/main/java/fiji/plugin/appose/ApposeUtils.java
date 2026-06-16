@@ -80,9 +80,10 @@ public class ApposeUtils
 	 * <p>
 	 * If the input ImagePlus has a ROI, the returned ImgPlus will be a view of
 	 * the original image, restricted to the bounding box of the ROI in X and Y
-	 * (and with min for X and Y set to the min & max of the ROI bounding box).
+	 * (and with min for X and Y set to the min and max of the ROI bounding box).
 	 * If the input ImagePlus does not have a ROI, the returned ImgPlus wrap the
 	 * full image.
+	 * @param ImagePlus imp: input image to wrap to ImgPlus
 	 */
 	@SuppressWarnings( { "rawtypes", "unchecked" } )
 	public static final < T > ImgPlus< T > rawWraps( final ImagePlus imp )
@@ -111,6 +112,8 @@ public class ApposeUtils
 
 	/**
 	 * Clear pixels outside the ROI in the Cellpose output.
+	 * @param CellposeOutput output: results from imglib2-cellpose computation
+	 * @param Roi roi: if compute only on active ROI
 	 */
 	public static final < T extends NativeType< T > & IntegerType< T > > void clearOutsideRoi( final CellposeOutput< T > output, final Roi roi )
 	{
