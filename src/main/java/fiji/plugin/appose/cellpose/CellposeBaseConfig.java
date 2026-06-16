@@ -262,6 +262,7 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 				.get();
 
 		addIcon( new ImageIcon( this.getClass().getResource( "/cp_logo.png" ) ).getImage() );
+		addIcon( new ImageIcon( this.getClass().getResource( "/favicon.ico" ) ).getImage() );
 	}
 
 	public EnumParam< CBM > builtinModel()
