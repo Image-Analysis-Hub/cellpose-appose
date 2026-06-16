@@ -53,7 +53,8 @@ public abstract class CellposeAbstractPlugin<
 			final ImagePlus labels = outputs[ 0 ];
 			if ( config.exportROIs().getValue() && imp.getNSlices() == 1 )
 			{
-				addROIs( labels, config.getName(), Color.YELLOW );
+				final boolean multipleChannels = imp.getNChannels() > 1;
+				addROIs( labels, config.getName(), Color.YELLOW, multipleChannels );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			if ( config.exportLabels().getValue() )
