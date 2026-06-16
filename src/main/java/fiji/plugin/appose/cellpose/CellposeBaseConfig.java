@@ -1,5 +1,7 @@
 package fiji.plugin.appose.cellpose;
 
+import javax.swing.ImageIcon;
+
 import org.scijava.ui.config.Configurator;
 import org.scijava.ui.config.Parameters.BooleanParam;
 import org.scijava.ui.config.Parameters.ChoiceParam;
@@ -258,6 +260,8 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 				.add( torchVersion )
 				.collapsed( true )
 				.get();
+
+		addIcon( new ImageIcon( this.getClass().getResource( "/cp_logo.png" ) ).getImage() );
 	}
 
 	public EnumParam< CBM > builtinModel()
