@@ -25,6 +25,7 @@
 /.settings/
 /target/
 /.idea/
+/imgs/
 
 # Oss
 .DS_Store
