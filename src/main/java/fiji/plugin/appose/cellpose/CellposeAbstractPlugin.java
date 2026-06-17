@@ -46,7 +46,9 @@ public abstract class CellposeAbstractPlugin<
 	{
 		progress.message( "Starting process..." );
 		final ImagePlus imp = getImagePlus();
+		final Roi roi = imp.getRoi();
 		process( imp, progress, 0 );
+		imp.setRoi( roi );
 	}
 
 	/**
@@ -132,7 +134,12 @@ public abstract class CellposeAbstractPlugin<
 			IJ.handleException( e );
 			e.printStackTrace();
 		}
-		imp.setRoi( roi );
+		finally
+		{
+			crop.changes = false;
+			crop.close();
+			imp.setRoi( roi );
+		}
 	}
 
 	@Override
