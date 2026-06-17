@@ -317,7 +317,7 @@ public class ApposeUtils
 			final int nRois = boundaries.values().stream().mapToInt( List::size ).sum();
 			final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
 			final String pattern = ( nt > 1 || tOrigin > 0 )
-					? prefix + "_t%0 " + nDigitsT + "d" + "_%0" + nDigits + "d"
+					? prefix + "_t%0" + nDigitsT + "d" + "_%0" + nDigits + "d"
 					: prefix + "_%0" + nDigits + "d";
 
 			int index = 1; // Start at 1 to match ImageJ ROI display
