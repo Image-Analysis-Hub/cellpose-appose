@@ -255,16 +255,19 @@ public class ApposeUtils
 	 * @param color
 	 *            the color to use for the ROIs. If <code>null</code>, the
 	 *            default color will be used.
+	 * @param tOrigin
+	 *            the time origin for the ROIs. ROIs with frame 1 will be
+	 *            displayed at frame tOrigin +1, etc.
 	 * @param multipleChannels
 	 *            set it to <code>true</code> if the target image has multiple
 	 *            channels. Otherwise the ROIs will be displayed on all frames
 	 *            of the target image.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final int tOrigin, final boolean multipleChannels )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color, multipleChannels ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, tOrigin, multipleChannels ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -282,13 +285,16 @@ public class ApposeUtils
 	 * @param color
 	 *            the color to use for the ROIs. If <code>null</code>, the
 	 *            default color will be used.
+	 * @param tOrigin
+	 *            the time origin for the ROIs. ROIs with frame 1 will be
+	 *            displayed at frame tOrigin + 1, etc.
 	 * @param multipleChannels
 	 *            set it to <code>true</code> if the target image has multiple
 	 *            channels. Otherwise the ROIs will be displayed on all frames
 	 *            of the target image.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final int tOrigin, final boolean multipleChannels )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -310,8 +316,8 @@ public class ApposeUtils
 			final Map< Integer, ArrayList< Polygon2D > > boundaries = tracker.process( image );
 			final int nRois = boundaries.values().stream().mapToInt( List::size ).sum();
 			final int nDigits = ( int ) Math.ceil( Math.log10( nRois + 1 ) );
-			final String pattern = ( nt > 1 )
-					? prefix + "_t%0 " + nDigitsT + "d" + "_%0" + nDigits + "d"
+			final String pattern = ( nt > 1 || tOrigin > 0 )
+					? prefix + "_t%0" + nDigitsT + "d" + "_%0" + nDigits + "d"
 					: prefix + "_%0" + nDigits + "d";
 
 			int index = 1; // Start at 1 to match ImageJ ROI display
@@ -339,7 +345,7 @@ public class ApposeUtils
 					roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
 					roi.setName( prefix );
 					roi.setStrokeColor( color );
-					roi.setPosition( targetChannel, 1, t );
+					roi.setPosition( targetChannel, 1, t + tOrigin );
 					rois.add( roi );
 				}
 				else
@@ -349,10 +355,10 @@ public class ApposeUtils
 						final PolygonRoi roi = poly.createRoi();
 						roi.translate( labels.getCalibration().xOrigin, labels.getCalibration().yOrigin );
 						
-						final String name = ( nt > 1 )
-								? String.format( pattern, t, index++ )
+						final String name = ( nt > 1 || tOrigin > 0 )
+								? String.format( pattern, t + tOrigin, index++ )
 								: String.format( pattern, index++ );
-						roi.setPosition( targetChannel, 1, t );
+						roi.setPosition( targetChannel, 1, t + tOrigin );
 						roi.setName( name );
 						roi.setStrokeColor( color );
 						rois.add( roi );

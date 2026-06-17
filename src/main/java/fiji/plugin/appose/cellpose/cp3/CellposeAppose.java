@@ -391,7 +391,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			if ( return_ROIs )
 			{
 				final boolean multipleChannels = imp.getNChannels() > 1;
-				addROIs( labels, "Cellpose-3", Color.YELLOW, multipleChannels );
+				addROIs( labels, "Cellpose-3", Color.YELLOW, 0, multipleChannels );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
