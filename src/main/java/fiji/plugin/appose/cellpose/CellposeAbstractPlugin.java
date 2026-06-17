@@ -4,9 +4,13 @@ import static fiji.plugin.appose.ApposeUtils.addROIs;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
+import org.scijava.Cancelable;
 import org.scijava.ui.config.fiji.ConfigFijiPlugin;
 import org.scijava.ui.config.fiji.listeners.FijiApposeProgressListener;
 import org.scijava.ui.config.visitors.gui.FrameBuilder.ConfigFrame.Progress;
@@ -19,8 +23,12 @@ import net.imglib2.cellpose.CellposeParameters;
 public abstract class CellposeAbstractPlugin< 
 		C extends CellposeBaseConfig< CBM >, 
 		CBM extends Enum< CBM >,
-		CP extends CellposeParameters > extends ConfigFijiPlugin< C >
+		CP extends CellposeParameters > extends ConfigFijiPlugin< C > implements Cancelable
 {
+
+	private Future< ImagePlus[] > cellposeTask;
+
+	private String cancelReason;
 
 	@Override
 	public void run( final Progress progress ) throws Exception
@@ -47,7 +55,23 @@ public abstract class CellposeAbstractPlugin<
 			final CellposeApposeListener listener = CellposeApposeListener.of( l );
 
 			// Exec.
-			final ImagePlus[] outputs = execCellpose( imp, params, listener );
+
+			// Run execCellpose in a separate thread, and gets its outputs.
+			this.cellposeTask = Executors.newSingleThreadExecutor().submit( () -> execCellpose( imp, params, listener ) );
+			ImagePlus[] outputs = null;
+			try
+			{
+				outputs = cellposeTask.get();
+			}
+			catch ( final CancellationException e )
+			{
+				// Do nothing, it's ok that the user canceled the task.
+			}
+			if ( outputs == null )
+			{
+				System.out.println( "CellposeAbstractPlugin.process(): got no output from execCellpose()" );
+				return; // We got no output
+			}
 
 			// Unwrap the outputs and show them.
 			final ImagePlus labels = outputs[ 0 ];
@@ -75,4 +99,23 @@ public abstract class CellposeAbstractPlugin<
 
 	protected abstract CP toParams( final C config );
 
+	@Override
+	public void cancel( final String cancelReason )
+	{
+		this.cancelReason = cancelReason;
+		if ( cellposeTask != null )
+			cellposeTask.cancel( false );
+	}
+
+	@Override
+	public boolean isCanceled()
+	{
+		return cellposeTask != null && cellposeTask.isCancelled();
+	}
+
+	@Override
+	public String getCancelReason()
+	{
+		return cancelReason;
+	}
 }
