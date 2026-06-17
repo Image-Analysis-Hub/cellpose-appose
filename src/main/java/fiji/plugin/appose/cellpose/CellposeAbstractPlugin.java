@@ -3,6 +3,7 @@ package fiji.plugin.appose.cellpose;
 import static fiji.plugin.appose.ApposeUtils.addROIs;
 
 import java.awt.Color;
+import java.awt.Rectangle;
 import java.io.IOException;
 
 import org.apposed.appose.BuildException;
@@ -121,7 +122,13 @@ public abstract class CellposeAbstractPlugin<
 		{
 			crop.getCalibration().xOrigin = roi.getBounds().x;
 			crop.getCalibration().yOrigin = roi.getBounds().y;
+			final Rectangle bounds = roi.getBounds();
+			final Roi clone = ( Roi ) roi.clone();
+			clone.translate( -bounds.x, -bounds.y );
+			crop.setRoi( clone );
+			// We need the ROI so that the outside of it are properly masked.
 		}
+
 		final Progress progress = new IJProgress();
 		progress.message( "Starting process..." );
 		final int tOrigin = t - 1;
