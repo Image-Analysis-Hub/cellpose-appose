@@ -83,6 +83,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	@Override
 	public void message( final String msg )
 	{
+		//System.out.println(msg);
 		IJ.showStatus( msg );	
 	}
 
@@ -151,7 +152,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 
 	private void log( final String msg, final Long cur, final Long max )
 	{
-		System.out.println( "Received msg: " + msg + " cur: " + cur + " max: " + max );
+		//System.out.println( "Received msg: " + msg + " cur: " + cur + " max: " + max );
 		EventQueue.invokeLater( () -> {
 			if ( progressDialog == null )
 			{
