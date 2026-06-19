@@ -71,17 +71,19 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	public Consumer< TaskEvent > taskListener()
 	{
 		return e -> {
+			//System.out.println(e.message);
 			if ( e.message != null && !e.message.trim().isEmpty() )
 				IJ.showStatus( e.responseType + ": " + e.message );
 			if ( e.current >= 0 && e.maximum > 0 )
 				IJ.showProgress( ( int ) e.current, ( int ) e.maximum );
 		};
 	}
+	
 
 	@Override
 	public void message( final String msg )
 	{
-		IJ.showStatus( msg );
+		IJ.showStatus( msg );	
 	}
 
 	/*
@@ -108,11 +110,13 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 			{
 				final String envName = str.substring( str.indexOf( "✔ The" ) + 5, str.indexOf( "environment" ) );
 				IJ.showStatus( "Python environment " + envName + " is ready." );
+				closeProgressDialog();
 			}
 			else
 			{
 				// Actual error.
 				log( "ERROR: " + str );
+				closeProgressDialog();
 			}
 		};
 	}
@@ -121,6 +125,14 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	public ProgressConsumer progressListener()
 	{
 		return ( msg, cur, max ) -> log( msg, cur, max );
+	}
+	
+	/** Close progress dialog bar if it exists */
+	public void closeProgressDialog()
+	{
+		if ( progressDialog != null )
+			progressDialog.dispose();
+		progressDialog = null;
 	}
 
 	public void close()
@@ -144,6 +156,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	private void log( final String msg, final Long cur, final Long max )
 	{
 		dialogHasBeenUsed.set( true );
+		IJ.showStatus(""+msg+" "+cur);
 		EventQueue.invokeLater( () -> {
 			if ( progressDialog == null )
 			{
