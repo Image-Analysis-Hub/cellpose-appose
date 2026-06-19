@@ -39,7 +39,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import javax.swing.JDialog;
@@ -71,6 +70,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	public Consumer< TaskEvent > taskListener()
 	{
 		return e -> {
+			closeProgressDialog();
 			//System.out.println(e.message);
 			if ( e.message != null && !e.message.trim().isEmpty() )
 				IJ.showStatus( e.responseType + ": " + e.message );
@@ -106,17 +106,15 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 			 * environment is ready, even if it was already installed. So we
 			 * need to filter out this message to avoid showing an error dialog.
 			 */
-			if ( str != null && str.contains( "✔ The" ) && str.contains( "environment has been installed." ) )
+			if ( str != null && str.contains( "The" ) && str.contains( "environment has been installed." ) )
 			{
-				final String envName = str.substring( str.indexOf( "✔ The" ) + 5, str.indexOf( "environment" ) );
+				final String envName = str.substring( str.indexOf( "The" ) + 3, str.indexOf( "environment" ) );
 				IJ.showStatus( "Python environment " + envName + " is ready." );
-				closeProgressDialog();
 			}
 			else
 			{
 				// Actual error.
 				log( "ERROR: " + str );
-				closeProgressDialog();
 			}
 		};
 	}
@@ -151,12 +149,9 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 		} );
 	}
 
-	private final AtomicBoolean dialogHasBeenUsed = new AtomicBoolean( false );
-
 	private void log( final String msg, final Long cur, final Long max )
 	{
-		dialogHasBeenUsed.set( true );
-		IJ.showStatus(""+msg+" "+cur);
+		System.out.println( "Received msg: " + msg + " cur: " + cur + " max: " + max );
 		EventQueue.invokeLater( () -> {
 			if ( progressDialog == null )
 			{
@@ -165,7 +160,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 				{
 					delayedShowTask = scheduler.schedule( () -> {
 						EventQueue.invokeLater( () -> {
-							if ( progressDialog == null && dialogHasBeenUsed.get() )
+							if ( progressDialog == null  )
 								createAndShowDialog();
 						} );
 					}, 1, TimeUnit.SECONDS );
