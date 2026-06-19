@@ -187,8 +187,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 
 	private double anisotropy = 1.0;
 
-	// Fiji task
-	private org.scijava.task.Task fijiTask;
 
 	/*
 	 * Initialize the plugin.
@@ -299,10 +297,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Override
 	public void run()
 	{
-		// start task
-		fijiTask = taskService.createTask( "cellpose-appose" );
-		fijiTask.setStatusMessage( "Launching Cellpose appose task." );
-		fijiTask.start();
+
 
 		// Grab the current image.
 		final ImagePlus imp = WindowManager.getCurrentImage();
