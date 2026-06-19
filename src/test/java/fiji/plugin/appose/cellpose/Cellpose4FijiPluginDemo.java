@@ -18,7 +18,7 @@ public class Cellpose4FijiPluginDemo
 			// Since this is a demo in the src folder, we need to register the
 			// plugin manually, as it won't be picked up by the usual plugin
 			// discovery mechanism.
-			ij.Menus.getCommands().put( "Cellpose 3", "fiji.plugin.appose.cellpose.cp4.Cellpose4Plugin" );
+			ij.Menus.getCommands().put( "Cellpose SAM", "fiji.plugin.appose.cellpose.cp4.Cellpose4Plugin" );
 
 			// Switch on macro recorder.
 			new Recorder();
