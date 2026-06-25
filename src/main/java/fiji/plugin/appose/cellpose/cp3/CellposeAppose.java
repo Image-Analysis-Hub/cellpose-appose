@@ -102,12 +102,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	
     // ---------
 			
-	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>")
+	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist=false)
     private final String initMsg = "<html><hr width='100'></html>";
 
-	@Parameter(label="file", required=false)
-	File file;
-	
 	@Parameter( label = "Cellpose model", description = "Choose CP model to run" )
 	private Cellpose3BuiltinModels cp_model = Cellpose3BuiltinModels.CYTO3; // cellpose model to use, ignored if custom model path is provided
 
