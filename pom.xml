@@ -105,10 +105,8 @@
 
 		<!-- Use Java 21. -->
 		<scijava.jvm.version>21</scijava.jvm.version>
-		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>
-		
-		<imglib2-appose.version>0.9.0</imglib2-appose.version>
-		<appose.version>0.11.0</appose.version>
+		<scijava.jvm.build.version>[21,)</scijava.jvm.build.version>		
+		<appose.version>0.12.0</appose.version>
 	</properties>
 
 
@@ -126,13 +124,6 @@
 		</dependency>
 
 
-		<!-- ImgLib2 dependencies -->
-		<dependency>
-			<groupId>net.imglib2</groupId>
-			<artifactId>imglib2-appose</artifactId>
-			<version>${imglib2-appose.version}</version>
-		</dependency>
-
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-ij</artifactId>
@@ -141,7 +132,7 @@
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>
-			<version>0.0.6-SNAPSHOT</version>
+			<version>0.0.6</version>
 		</dependency>
 
 		<!-- Test dependencies -->
