@@ -61,6 +61,8 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	private volatile ScheduledFuture< ? > delayedShowTask;
 
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
+	
+	private boolean DEBUG = false;  // active/deactivate debug prints to console
 
 	/*
 	 * Normal Appose messages -> IJ toolbar.
@@ -71,7 +73,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	{
 		return e -> {
 			closeProgressDialog();
-			//System.out.println(e.message);
+			if ( DEBUG ) System.out.println("task "+e.message);
 			if ( e.message != null && !e.message.trim().isEmpty() )
 				IJ.showStatus( e.responseType + ": " + e.message );
 			if ( e.current >= 0 && e.maximum > 0 )
@@ -83,7 +85,7 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 	@Override
 	public void message( final String msg )
 	{
-		//System.out.println(msg);
+		//System.out.println("msg "+msg);
 		IJ.showStatus( msg );	
 	}
 
@@ -107,15 +109,22 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 			 * environment is ready, even if it was already installed. So we
 			 * need to filter out this message to avoid showing an error dialog.
 			 */
-			if ( str != null && str.contains( "The" ) && str.contains( "environment has been installed." ) )
+			if ( str != null && (str.contains( "environment has been installed." ) ) )
 			{
 				final String envName = str.substring( str.indexOf( "The" ) + 3, str.indexOf( "environment" ) );
-				IJ.showStatus( "Python environment " + envName + " is ready." );
+				IJ.showStatus( "Python environment " + envName + "is ready." );
+				if ( DEBUG ) System.out.println( "DEBUG "+str );
 			}
-			else
+			else 
 			{
-				// Actual error.
-				log( "ERROR: " + str );
+				if ( str != null && (str.contains( "INFO" )) || (str.contains( "DEBUG" )) )
+				{	
+					log( str );
+				}
+				else {
+					// Actual error.
+					log( "ERROR: " + str );
+				}
 			}
 		};
 	}
@@ -168,9 +177,15 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 				}
 				return; // Don't update yet, dialog not visible
 			}
-
-			// Update existing dialog
-			updateProgressBar( msg, cur, max );
+			
+			// Dont show DEBUG messages, or to the console if DEBUG is on
+			if ( msg.startsWith( "DEBUG " ))
+			{
+				if ( DEBUG ) System.out.println( msg );
+			} else {
+				// Update existing dialog
+				updateProgressBar( msg, cur, max );
+			}
 		} );
 	}
 
