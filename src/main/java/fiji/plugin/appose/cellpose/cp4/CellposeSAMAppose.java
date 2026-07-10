@@ -70,7 +70,7 @@ import net.imglib2.cellpose.Cellpose4Parameters;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
 
-@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Cellpose-SAM..." )
+@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-SAM..." )
 public class CellposeSAMAppose extends DynamicCommand implements Initializable
 {
 	@Parameter

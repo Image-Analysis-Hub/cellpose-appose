@@ -77,7 +77,7 @@ import net.imglib2.type.numeric.RealType;
  * and run a cellpose segmentation with the native Cellpose code. The resulting mask is then sent back to Fiji and displayed as a new image.
  */
 
-@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose-Appose>Cellpose..." )
+@Plugin( type = Command.class, menuPath = "Plugins>Segmentation>Cellpose..." )
 public class CellposeAppose extends DynamicCommand implements Initializable
 {
 	@Parameter
