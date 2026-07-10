@@ -84,7 +84,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
     private final String messageTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Cell Detection using Cellpose-SAM (v4) brought to you by Appose !</h2>" +
-            "See plugin documentation: <a href='https://imagej.net/plugins/cellpose-appose'>https://imagej.net/plugins/cellpose-appose</a>" +
+            "See plugin documentation: <a href='https://imagej.net/plugins/fiji-cellpose'>https://imagej.net/plugins/fiji-cellpose</a>" +
             "<br/><br/><a href='https://github.com/mouseland/cellpose'>https://github.com/mouseland/cellpose</a>" +
 			" <font face='Courier New' size='5'>&#9829;</font> " +
 			"<a href='https://apposed.org/'>https://apposed.org/</a>" +
