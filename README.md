@@ -32,7 +32,7 @@ From Fiji
 - Press "Ok" and Enjoy!   
 
 > [!NOTE]
-> The python environment will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
+> The python environment called `cellpose-appose` will be automatically installed in your home `.local\shared\appose` directory and activated from the plugin when needed.
 
 ## Development
 
