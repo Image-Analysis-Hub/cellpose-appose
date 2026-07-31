@@ -5,8 +5,8 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<version>45.0.0</version>
-		<relativePath />
+		<version>45.1.0</version>
+		<relativePath/>
 	</parent>
 
 	<groupId>fiji.plugin</groupId>
@@ -132,7 +132,7 @@
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>
-			<version>0.0.7</version>
+			<version>0.0.8</version>
 		</dependency>
 
 		<!-- Test dependencies -->
