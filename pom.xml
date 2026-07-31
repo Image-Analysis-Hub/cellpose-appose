@@ -6,12 +6,12 @@
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
 		<version>45.1.0</version>
-		<relativePath/>
+		<relativePath />
 	</parent>
 
 	<groupId>fiji.plugin</groupId>
 	<artifactId>Cellpose_Appose</artifactId>
-    <version>0.1.15-SNAPSHOT</version>
+    <version>0.1.16-SNAPSHOT</version>
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
