@@ -35,10 +35,7 @@ package fiji.plugin.appose;
 
 import java.awt.Color;
 import java.awt.Rectangle;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -362,12 +359,22 @@ public class ApposeUtils
 			// try to run nvidia-smi to check if it is available
 			final ProcessBuilder pb = new ProcessBuilder( "nvidia-smi" );
 			pb.redirectErrorStream( true );
+			// Only the exit code is used. The output must go somewhere the OS
+			// drains, not into a pipe: nvidia-smi's default output includes a
+			// table of every process holding a CUDA context, which can exceed
+			// the ~4 KB pipe buffer and block the child forever in waitFor().
+			pb.redirectOutput( new File( getOperatingSystem() == OperatingSystem.WINDOWS
+					? "NUL" : "/dev/null" ) );
 			final Process process = pb.start();
-			process.waitFor();
-			return process.exitValue() == 0;
+			return process.waitFor() == 0;
 		}
-		catch ( final IOException | InterruptedException e )
+		catch ( final IOException e )
 		{
+			return false;
+		}
+		catch ( final InterruptedException e )
+		{
+			Thread.currentThread().interrupt();
 			return false;
 		}
 	}
