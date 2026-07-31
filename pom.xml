@@ -6,12 +6,12 @@
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
 		<version>45.1.0</version>
-		<relativePath/>
+		<relativePath />
 	</parent>
 
 	<groupId>fiji.plugin</groupId>
 	<artifactId>Cellpose_Appose</artifactId>
-    <version>0.1.15-SNAPSHOT</version>
+    <version>0.1.15</version>
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
@@ -86,7 +86,7 @@
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
-	  <tag>Cellpose_Appose-0.1.9</tag>
+	  <tag>Cellpose_Appose-0.1.15</tag>
   </scm>
 
 	<issueManagement>
