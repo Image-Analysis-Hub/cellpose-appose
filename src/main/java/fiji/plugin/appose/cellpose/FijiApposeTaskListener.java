@@ -111,8 +111,12 @@ public class FijiApposeTaskListener implements ApposeTaskListener
 			 */
 			if ( str != null && (str.contains( "environment has been installed." ) ) )
 			{
-				final String envName = str.substring( str.indexOf( "The" ) + 3, str.indexOf( "environment" ) );
-				IJ.showStatus( "Python environment " + envName + "is ready." );
+				final int envIdx = str.indexOf( "environment has been installed." );
+				final int theIdx = str.lastIndexOf( "The", envIdx );
+				final String envName = ( theIdx >= 0 && theIdx + 3 <= envIdx )
+						? str.substring( theIdx + 3, envIdx ).trim()
+						: "";
+				IJ.showStatus( "Python environment " + envName + " is ready." );
 				if ( DEBUG ) System.out.println( "DEBUG "+str );
 			}
 			else 
