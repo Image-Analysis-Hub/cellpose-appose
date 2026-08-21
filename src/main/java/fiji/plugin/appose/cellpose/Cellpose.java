@@ -232,8 +232,8 @@ public class Cellpose
 
 		if ( initialRoi != null )
 		{
-			tc.xOrigin = fc.xOrigin + initialRoi.getBounds().x;
-			tc.yOrigin = fc.yOrigin + initialRoi.getBounds().y;
+			tc.xOrigin = fc.xOrigin + Math.max(0, initialRoi.getBounds().x); // handles case where ROI leaks outside the image
+			tc.yOrigin = fc.yOrigin + Math.max(0, initialRoi.getBounds().y);
 		}
 		else
 		{

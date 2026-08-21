@@ -62,16 +62,16 @@ public class CellposeTestDrive
 		{
 			ImageJ.main( args );
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
-			final ImagePlus imp = IJ.openImage( "/Users/tinevez/Development/TrackMateWS/CellMigration-4.tif" );
-//			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Development/TrackMateWS/CellMigration-4.tif" );
+			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
 			//final ImagePlus imp = IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" );
 			imp.show();
 			
 			// create the ROI to test
 			 final Roi circleROI = new OvalRoi(0, 0, 120, 70); // x, y, width, height
-		     circleROI.setLocation(80, 60); 
+		     circleROI.setLocation(-10, -20); 
 		     circleROI.setImage( imp );
-			imp.setRoi( circleROI );
+			 imp.setRoi( circleROI );
 		     final Roi copy = ( Roi ) imp.getRoi().clone();
 
 			/*
@@ -94,7 +94,7 @@ public class CellposeTestDrive
 			/*
 			 * Cellpose 4
 			 */
-
+		    copy.setLocation(150, 180); 
 			final Cellpose4Parameters paramsCP4 = Cellpose4Parameters.defaultParameters();
 			imp.setRoi( copy ); // put it back.
 			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener );

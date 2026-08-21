@@ -49,6 +49,7 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
 import ij.IJ;
@@ -99,10 +100,10 @@ public class ApposeUtils
 		final Rectangle bounds = roi.getBounds();
 		final long min[] = img.minAsLongArray();
 		final long max[] = img.maxAsLongArray();
-		min[ 0 ] = bounds.x;
-		min[ 1 ] = bounds.y;
-		max[ 0 ] = bounds.x + bounds.width - 1;
-		max[ 1 ] = bounds.y + bounds.height - 1;
+		min[ 0 ] = Math.max(bounds.x, 0); // ensure it's inside the full image even if the ROI is "leaking" outside
+		min[ 1 ] = Math.max(bounds.y,0);
+		max[ 0 ] = Math.min(bounds.x + bounds.width - 1, imp.getWidth()-1);
+		max[ 1 ] = Math.min(bounds.y + bounds.height - 1, imp.getHeight()-1);
 		final FinalInterval interval = new FinalInterval( min, max );
 		final RandomAccessibleInterval view = Views.interval( raw, interval );
 
@@ -123,7 +124,7 @@ public class ApposeUtils
 		
 		// shift the roi in the crop image size (outputs are cropped images)
 		final Rectangle bounds = roi.getBounds();
-		roi.translate( -bounds.x, -bounds.y );
+		roi.translate( -Math.max(bounds.x,0), -Math.max(bounds.y,0)); 
 
 		final RandomAccessibleInterval< T > labels = output.labels;
 		final Cursor< T > c = labels.localizingCursor();
