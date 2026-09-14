@@ -244,7 +244,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
 			stitchItem.setMinimumValue( 0.0 );
 			stitchItem.setMaximumValue( 1.0 );
-			stitchItem.setStepSize( 0.05 );
+			stitchItem.setStepSize( 0.01 );
 			stitchItem.setVisibility(ItemVisibility.NORMAL);					
 		} 
 		else
