@@ -301,7 +301,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					use3d = true;
 				}
 
-				if ( ( stitch_threshold < 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
+				if ( ( stitch_threshold < 0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
 					IJ.error( "stitch_threshold should be between 0 and 1 if 2D+stitch, " + stitch_threshold + " was provided" );
 					return;

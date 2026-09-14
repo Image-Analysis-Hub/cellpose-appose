@@ -45,7 +45,7 @@ public class MainCP4
 		final ImageJ ij = new ImageJ();
 		ij.launch();
 		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
-		// IJ.openImage( "samples/test.tif" ).show();
+		//IJ.openImage( "../data_tests/041825_crop-small.tif" ).show();
 		ij.command().run( CellposeSAMAppose.class, true );
 	}
 }
