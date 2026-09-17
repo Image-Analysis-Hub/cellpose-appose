@@ -113,30 +113,21 @@
 
 
 	<dependencies>
-		<!-- ImageJ 1.x dependency -->
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apposed</groupId>
-			<artifactId>appose</artifactId>
-			<version>${appose.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.scijava</groupId>
-			<artifactId>config-ui-fiji</artifactId>
-			<version>0.0.3-SNAPSHOT</version>
-		</dependency>
-
+	
+		<!-- To run Cellpose -->
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>
-			<version>0.0.10</version>
+			<version>0.0.11-SNAPSHOT</version>
 		</dependency>
 
+		<!-- To make a Fiji plugin out of it -->
+		<dependency>
+			<groupId>fiji.plugin</groupId>
+			<artifactId>fiji-appose</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+	
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>net.imagej</groupId>
