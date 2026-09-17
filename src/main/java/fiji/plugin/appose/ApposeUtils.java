@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -203,10 +204,12 @@ public class ApposeUtils
 			return null;
 		}
 	}
+	
+
 
 	public static final void useGlasbeyDarkLUT( final ImagePlus imp )
 	{
-		final LUT lut = loadLutFromResource( "/glasbey_on_dark.lut" );
+		LUT lut = loadLutFromResource( "/glasbey_on_dark.lut" );
 		useLUT( imp, lut );
 	}
 

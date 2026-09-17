@@ -148,6 +148,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Shuffle labels", description="Shuffle labels in the output to have a random distribution of label values." ) 
+	private Boolean shuffle = true; // Shuffle the labels
+	
 	// ---------
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
@@ -238,7 +241,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					getInfo().getMutableInput( "stitch_threshold", Double.class );
 			stitchItem.setMinimumValue( 0.0 );
 			stitchItem.setMaximumValue( 1.0 );
-			stitchItem.setStepSize( 0.05 );		
+			stitchItem.setStepSize( 0.01 );		
 
 		}
 		else
@@ -301,7 +304,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					use3d = true;
 				}
 
-				if ( ( stitch_threshold <= 0.0 ) & ( mode.equals( "2D+stitch" ) ) )
+				if ( ( stitch_threshold < 0 ) & ( mode.equals( "2D+stitch" ) ) )
 				{
 					IJ.error( "stitch_threshold should be between 0 and 1 if 2D+stitch, " + stitch_threshold + " was provided" );
 					return;
@@ -367,6 +370,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					.useGpu(useGPU)
 					.torchVersion(torchVersion)
 					.useGpu( useGPU )
+					.randomizeLabels(shuffle)
 					.build();
 
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
