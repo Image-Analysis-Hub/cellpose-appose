@@ -17,11 +17,11 @@
 
 	<name>cellpose-appose</name>
 	<description> Running Cellpose with a Fiji plugin based on Appose.</description>
-	<url>http://mycompany.com/imagej/bio-formats-reader/</url>
+	<url>https://imagej.net/plugins/fiji-cellpose/</url>
 	<inceptionYear>2026</inceptionYear>
 	<organization>
-		<name>My Company</name>
-		<url>http://mycompany.com/</url>
+		<name>Institut Pasteur</name>
+		<url>http://pasteur.fr/</url>
 	</organization>
 	<licenses>
 		<license>
@@ -37,6 +37,8 @@
 			<name>Stephane Rigaud</name>
 			<url>https://github.com/StRigaud</url>
 			<roles>
+				<role>founder</role>
+				<role>lead</role>
 				<role>developer</role>
 				<role>maintainer</role>
 			</roles>
@@ -46,22 +48,19 @@
 			<name>Gaelle Letort</name>
 			<url>https://github.com/gletort</url>
 			<roles>
+				<role>founder</role>
+				<role>lead</role>
 				<role>developer</role>
 				<role>maintainer</role>
 			</roles>
 		</developer>
 		<developer>
-			<id>your-id-here</id>
-			<name>Your Name Here</name>
-			<url>http://imagej.net/User:YourWikiUsername</url>
+			<id>tinevez</id>
+			<name>Jean-Yves Tinevez</name>
+			<url>http://imagej.net/User:JeanYvesTinevez</url>
 			<roles>
 				<role>founder</role>
-				<role>lead</role>
 				<role>developer</role>
-				<role>debugger</role>
-				<role>reviewer</role>
-				<role>support</role>
-				<role>maintainer</role>
 			</roles>
 		</developer>
 	</developers>
@@ -88,7 +87,6 @@
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
-		<tag>Cellpose_Appose-0.1.15</tag>
 	</scm>
 
 	<issueManagement>
