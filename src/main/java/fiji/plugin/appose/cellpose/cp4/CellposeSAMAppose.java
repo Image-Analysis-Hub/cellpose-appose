@@ -148,6 +148,9 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Shuffle labels", description="Shuffle labels in the output to have a random distribution of label values." ) 
+	private Boolean shuffle = true; // Shuffle the labels
+	
 	// ---------
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
@@ -367,6 +370,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 					.useGpu(useGPU)
 					.torchVersion(torchVersion)
 					.useGpu( useGPU )
+					.randomizeLabels(shuffle)
 					.build();
 
 			final ApposeTaskListener listener = new FijiApposeTaskListener();

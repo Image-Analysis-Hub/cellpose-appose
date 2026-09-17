@@ -152,6 +152,10 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( label = "Compute Flows", description = "Compute the segmentation flows output" )
 	private Boolean compute_flows = false; // whether to compute flows channel
 
+	@Parameter( visibility=ItemVisibility.NORMAL, label="Shuffle labels", description="Shuffle labels in the output to have a random distribution of label values." ) 
+	private Boolean shuffle = true; // Shuffle the labels
+
+	
 	// ---------
 	@Parameter( visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
     private final String dimMsg = "<html><hr width='100'></html>";
@@ -167,9 +171,6 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( visibility=ItemVisibility.NORMAL, label="Flow3d smooth", min="0", description="3D mode only: Gaussian smoothing sigma applied on flows." ) 
 	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
 	
-	@Parameter( visibility=ItemVisibility.NORMAL, label="Shuffle labels", description="Shuffle labels in the output to have a random distribution of label values." ) 
-	private Integer flow3d_smooth = 0; // gaussian smooth of 3D flows
-
 	
 	// ---------
 	
@@ -389,6 +390,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.nIter( niter )
 					.torchVersion(torchVersion)
 					.useGpu( useGPU )
+					.randomizeLabels( shuffle )
 					.build();
 
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
