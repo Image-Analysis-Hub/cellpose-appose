@@ -49,6 +49,10 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 
 	private final ChoiceParam torchVersion;
 
+	private final BooleanParam randomizeLabels;
+
+	private final BooleanParam ensureUnicity;
+
 	protected CellposeBaseConfig(
 			final String name,
 			final String help,
@@ -227,10 +231,28 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 				.defaultValue( false )
 				.get();
 
+		this.randomizeLabels = addBooleanParameter()
+				.key( "RANDOMIZE_LABELS" )
+				.name( "Randomize labels" )
+				.help( "If set, the labels in the output image will be randomized. "
+						+ "This is useful when you have a time-lapse, or a large image, "
+						+ "with much more labels that there is a color look-up table." )
+				.defaultValue( true )
+				.get();
+
+		this.ensureUnicity = addBooleanParameter()
+				.key( "ENSURE_UNICITY" )
+				.name( "Ensure label unicity" )
+				.help( "If set, the labels in the output image will be unique across time and Z. " )
+				.defaultValue( true )
+				.get();
+
 		addGroup( "Export options" )
 				.add( exportROIs )
 				.add( exportLabels )
 				.add( exportFlows )
+				.add( randomizeLabels )
+				.add( ensureUnicity )
 				.collapsed( false )
 				.get();
 
@@ -353,5 +375,15 @@ public class CellposeBaseConfig< CBM extends Enum< CBM > > extends Configurator
 	public ChoiceParam torchVersion()
 	{
 		return torchVersion;
+	}
+
+	public BooleanParam randomizeLabels()
+	{
+		return randomizeLabels;
+	}
+
+	public BooleanParam ensureUnicity()
+	{
+		return ensureUnicity;
 	}
 }

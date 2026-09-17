@@ -35,6 +35,8 @@ public class Cellpose4Plugin extends CellposeAbstractPlugin< Cellpose4Config, Ce
 				.nIter( config.nIter().getValue() )
 				.torchVersion( config.torchVersion().getValue() )
 				.useGpu( config.useGpu().getValue() )
+				.randomizeLabels( config.randomizeLabels().getValue() )
+				.labelUnicity( config.ensureUnicity().getValue() )
 				.build();
 		return params;
 	}
