@@ -1,16 +1,10 @@
 package fiji.plugin.appose.cellpose.cp4;
 
-import java.io.IOException;
-
-import org.apposed.appose.BuildException;
-import org.apposed.appose.TaskException;
-
-import fiji.plugin.appose.cellpose.Cellpose;
 import fiji.plugin.appose.cellpose.CellposeAbstractPlugin;
-import fiji.plugin.appose.cellpose.CellposeApposeListener;
 import ij.ImagePlus;
 import net.imglib2.cellpose.Cellpose4BuiltinModels;
 import net.imglib2.cellpose.Cellpose4Parameters;
+import net.imglib2.cellpose.CellposeRunner;
 
 public class Cellpose4Plugin extends CellposeAbstractPlugin< Cellpose4Config, Cellpose4BuiltinModels, Cellpose4Parameters >
 {
@@ -55,8 +49,8 @@ public class Cellpose4Plugin extends CellposeAbstractPlugin< Cellpose4Config, Ce
 	}
 
 	@Override
-	protected ImagePlus[] execCellpose( final ImagePlus imp, final Cellpose4Parameters params, final CellposeApposeListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+	protected CellposeRunner< Cellpose4Parameters > createRunner( final String torchVersion )
 	{
-		return Cellpose.cellpose4( imp, params, listener );
+		return net.imglib2.cellpose.Cellpose.cellpose4Runner( listener, torchVersion );
 	}
 }

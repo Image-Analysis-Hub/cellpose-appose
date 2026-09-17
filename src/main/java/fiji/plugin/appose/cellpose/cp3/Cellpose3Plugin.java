@@ -1,18 +1,13 @@
 package fiji.plugin.appose.cellpose.cp3;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apposed.appose.BuildException;
-import org.apposed.appose.TaskException;
-
-import fiji.plugin.appose.cellpose.Cellpose;
 import fiji.plugin.appose.cellpose.CellposeAbstractPlugin;
-import fiji.plugin.appose.cellpose.CellposeApposeListener;
 import ij.ImagePlus;
 import net.imglib2.cellpose.Cellpose3BuiltinModels;
 import net.imglib2.cellpose.Cellpose3Parameters;
+import net.imglib2.cellpose.CellposeRunner;
 
 public class Cellpose3Plugin extends CellposeAbstractPlugin< Cellpose3Config, Cellpose3BuiltinModels, Cellpose3Parameters >
 {
@@ -59,8 +54,8 @@ public class Cellpose3Plugin extends CellposeAbstractPlugin< Cellpose3Config, Ce
 	}
 
 	@Override
-	protected ImagePlus[] execCellpose( final ImagePlus imp, final Cellpose3Parameters params, final CellposeApposeListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+	protected CellposeRunner< Cellpose3Parameters > createRunner( final String torchVersion )
 	{
-		return Cellpose.cellpose3( imp, params, listener );
+		return net.imglib2.cellpose.Cellpose.cellpose3Runner( listener, torchVersion );
 	}
 }
