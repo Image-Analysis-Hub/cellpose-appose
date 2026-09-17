@@ -7,7 +7,6 @@ import fiji.plugin.appose.cellpose.cp3.Cellpose3Plugin;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import ij.plugin.frame.Recorder;
 
 public class Cellpose3FijiPluginDemo
 {
@@ -25,9 +24,11 @@ public class Cellpose3FijiPluginDemo
 			ij.Menus.getCommands().put( "Cellpose 3", "fiji.plugin.appose.cellpose.cp3.Cellpose3Plugin" );
 
 			// Switch on macro recorder.
-			new Recorder();
+//			new Recorder();
 
-			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			final String filePath = "../../TrackMateWS/TrackMate-Cellpose/samples/R2_multiC.tif";
+			final ImagePlus imp = IJ.openImage( filePath );
+//			final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
 			imp.show();
 
 			new Cellpose3Plugin().run( "" );
