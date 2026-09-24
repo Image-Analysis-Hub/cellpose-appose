@@ -41,7 +41,6 @@ import static fiji.plugin.appose.ApposeUtils.getCudaVersion;
 import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
-import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -253,7 +252,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		} 
 		else
 		{
-			List< String > modeChoices = Arrays.asList( "None" );
+			final List< String > modeChoices = Arrays.asList( "None" );
 			final MutableModuleItem< String > mode3dItem =
 					getInfo().getMutableInput( "mode_3d", String.class );
 			mode3dItem.setChoices( modeChoices );
@@ -399,7 +398,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				addROIs( labels, "Cellpose-3", Color.YELLOW );
+				final boolean multipleChannels = imp.getNChannels() > 1;
+				addROIs( labels, "Cellpose-3", Color.YELLOW, multipleChannels );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();

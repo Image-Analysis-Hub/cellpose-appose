@@ -64,7 +64,6 @@ import ij.WindowManager;
 import ij.measure.Calibration;
 import ij.plugin.frame.RoiManager;
 import net.imglib2.cellpose.ApposeTaskListener;
-import net.imglib2.cellpose.Cellpose3BuiltinModels;
 import net.imglib2.cellpose.Cellpose4BuiltinModels;
 import net.imglib2.cellpose.Cellpose4Parameters;
 import net.imglib2.type.NativeType;
@@ -379,7 +378,8 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )
 			{
-				addROIs( labels, "Cellpose-4", Color.YELLOW );
+				final boolean multipleChannels = imp.getNChannels() > 1;
+				addROIs( labels, "Cellpose-4", Color.YELLOW, multipleChannels );
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();

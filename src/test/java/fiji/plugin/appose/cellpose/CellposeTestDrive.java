@@ -87,7 +87,8 @@ public class CellposeTestDrive
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE );
+			final boolean multipleChannels = imp.getNChannels() > 1;
+			ApposeUtils.addROIs( labelsCP3, "Cellpose-3", Color.BLUE, multipleChannels );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP3.show();
 			
@@ -101,7 +102,7 @@ public class CellposeTestDrive
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
-			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED );
+			ApposeUtils.addROIs( labelsCP4, "Cellpose-SAM", Color.RED, multipleChannels );
 			RoiManager.getInstance2().runCommand( "Show All" );
 			labelsCP4.show();
 		}

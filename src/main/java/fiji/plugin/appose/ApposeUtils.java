@@ -46,10 +46,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 
 import fiji.plugin.appose.RoiUtils.LabelMapToPolygons;
 import fiji.plugin.appose.RoiUtils.Polygon2D;
@@ -209,7 +207,7 @@ public class ApposeUtils
 
 	public static final void useGlasbeyDarkLUT( final ImagePlus imp )
 	{
-		LUT lut = loadLutFromResource( "/glasbey_on_dark.lut" );
+		final LUT lut = loadLutFromResource( "/glasbey_on_dark.lut" );
 		useLUT( imp, lut );
 	}
 
@@ -248,10 +246,10 @@ public class ApposeUtils
 	}
 
 	
-	public static void addROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static void addROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
 	{
 		final RoiManager rm = RoiManager.getRoiManager();
-		toROIs( labels, prefix, color ).forEach( rm::addRoi );
+		toROIs( labels, prefix, color, multipleChannels ).forEach( rm::addRoi );
 	}
 
 	/**
@@ -271,7 +269,7 @@ public class ApposeUtils
 	 *            default color will be used.
 	 * @return a list of ROIs corresponding to the labels in the input image.
 	 */
-	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color )
+	public static List< PolygonRoi > toROIs( final ImagePlus labels, final String prefix, final Color color, final boolean multipleChannels )
 	{
 		// We don't create ROIs for 3D images.
 		if ( labels.getNSlices() > 1 )
@@ -298,7 +296,20 @@ public class ApposeUtils
 					: prefix + "_%0" + nDigits + "d";
 
 			int index = 1; // Start at 1 to match ImageJ ROI display
-			final int targetChannel = 0; // Show ROIs on all channels.
+
+			/*
+			 * There is some weirdness in ImageJ display of multiple ROIs from
+			 * the ROI manager. If the target imp has multiple channels, and if
+			 * you assign the ROI channel to 0, then the ROI is properly
+			 * displayed on all channels, but only on its frame, as expected.
+			 *
+			 * BUT if the imp has only one channel, then the ROI is displayed on
+			 * all frames, which is not what we want. The workaround is to
+			 * assign the ROI channel to 1.
+			 */
+			final int targetChannel = multipleChannels
+					? 0 // Show ROIs on all channels.
+					: 1;
 			for ( final int label : boundaries.keySet() )
 			{
 				final ArrayList< Polygon2D > polygons = boundaries.get( label );
