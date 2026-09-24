@@ -86,7 +86,6 @@
 		<developerConnection>
 			scm:git:git@github.com:Image-Analysis-Hub/cellpose-appose</developerConnection>
 		<url>https://github.com/Image-Analysis-Hub/cellpose-appose</url>
-	  <tag>Cellpose_Appose-0.1.15</tag>
   </scm>
 
 	<issueManagement>
@@ -132,7 +131,7 @@
 		<dependency>
 			<groupId>net.imglib2</groupId>
 			<artifactId>imglib2-cellpose</artifactId>
-			<version>0.0.10</version>
+			<version>0.0.11</version>
 		</dependency>
 
 		<!-- Test dependencies -->
