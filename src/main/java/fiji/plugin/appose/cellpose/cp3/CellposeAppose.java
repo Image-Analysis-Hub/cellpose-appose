@@ -154,6 +154,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	@Parameter( visibility=ItemVisibility.NORMAL, label="Shuffle labels", description="Shuffle labels in the output to have a random distribution of label values." ) 
 	private Boolean shuffle = true; // Shuffle the labels
 
+	@Parameter( visibility=ItemVisibility.NORMAL, choices = {"16-bit", "32-bit"}, label="Output type", description="Choose the output type of the labels image if you have more than 65k objects." ) 
+	private String labelType = "16-bit"; // Shuffle the labels
+
 	
 	// ---------
 	@Parameter( visibility=ItemVisibility.MESSAGE, label="<html><b>3D Options</b></html>", persist = false)
@@ -393,7 +396,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 					.build();
 
 			final ApposeTaskListener listener = new FijiApposeTaskListener();
-			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener );
+			final ImagePlus[] outputs = Cellpose.cellpose3( imp, params, listener, labelType );
 			
 			final ImagePlus labels = outputs[ 0 ];
 			if ( return_ROIs )

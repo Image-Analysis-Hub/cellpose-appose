@@ -83,8 +83,9 @@ public class CellposeTestDrive
 					.model( Cellpose3BuiltinModels.CYTO2 )
 					.diameter( 30 )
 					.build();
-			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3, listener );
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3, listener, "32-bit" );
 			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			System.out.println(labelsCP3.getBitDepth());
 
 			IJ.selectWindow( imp.getID() );
 			final boolean multipleChannels = imp.getNChannels() > 1;
@@ -98,7 +99,7 @@ public class CellposeTestDrive
 		    copy.setLocation(150, 180); 
 			final Cellpose4Parameters paramsCP4 = Cellpose4Parameters.defaultParameters();
 			imp.setRoi( copy ); // put it back.
-			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener );
+			final ImagePlus[] outputCP4 = Cellpose.cellpose4( imp, paramsCP4, listener, "16-bit" );
 			final ImagePlus labelsCP4 = outputCP4[ 0 ];
 
 			IJ.selectWindow( imp.getID() );
@@ -111,4 +112,32 @@ public class CellposeTestDrive
 			e.printStackTrace();
 		}
 	}
+	
+	/**public static void main( final String[] args ) throws BuildException, IOException, InterruptedException, TaskException
+	{
+		try
+		{
+			ImageJ.main( args );
+			final ApposeTaskListener listener = new FijiApposeTaskListener();
+			//final ImagePlus imp = IJ.openImage( "http://imagej.net/images/blobs.gif" );
+			final ImagePlus imp = IJ.openImage( "../data_tests/lotsmalldots.tif" );
+			//imp.show();
+	
+			final Cellpose3Parameters paramsCP3 = Cellpose3Parameters.builder()
+					.model( Cellpose3BuiltinModels.CYTO2 )
+					.diameter( 6 )
+					.minSize(2)
+					.torchVersion("cu130")
+					.build();
+			final ImagePlus[] outputCP3 = Cellpose.cellpose3( imp, paramsCP3, listener, "32-bit" );
+			final ImagePlus labelsCP3 = outputCP3[ 0 ];
+			System.out.println(labelsCP3.getBitDepth());
+
+			labelsCP3.show();
+					}
+		catch ( final Exception e )
+		{
+			e.printStackTrace();
+		}
+	}*/
 }

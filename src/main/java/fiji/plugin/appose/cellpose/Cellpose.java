@@ -48,6 +48,7 @@ import ij.measure.Calibration;
 import ij.process.StackStatistics;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
+import net.imglib2.Cursor;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.cellpose.ApposeTaskListener;
 import net.imglib2.cellpose.AxisInfo;
@@ -58,6 +59,8 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
+import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.type.numeric.integer.UnsignedIntType;
 
 /**
  * Static calls to Cellpose-3 or Cellpose-SAM.
@@ -90,17 +93,33 @@ public class Cellpose
 	@SuppressWarnings( { "unchecked", "rawtypes" } )
 	public static ImagePlus[] cellpose4( final ImagePlus imp,
 			final Cellpose4Parameters params,
-			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+			final ApposeTaskListener listener,
+			final String labelType
+			) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		Roi initialRoi = imp.getRoi();
 		if ( initialRoi != null )
 			initialRoi = ( Roi ) initialRoi.clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
-		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, params, listener );
-		clearOutsideRoi( outputs, initialRoi );
-
-		final ImagePlus[] imps = toImp( outputs );
+		
+		ImagePlus[] imps;
+		if ( labelType.equals("32-bit"))
+		{
+			final CellposeOutput<UnsignedIntType> outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, new UnsignedIntType(), params, listener );
+			clearOutsideRoi( outputs, initialRoi );
+			final RandomAccessibleInterval< UnsignedIntType > labels = outputs.labels;
+			final ImagePlus labelsImp = ImageJFunctions.wrapFloat( labels, "labels" );
+			imps = toImp( labels, outputs, labelsImp );
+		}
+		else {
+			final CellposeOutput<UnsignedShortType> outputs = net.imglib2.cellpose.Cellpose.cellpose4( input, inputAxes, new UnsignedShortType(), params, listener );
+			clearOutsideRoi( outputs, initialRoi );
+			final RandomAccessibleInterval< UnsignedShortType > labels = outputs.labels;
+			final ImagePlus labelsImp = ImageJFunctions.wrap( labels, "labels" );
+			imps = toImp( labels, outputs, labelsImp );
+		}
+		
 		for ( final ImagePlus out : imps )
 			transferCalibration( imp, out, initialRoi );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-SAM" );
@@ -136,17 +155,33 @@ public class Cellpose
 	public static ImagePlus[] cellpose3(
 			final ImagePlus imp,
 			final Cellpose3Parameters params,
-			final ApposeTaskListener listener ) throws BuildException, IOException, InterruptedException, TaskException
+			final ApposeTaskListener listener,
+			final String labelType
+			) throws BuildException, IOException, InterruptedException, TaskException
 	{
 		Roi initialRoi = imp.getRoi();
 		if ( initialRoi != null )
 			initialRoi = ( Roi ) initialRoi.clone();
 		final ImgPlus input = rawWraps( imp );
 		final AxisInfo inputAxes = getAxisInfo( input );
-		final CellposeOutput outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, params, listener );
-		clearOutsideRoi( outputs, initialRoi );
+		ImagePlus[] imps;
+		if ( labelType.equals("32-bit"))
+		{
+			final CellposeOutput<UnsignedIntType> outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, new UnsignedIntType(), params, listener );
+			clearOutsideRoi( outputs, initialRoi );
+			final RandomAccessibleInterval< UnsignedIntType > labels = outputs.labels;
+			final ImagePlus labelsImp = ImageJFunctions.wrapFloat( labels, "labels" );
+			imps = toImp(labels, outputs, labelsImp);
+		}
+		else {
+			final CellposeOutput<UnsignedShortType> outputs = net.imglib2.cellpose.Cellpose.cellpose3( input, inputAxes, new UnsignedShortType(), params, listener );
+			clearOutsideRoi( outputs, initialRoi );
+			final RandomAccessibleInterval< UnsignedShortType > labels = outputs.labels;
+			final ImagePlus labelsImp = ImageJFunctions.wrap( labels, "labels" );
+			imps = toImp( labels, outputs, labelsImp );
+		}
 
-		final ImagePlus[] imps = toImp( outputs );
+		
 		for ( final ImagePlus out : imps )
 			transferCalibration( imp, out, initialRoi );
 		imps[ 0 ].setTitle( imp.getTitle() + "_Cellpose-3" );
@@ -165,11 +200,9 @@ public class Cellpose
 		return new AxisInfo( x, y, c, z, t );
 	}
 
-	private static < R extends IntegerType< R > & NativeType< R > > ImagePlus[] toImp( final CellposeOutput< R > outputs )
+	private static < R extends IntegerType< R > & NativeType< R > > ImagePlus[] toImp( final RandomAccessibleInterval<R> labels, final CellposeOutput<R> outputs, final ImagePlus labelsImp )
 	{
-		final RandomAccessibleInterval< R > labels = outputs.labels;
-		final ImagePlus labelsImp = ImageJFunctions.wrap( labels, "labels" );
-
+		
 		// Set dimensionality. We assume output are always XYCZT.
 		final AxisInfo axesLabels = outputs.axesLabels;
 		final int nC = ( int ) axesLabels.nChannels( labels );
@@ -219,6 +252,7 @@ public class Cellpose
 	 */
 	private static final void transferCalibration( final ImagePlus from, final ImagePlus to, final Roi initialRoi )
 	{
+		
 		final Calibration fc = from.getCalibration();
 		final Calibration tc = to.getCalibration();
 
