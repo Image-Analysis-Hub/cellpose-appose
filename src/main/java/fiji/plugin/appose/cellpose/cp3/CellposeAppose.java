@@ -239,7 +239,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		final MutableModuleItem< String > imageItem =
 				getInfo().getMutableInput( "image_title", String.class );
 		imageItem.setChoices( images );
-		imageItem.setDefaultValue(init_title);
+		imageItem.setValue( this, init_title);
+		//imageItem.set(init_title);
 		
 		final List< String > channelChoices = getChannelChoices( imp, true );
 
