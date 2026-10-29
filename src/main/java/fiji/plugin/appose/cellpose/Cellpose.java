@@ -37,12 +37,16 @@ import static fiji.plugin.appose.ApposeUtils.rawWraps;
 import static fiji.plugin.appose.ApposeUtils.useGlasbeyDarkLUT;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apposed.appose.BuildException;
 import org.apposed.appose.TaskException;
 
 import ij.CompositeImage;
+import ij.IJ;
 import ij.ImagePlus;
+import ij.WindowManager;
 import ij.gui.Roi;
 import ij.measure.Calibration;
 import ij.process.StackStatistics;
@@ -274,5 +278,26 @@ public class Cellpose
 			tc.xOrigin = fc.xOrigin;
 			tc.yOrigin = fc.yOrigin;
 		}
+	}
+	
+	/**
+	 * Gives the list of currently opened images
+	 * return
+	 */
+	public static List<String> getOpenedImages()
+	{
+		 int[] ids = WindowManager.getIDList();   // null if no image is open
+		 List<String> images = new ArrayList<>();
+		 
+	        if (ids == null) {
+	            IJ.log("No images open.");
+	            return images;
+	        }
+	        
+	        for (int id : ids) {
+	            ImagePlus imp = WindowManager.getImage(id);   // works for batch-mode images too
+	            images.add(imp.getTitle());
+	        }
+	        return images;
 	}
 }
