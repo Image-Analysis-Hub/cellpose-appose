@@ -96,6 +96,10 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
     @Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist = false)
     private final String initMsg = "<html><hr width='100'></html>";
+    
+    @Parameter( label="Segment image", description="Choose image to segment", choices= {})
+	private String image_title = ""; // choice of image to run the segmentation on
+
 
     @Parameter( label = "Cellpose model", description = "Choose CP model to run" )
 	private Cellpose4BuiltinModels cp_model = Cellpose4BuiltinModels.CPSAMV2; // cellpose model to use, ignored if custom model path is provided
@@ -188,6 +192,13 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	private boolean use3d = false;
 
 	private double anisotropy = 1.0;
+	
+	// There are some issue of fetching the currenlty open Window in Fiji macro in BatchMode
+	// So add a parameter to force to choose the images
+	private String init_title = "";
+	private boolean init_is3d = false;
+	private int init_nchannels = 0;
+
 
 
 	/*
@@ -211,6 +222,21 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		}
 		
 		is3D = is3d( imp );
+		
+		// Sometimes in batch mode from macro the currentimage is wrong, for some obscure reason
+		// So added handling of the choice of the image to run on
+		// Remember the initial image, in case something changed
+		init_title = imp.getTitle(); // Remember what was the initial image read by the plugin
+		init_is3d = is3D;
+		init_nchannels = imp.getNChannels();
+		// Propose all available images (opened).
+		// Warning: if the selected image is not the active one, the number of channels and 3D or not could change
+		final List<String> images = Cellpose.getOpenedImages();
+		final MutableModuleItem< String > imageItem =
+					getInfo().getMutableInput( "image_title", String.class );
+		imageItem.setChoices( images );
+		imageItem.setDefaultValue(init_title);
+				
 
 		final List< String > channelChoices = getChannelChoices( imp, false );
 
@@ -289,7 +315,24 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 	{
 
 		// Grab the current image.
-		final ImagePlus imp = WindowManager.getCurrentImage();
+		//final ImagePlus imp = WindowManager.getCurrentImage();
+		final ImagePlus imp = WindowManager.getImage(image_title);
+		if ( !image_title.equals(init_title))
+		{
+			if (is3d(imp) != init_is3d )
+			{
+				IJ.error("The plugin initialized on "+init_title+" but should run on "+image_title+"; these 2 images don't have the same dimension so selected parameters could be wrong. Select the good image and start again ");
+				return;
+			}
+			/**if (imp.getNChannels() != init_nchannels )
+			{
+				IJ.error("The plugin initialized on "+init_title+" but should run on "+image_title+"; these 2 images don't have the same dimension so selected parameters could be wrong. Select the good image and start again ");
+				return;
+			}*/
+			IJ.log("Warning: parameters were set based on the image "+init_title+" but will run on "+image_title+".");
+			IJ.log("Check that the parameters selected correspond to the image you want to segment");
+		}
+		
 		try
 		{
 			// Get the parameters based on the image properties

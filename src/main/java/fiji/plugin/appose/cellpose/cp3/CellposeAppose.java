@@ -42,6 +42,7 @@ import static fiji.plugin.appose.ApposeUtils.is3d;
 
 import java.awt.Color;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -103,6 +104,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 			
 	@Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist=false)
     private final String initMsg = "<html><hr width='100'></html>";
+	
+	@Parameter( label="Segment image", description="Choose image to segment", choices= {})
+	private String image_title = ""; // choice of image to run the segmentation on
 
 	@Parameter( label = "Cellpose model", description = "Choose CP model to run" )
 	private Cellpose3BuiltinModels cp_model = Cellpose3BuiltinModels.CYTO3; // cellpose model to use, ignored if custom model path is provided
@@ -191,6 +195,12 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	// ---------
 	
 	private boolean use3d = false;
+	
+	// There are some issue of fetching the currenlty open Window in Fiji macro in BatchMode
+	// So add a parameter to force to choose the images
+	private String init_title = "";
+	private boolean init_is3d = false;
+	private int init_nchannels = 0;
 
 	private double anisotropy = 1.0;
 
@@ -205,12 +215,9 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	{
 
 		// prefService.clear( this.getClass() ); 
-
-
-		// set the default value, otherwise it gets to -6
-		// setInput( "cellprob_threshold", 0.0) ;
 		// Grab the current image (last touched image in Fiji)
-		final ImagePlus imp = WindowManager.getCurrentImage();
+		final ImagePlus imp = WindowManager.getCurrentImage(); // this creates sometimes an error in batchmode. Tmp fix with adding parameter to choose the iamge to run on
+		
 		if ( imp == null )
 		{
 			// ToDo: Find a cleaner way to exit, the "return" still trigger the
@@ -220,7 +227,20 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 		}
 		
 		is3D = is3d( imp );
-
+		// Remember the initial image, in case something changed
+		init_title = imp.getTitle(); // Remember what was the initial image read by the plugin
+		init_is3d = is3D;
+		init_nchannels = imp.getNChannels();
+		
+		
+		// Propose all available images (opened).
+		// Warning: if the selected image is not the active one, the number of channels and 3D or not could change
+		final List<String> images = Cellpose.getOpenedImages();
+		final MutableModuleItem< String > imageItem =
+				getInfo().getMutableInput( "image_title", String.class );
+		imageItem.setChoices( images );
+		imageItem.setDefaultValue(init_title);
+		
 		final List< String > channelChoices = getChannelChoices( imp, true );
 
 		// Set the max possible value of channels based on image dimension
@@ -305,9 +325,25 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	public void run()
 	{
 
-
 		// Grab the current image.
-		final ImagePlus imp = WindowManager.getCurrentImage();
+		//final ImagePlus imp = WindowManager.getCurrentImage();
+		final ImagePlus imp = WindowManager.getImage(image_title);
+		if ( !image_title.equals(init_title))
+		{
+			if (is3d(imp) != init_is3d )
+			{
+				IJ.error("The plugin initialized on "+init_title+" but should run on "+image_title+"; these 2 images don't have the same dimension so selected parameters could be wrong. Select the good image and start again ");
+				return;
+			}
+			/**if (imp.getNChannels() != init_nchannels )
+			{
+				IJ.error("The plugin initialized on "+init_title+" but should run on "+image_title+"; these 2 images don't have the same dimension so selected parameters could be wrong. Select the good image and start again ");
+				return;
+			}*/
+			IJ.log("Warning: parameters were set based on the image "+init_title+" but will run on "+image_title+".");
+			IJ.log("Check that the parameters selected correspond to the image you want to segment");
+		}
+		//System.out.println(imp.getTitle());
 		
 		// Check if the image is RGB
 		if ( imp.isRGB() )
@@ -406,7 +442,8 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 				RoiManager.getInstance2().runCommand( "Show All" );
 			}
 			labels.show();
-
+			
+			
 			if ( compute_flows && outputs.length > 1 )
 			{
 				final ImagePlus flows = outputs[ 1 ];

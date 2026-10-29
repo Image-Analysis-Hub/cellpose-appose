@@ -45,8 +45,8 @@ public class MainCP3
 		final ImageJ ij = new ImageJ();
 		ij.launch();
 //		IJ.openImage( "/Users/tinevez/Desktop/R2_oneC-crop-1.tif" ).show();
-		IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" ).show();
-//		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
+//		IJ.openImage( "/Users/tinevez/Desktop/R2_multiC-crop-1.tif" ).show();
+		IJ.openImage( "http://imagej.net/images/blobs.gif" ).show();
 //		IJ.openImage( "samples/test.tif" ).show();
 		ij.command().run( CellposeAppose.class, true );
 	}
