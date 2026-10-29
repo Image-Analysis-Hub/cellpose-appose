@@ -284,20 +284,27 @@ public class Cellpose
 	 * Gives the list of currently opened images
 	 * return
 	 */
-	public static List<String> getOpenedImages()
+	public static List<String> getOpenedImages(String current_title)
 	{
 		 int[] ids = WindowManager.getIDList();   // null if no image is open
 		 List<String> images = new ArrayList<>();
-		 
-	        if (ids == null) {
-	            IJ.log("No images open.");
-	            return images;
-	        }
-	        
+
+	     if (ids == null) {
+	          IJ.log("No images open.");
+	          return images;
+	     }
+	     // Put first the current image so that it will be selected by default 
+		 images.add(current_title);
+	   
 	        for (int id : ids) {
 	            ImagePlus imp = WindowManager.getImage(id);   // works for batch-mode images too
-	            images.add(imp.getTitle());
+	            String title = imp.getTitle();
+	            if (title != null && !title.equals(current_title))
+	            {
+	            	images.add(imp.getTitle());
+	            }
 	        }
+	        
 	        return images;
 	}
 }

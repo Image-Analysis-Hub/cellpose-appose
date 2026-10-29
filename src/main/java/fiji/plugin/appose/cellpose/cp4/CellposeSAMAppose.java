@@ -97,7 +97,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
     @Parameter(visibility=ItemVisibility.MESSAGE, label="<html><b>Cellpose Parameters</b></html>", persist = false)
     private final String initMsg = "<html><hr width='100'></html>";
     
-    @Parameter( label="Segment image", description="Choose image to segment", choices= {})
+    @Parameter( label="Segment image", description="Choose image to segment", choices= {}, persist=false)
 	private String image_title = ""; // choice of image to run the segmentation on
 
 
@@ -231,12 +231,11 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 		init_nchannels = imp.getNChannels();
 		// Propose all available images (opened).
 		// Warning: if the selected image is not the active one, the number of channels and 3D or not could change
-		final List<String> images = Cellpose.getOpenedImages();
+		final List<String> images = Cellpose.getOpenedImages(init_title);
 		final MutableModuleItem< String > imageItem =
 					getInfo().getMutableInput( "image_title", String.class );
 		imageItem.setChoices( images );
-		imageItem.setValue( this, init_title);
-		//imageItem.setDefaultValue(init_title);
+		//imageItem.setValue( this, init_title);
 				
 
 		final List< String > channelChoices = getChannelChoices( imp, false );
