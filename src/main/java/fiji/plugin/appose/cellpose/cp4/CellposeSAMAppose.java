@@ -102,7 +102,7 @@ public class CellposeSAMAppose extends DynamicCommand implements Initializable
 
     //pesist to false necessary, otherwise creates a bug between what is visible in the GUI and what is actually read
     @Parameter( label = "Cellpose model", description = "Choose CP model to run", persist=false )
-	private Cellpose4BuiltinModels cp_model = Cellpose4BuiltinModels.CPSAMV2; // cellpose model to use, ignored if custom model path is provided
+	private Cellpose4BuiltinModels cp_model; // cellpose model to use, ignored if custom model path is provided
     
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
 	private String custom_model = ""; // path to custom model, if empty use the selected Cellpose model

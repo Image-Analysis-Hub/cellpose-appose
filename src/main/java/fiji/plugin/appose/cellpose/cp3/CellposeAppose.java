@@ -109,7 +109,7 @@ public class CellposeAppose extends DynamicCommand implements Initializable
 	private String image_title = ""; // choice of image to run the segmentation on
 
 	@Parameter( label = "Cellpose model", description = "Choose CP model to run", persist=false )
-	private Cellpose3BuiltinModels cp_model = Cellpose3BuiltinModels.CYTO3; // cellpose model to use, ignored if custom model path is provided
+	private Cellpose3BuiltinModels cp_model; // cellpose model to use, ignored if custom model path is provided
 
 	@Parameter( label = "Path to custom model", description = "Custom model path, overrides the Cellpose model", required = false )
 	private String custom_model = ""; // path to custom model, if empty use the selected Cellpose model
